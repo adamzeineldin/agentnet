@@ -1,0 +1,118 @@
+"""Robot Passport schema.
+
+Every section carries a provenance tag:
+  declared  - written in AgentNet's catalog (cannot be read from the model)
+  model     - read directly from the compiled MuJoCo model
+  measured  - computed by sampling / simulating the model
+"""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field
+
+PASSPORT_SCHEMA_VERSION = "1.0"
+
+Provenance = Literal["declared", "model", "measured"]
+Vec3 = tuple[float, float, float]
+
+
+class _Frozen(BaseModel):
+    model_config = ConfigDict(frozen=True)
+
+
+class JointInfo(_Frozen):
+    name: str
+    joint_id: int
+    joint_type: Literal["hinge", "slide"]
+    limited: bool
+    lower: float
+    upper: float
+
+
+class ActuatorInfo(_Frozen):
+    name: str
+    actuator_id: int
+    joint_name: str
+    control_mode: Literal["position_servo"]
+    kp: float
+    kv: float
+    ctrl_range: tuple[float, float]
+    force_range: tuple[float, float]
+
+
+class EndEffectorInfo(_Frozen):
+    site_name: str
+    parent_body: str
+    source: Literal["model", "added_by_agentnet"]
+    offset_m: Vec3
+    home_position: Vec3
+    note: str
+
+
+class WorkspaceEstimate(_Frozen):
+    method: str
+    seed: int
+    samples_requested: int
+    samples_collision_free: int
+    rejected_self_collision: int
+    rejected_floor_or_env: int
+    rejected_below_floor: int
+    bounds_min: Vec3
+    bounds_max: Vec3
+    max_reach_m: float
+    median_reach_m: float
+    reach_reference: str
+    points: list[Vec3] = Field(description="Subsample of collision-free EE positions")
+
+
+class CapabilityEvidence(_Frozen):
+    task_type: str
+    status: Literal["verified_in_sim", "measured", "unverified"]
+    provenance: Provenance
+    evidence: dict
+    note: str
+
+
+class RobotPassport(_Frozen):
+    schema_version: str = PASSPORT_SCHEMA_VERSION
+    robot_id: str
+    display_name: str
+    short_name: str
+    model_source: str
+    model_version: str
+    model_file: str
+    model_hash: str
+    mujoco_version: str
+    fallback_model: bool
+    joint_names: list[str]
+    arm_joints: list[JointInfo]
+    dof: int
+    actuators: list[ActuatorInfo]
+    end_effector: EndEffectorInfo
+    base_frame: dict
+    tool_type: str
+    home_qpos: list[float]
+    workspace: WorkspaceEstimate
+    capabilities: list[CapabilityEvidence]
+    simulation_assumptions: list[str]
+    calibration_status: str
+    field_provenance: dict[str, Provenance]
+    created_at: datetime
+    compute_seconds: float
+
+
+class RobotSummary(_Frozen):
+    robot_id: str
+    display_name: str
+    short_name: str
+    dof: int
+    model_source: str
+    model_hash: str
+    tool_type: str
+    max_reach_m: float
+    fallback_model: bool
+    snapshot_url: str
+    created_at: datetime

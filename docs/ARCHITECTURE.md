@@ -1,0 +1,19 @@
+# Architecture (M1)
+
+```
+Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Simulation worker (1 thread)
+  Overview / Fleet / History          api/robots, runs        scene → RobotAdapter → IK → execute_path → render
+                                       │                                   │
+                                       └──── Registry (SQLite: passports, runs) ◀──┘   artifacts/ (MP4, PNG)
+```
+
+- **scene.py** builds the MJCF with `MjSpec`: Menagerie scene + AgentNet TCP site (if needed) +
+  obstacle boxes (collidable) + target/waypoint marker sites (visual only).
+- **robot_adapter.py** discovers joints/actuators/EE from the compiled model; FK, Jacobian, servo
+  commands, contact classification, kinematic collision screening.
+- **kinematics.py** DLS position IK. **simulation.py** speed-limited interpolation, physics execution
+  with adaptive settle, dense path screening.
+- **passports.py** builds `RobotPassport` (model facts + sampled workspace + IK probes, provenance-tagged).
+- **jobs.py** single worker, run creation, typed events; any exception becomes a `failed` run.
+- Run status vocabulary: `queued → profiling → retrieving → checking → proposing → planning →
+  simulating → selecting → executing → verifying → publishing → succeeded | failed`.
