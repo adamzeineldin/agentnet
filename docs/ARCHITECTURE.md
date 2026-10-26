@@ -1,4 +1,4 @@
-# Architecture (M1)
+# Architecture (M2)
 
 ```
 Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Simulation worker (1 thread)
@@ -17,3 +17,19 @@ Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Sim
 - **jobs.py** single worker, run creation, typed events; any exception becomes a `failed` run.
 - Run status vocabulary: `queued → profiling → retrieving → checking → proposing → planning →
   simulating → selecting → executing → verifying → publishing → succeeded | failed`.
+
+## Skill discovery (M2)
+
+```
+generate_task(seed) ─▶ TaskSpec (task frame) ─▶ world_scene(placement) ─▶ MjSpec model
+                         │
+ generate_candidates ─▶ 10 RouteCandidates ─▶ evaluate_candidate:
+                         IK tracking → continuity → kinematic screening → clearance  (route_planner.py)
+                         │ feasible, sorted by cost
+                         ▼
+ physics_rollout × top-3 (fresh MjData each) ─▶ select lowest-cost verified
+                         ▼
+ re-execute winner with FrameRecorder ─▶ verify (incl. reproduces rollout) ─▶ capsule draft in run.results
+                         ▼
+ POST /api/skills {run_id} ─▶ publish_from_run ─▶ skills table (lineage via parent_skill_id)
+```

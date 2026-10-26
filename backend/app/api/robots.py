@@ -31,7 +31,7 @@ def get_robot(robot_id: str, registry: Registry = Depends(get_registry)) -> Robo
     passport = registry.get_passport(_require_robot(robot_id))
     if passport is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Passport not computed yet")
-    return passport
+    return fleet.with_skill_evidence(passport, registry.list_skills(source_robot_id=robot_id))
 
 
 @router.post("/{robot_id}/profile", response_model=RobotPassport)

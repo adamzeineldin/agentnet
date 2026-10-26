@@ -140,3 +140,62 @@ export interface RunRecord {
 }
 
 export const TERMINAL: ReadonlySet<RunStatus> = new Set(["succeeded", "failed"]);
+
+// ---- Skills (backend/app/models/skill.py)
+export type RouteClass = "direct" | "over" | "near_side" | "far_side";
+export type CandidateOutcome =
+  | "unreachable" | "discontinuous_ik" | "collision" | "insufficient_clearance"
+  | "physics_failure" | "feasible" | "verified" | "not_simulated";
+
+export interface BoxSpec { name: string; center: Vec3; half_size: Vec3 }
+export interface TaskSpec {
+  scene_id: string; seed: number; start: Vec3; target: Vec3; obstacles: BoxSpec[]; description: string;
+}
+export interface Placement { translation: Vec3; yaw_rad: number; rationale: string }
+
+export interface CandidateSummary {
+  candidate_id: string;
+  route_class: RouteClass;
+  clearance_m: number;
+  stage_reached: string;
+  outcome: CandidateOutcome;
+  reason: string;
+  waypoints_task: Vec3[];
+  joint_path_length_rad: number | null;
+  ee_path_length_m: number | null;
+  min_clearance_m: number | null;
+  contacts: Record<string, unknown>[];
+  physics: { endpoint_error_m: number; simulated_seconds: number; collisions: unknown[]; checks: Record<string, boolean> } | null;
+  cost: number | null;
+}
+
+export interface ExperienceCapsule {
+  schema_version: string;
+  skill_id: string;
+  version: number;
+  parent_skill_id: string | null;
+  lineage: string[];
+  status: "verified_in_sim";
+  source_robot_id: string;
+  source_model_hash: string;
+  task_type: string;
+  goal: string;
+  reference_frame: string;
+  frame_convention: string;
+  task: TaskSpec;
+  placement: Placement;
+  strategy: { route_class: RouteClass; clearance_m: number; description: string };
+  waypoints_task_frame: Vec3[];
+  executed_trace_task_frame: Vec3[];
+  candidate_outcomes: Pick<CandidateSummary, "candidate_id" | "route_class" | "clearance_m" | "outcome" | "reason" | "cost" | "min_clearance_m">[];
+  requirements: Record<string, unknown>;
+  environment: Record<string, unknown>;
+  provenance: Record<string, unknown>;
+  validation: {
+    success: boolean; collisions: number; endpoint_error_m: number; min_clearance_m: number;
+    simulated_seconds: number; candidates_evaluated: number; candidates_verified: number; tolerance_m: number;
+  };
+  created_at: string;
+}
+
+export interface SkillDetail { capsule: ExperienceCapsule; ancestors: ExperienceCapsule[]; children: ExperienceCapsule[] }

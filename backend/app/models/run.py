@@ -74,3 +74,9 @@ class MotionCheckRequest(BaseModel):
         if not (-1.2 <= x <= 1.2 and -1.2 <= y <= 1.2 and 0.02 <= z <= 1.4):
             raise ValueError("target must lie within |x|,|y| <= 1.2 m and 0.02 <= z <= 1.4 m")
         return target
+
+
+class DiscoverRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    robot_id: str = "panda_01"
+    scene_seed: int = Field(default=42, ge=0, le=2**31 - 1)

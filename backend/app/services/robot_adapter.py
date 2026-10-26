@@ -183,6 +183,13 @@ class RobotAdapter:
         mujoco.mj_resetDataKeyframe(self.model, data, self.home_key_id)
         mujoco.mj_forward(self.model, data)
 
+    def reset_to(self, data: mujoco.MjData, q: np.ndarray) -> None:
+        """Home keyframe (ctrl, gripper) with the arm placed at q, at rest."""
+        mujoco.mj_resetDataKeyframe(self.model, data, self.home_key_id)
+        self.set_arm_q(data, q)
+        data.qvel[:] = 0.0
+        mujoco.mj_forward(self.model, data)
+
     def home_q(self) -> np.ndarray:
         return self.model.key_qpos[self.home_key_id][self.qpos_idx].copy()
 

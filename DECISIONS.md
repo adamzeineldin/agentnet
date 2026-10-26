@@ -18,6 +18,13 @@
 | D14 | CORS: regex for localhost/127.0.0.1 any port | Next dev may move off :3000; app is local-only. Override via `AGENTNET_CORS_ORIGIN_REGEX`. |
 | D15 | Data-mark color `#0ea5c6` | Passed the dataviz validator lightness band and contrast on the dark surface; brighter cyan kept for UI chrome only. |
 | D16 | Skill Library / Transfer Lab nav items shown disabled | Avoid UI that does not map to backend data before M2/M3. |
+| D17 | Task frame: origin on the floor in front of the robot, +x radial, +y lateral, +z up; placement = translation (+ yaw, not yet supported for boxes) | Capsules carry geometry in a robot-independent frame; target robots re-place it in their own base frame. |
+| D18 | Source skill = enumerated route classes × clearances, not RRT | Plan's recommended start; gives interpretable, transferable strategy classes and honest per-candidate failure reasons. |
+| D19 | IK tracking along 2 cm task-space steps, each seeded by the previous solution; reject joint jumps > 0.25 rad | Prevents IK branch flips producing sweeping motions between screened samples. |
+| D20 | Minimum link-obstacle clearance 10 mm (from `mj_geomDistance` on every 25th physics-rate sample) | Contact-free but grazing paths are rejected as unsafe; threshold recorded in reasons. |
+| D21 | Cost = joint path length (rad) + 1.0 × EE path length (m); top 3 feasible by cost get physics rollouts | Matched simulation budget per run; mixed units are documented, weights are not tuned. |
+| D22 | Discovery drafts the capsule; publishing is a separate explicit call | Matches the "Publish Experience" step; failed runs can never become validated capsules. |
+| D23 | Capability `obstacle_aware_reach` derived at read time from published skills (passport copy) | Stored passport stays a pure model/measurement artifact. |
 
 ## Open questions / blockers
 - Meta Model API: no key configured yet; reasoning runs offline. Endpoint and tool-calling format to be verified against https://dev.meta.ai/docs before M4.

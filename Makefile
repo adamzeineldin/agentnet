@@ -1,6 +1,6 @@
 PY := backend/.venv/bin/python
 
-.PHONY: setup models backend-deps frontend-deps dev test smoke lint build
+.PHONY: setup models backend-deps frontend-deps dev test smoke discover lint build
 
 setup: backend-deps models frontend-deps ## one-time install
 
@@ -23,6 +23,9 @@ test:
 
 smoke:
 	cd backend && .venv/bin/python scripts/smoke_sim.py
+
+discover:
+	cd backend && .venv/bin/python scripts/discover_skill.py --seed 42 --publish
 
 lint:
 	npm --prefix frontend run lint

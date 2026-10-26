@@ -15,6 +15,7 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sess
 
 from app.models.robot import RobotPassport
 from app.models.run import RunEvent, RunRecord
+from app.models.skill import ExperienceCapsule
 
 
 class Base(DeclarativeBase):
@@ -34,6 +35,16 @@ class RunRow(Base):
     run_id: Mapped[str] = mapped_column(String, primary_key=True)
     run_type: Mapped[str] = mapped_column(String, index=True)
     status: Mapped[str] = mapped_column(String, index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class SkillRow(Base):
+    __tablename__ = "skills"
+    skill_id: Mapped[str] = mapped_column(String, primary_key=True)
+    source_robot_id: Mapped[str] = mapped_column(String, index=True)
+    parent_skill_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
+    run_id: Mapped[str] = mapped_column(String, unique=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
@@ -98,6 +109,37 @@ class Registry:
         if robot_id:
             runs = [r for r in runs if robot_id in (r.source_robot_id, r.target_robot_id)]
         return runs
+
+    # ---------------------------------------------------------------- skills
+    def save_skill(self, capsule: ExperienceCapsule) -> ExperienceCapsule:
+        with self._tx() as s:
+            s.add(
+                SkillRow(
+                    skill_id=capsule.skill_id,
+                    source_robot_id=capsule.source_robot_id,
+                    parent_skill_id=capsule.parent_skill_id,
+                    run_id=capsule.provenance["run_id"],
+                    payload=capsule.model_dump(mode="json"),
+                    created_at=capsule.created_at,
+                )
+            )
+        return capsule
+
+    def get_skill(self, skill_id: str) -> ExperienceCapsule | None:
+        with self._session() as s:
+            row = s.get(SkillRow, skill_id)
+            return ExperienceCapsule.model_validate(row.payload) if row else None
+
+    def list_skills(
+        self, source_robot_id: str | None = None, parent_skill_id: str | None = None
+    ) -> list[ExperienceCapsule]:
+        stmt = select(SkillRow).order_by(SkillRow.created_at.desc())
+        if source_robot_id:
+            stmt = stmt.where(SkillRow.source_robot_id == source_robot_id)
+        if parent_skill_id:
+            stmt = stmt.where(SkillRow.parent_skill_id == parent_skill_id)
+        with self._session() as s:
+            return [ExperienceCapsule.model_validate(r.payload) for r in s.scalars(stmt)]
 
     def append_event(self, run_id: str, event: RunEvent, **changes: object) -> RunRecord:
         """Return a new RunRecord with the event appended (and fields changed), persisted."""

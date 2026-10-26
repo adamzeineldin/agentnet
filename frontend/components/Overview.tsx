@@ -24,9 +24,9 @@ export function Overview() {
             their own kinematics and verify it in MuJoCo before reuse.
           </p>
         </div>
-        <Link href="/robots"
+        <Link href="/transfer"
           className="rounded-lg border border-accent-dim bg-accent/15 px-4 py-2 text-sm font-medium text-accent hover:bg-accent/25">
-          Open Robot Fleet →
+          Open Transfer Lab →
         </Link>
       </div>
 
@@ -46,7 +46,7 @@ export function Overview() {
             {all.slice(0, 7).map((r) => (
               <li key={r.run_id} className="flex items-center justify-between gap-2 text-xs">
                 <div className="min-w-0">
-                  <div className="truncate text-ink-2">{r.run_type.replace("_", " ")} · {r.source_robot_id}</div>
+                  <div className="truncate text-ink-2">{r.run_type.replace("_", " ")} · {r.source_robot_id}{r.skill_id ? ` · ${r.skill_id}` : ""}</div>
                   <div className="text-ink-3">{fmtDateTime(r.created_at)} · err {fmtM(r.endpoint_error_m, 2)}</div>
                 </div>
                 <StatusBadge status={r.status} />

@@ -9,7 +9,13 @@ import logging
 from pathlib import Path
 
 from app.config import ARTIFACT_DIR
-from app.models.robot import PASSPORT_SCHEMA_VERSION, RobotPassport, RobotSummary
+from app.models.robot import (
+    PASSPORT_SCHEMA_VERSION,
+    CapabilityEvidence,
+    RobotPassport,
+    RobotSummary,
+)
+from app.models.skill import ExperienceCapsule
 from app.services.jobs import SimulationWorker
 from app.services.passports import build_passport, model_dir_hash
 from app.services.registry import Registry
@@ -69,3 +75,24 @@ def summarize(passport: RobotPassport) -> RobotSummary:
         snapshot_url=snapshot_url(passport.robot_id),
         created_at=passport.created_at,
     )
+
+
+def with_skill_evidence(passport: RobotPassport, skills: list[ExperienceCapsule]) -> RobotPassport:
+    """Copy of the passport whose reach capability reflects published, verified skills."""
+    own = [s for s in skills if s.source_robot_id == passport.robot_id and s.validation.success]
+    if not own:
+        return passport
+    reach = CapabilityEvidence(
+        task_type="obstacle_aware_reach",
+        status="verified_in_sim",
+        provenance="measured",
+        evidence={
+            "verified_skills": len(own),
+            "skill_ids": ", ".join(s.skill_id for s in own[:5]),
+            "best_endpoint_error_m": min(s.validation.endpoint_error_m for s in own),
+            "scenes": ", ".join(sorted({s.task.scene_id for s in own})),
+        },
+        note="Verified in MuJoCo on the listed scenes only; not a general guarantee.",
+    )
+    caps = [c for c in passport.capabilities if c.task_type != "obstacle_aware_reach"]
+    return passport.model_copy(update={"capabilities": [*caps, reach]})

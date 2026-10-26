@@ -7,8 +7,11 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_registry
-from app.models.run import TERMINAL_STATUSES, RunRecord
+from app.api.deps import get_registry, get_worker
+from app.models.run import TERMINAL_STATUSES, DiscoverRequest, RunRecord
+from app.services.jobs import SimulationWorker, create_run, run_guarded
+from app.services.robot_catalog import ROBOTS
+from app.services.skill_discovery import PLANNER_NAME, discover_skill
 from app.services.registry import Registry
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -30,6 +33,27 @@ def list_runs(
     registry: Registry = Depends(get_registry),
 ) -> list[RunRecord]:
     return registry.list_runs(run_type=run_type, robot_id=robot_id, limit=min(max(limit, 1), 500))
+
+
+@router.post("/discover", response_model=RunRecord, status_code=202)
+def start_discover(
+    body: DiscoverRequest,
+    registry: Registry = Depends(get_registry),
+    worker: SimulationWorker = Depends(get_worker),
+) -> RunRecord:
+    if body.robot_id not in ROBOTS:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown robot '{body.robot_id}'")
+    passport = registry.get_passport(body.robot_id)
+    if passport is None:
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Passport not computed yet")
+    run = create_run(
+        registry, "discover", body.scene_seed, planner=PLANNER_NAME, source_robot_id=body.robot_id
+    )
+    worker.submit(
+        run_guarded, registry, run.run_id,
+        lambda ctx: discover_skill(ctx, body.robot_id, body.scene_seed, passport),
+    )
+    return run
 
 
 @router.get("/{run_id}", response_model=RunRecord)

@@ -10,8 +10,8 @@ import { Badge } from "./ui";
 const NAV: { href: string; label: string; ready: boolean }[] = [
   { href: "/", label: "Overview", ready: true },
   { href: "/robots", label: "Robot Fleet", ready: true },
-  { href: "/skills", label: "Skill Library", ready: false },
-  { href: "/transfer", label: "Transfer Lab", ready: false },
+  { href: "/skills", label: "Skill Library", ready: true },
+  { href: "/transfer", label: "Transfer Lab", ready: true },
   { href: "/history", label: "Run History", ready: true },
 ];
 

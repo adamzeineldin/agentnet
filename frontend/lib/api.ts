@@ -1,4 +1,4 @@
-import type { RunEvent, RunRecord } from "./types";
+import type { ExperienceCapsule, RunEvent, RunRecord } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -36,6 +36,17 @@ export function startMotionCheck(robotId: string, seed = 7): Promise<RunRecord> 
     method: "POST",
     body: JSON.stringify({ seed }),
   });
+}
+
+export function startDiscover(robotId: string, sceneSeed: number): Promise<RunRecord> {
+  return apiFetch<RunRecord>("/api/runs/discover", {
+    method: "POST",
+    body: JSON.stringify({ robot_id: robotId, scene_seed: sceneSeed }),
+  });
+}
+
+export function publishSkill(runId: string): Promise<ExperienceCapsule> {
+  return apiFetch<ExperienceCapsule>("/api/skills", { method: "POST", body: JSON.stringify({ run_id: runId }) });
 }
 
 /** Subscribe to a run's server-sent events. Returns an unsubscribe function. */
