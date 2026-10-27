@@ -4,6 +4,7 @@ import Link from "next/link";
 import { fmtDateTime, fmtM } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import type { ExperienceCapsule, RobotSummary, RunRecord } from "@/lib/types";
+import { ParticleHand } from "./ParticleHand";
 import { RobotCard } from "./RobotCard";
 import { ErrorNote, Loading, Panel, Stat, StatusBadge } from "./ui";
 
@@ -18,24 +19,27 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <section className="grid items-center gap-6 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Shared experience for physical AI</h1>
-          <p className="mt-1 max-w-2xl text-sm text-ink-2">
+          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Shared experience for physical AI</h1>
+          <p className="mt-3 max-w-xl text-sm text-ink-2 md:text-base">
             Robots publish simulation-verified motion experience; robots with different bodies adapt it with
             their own kinematics and verify it in MuJoCo before reuse.
           </p>
+          <div className="mt-6 flex flex-wrap gap-2">
+            <Link href="/present" className="rounded-lg border border-line px-4 py-2 text-sm text-ink-2 hover:text-ink">
+              ▶ Presentation mode
+            </Link>
+            <Link href="/transfer"
+              className="rounded-lg border border-accent-dim bg-accent/15 px-4 py-2 text-sm font-medium text-accent hover:bg-accent/25">
+              Open Transfer Lab →
+            </Link>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Link href="/present" className="rounded-lg border border-line px-4 py-2 text-sm text-ink-2 hover:text-ink">
-            ▶ Presentation mode
-          </Link>
-          <Link href="/transfer"
-            className="rounded-lg border border-accent-dim bg-accent/15 px-4 py-2 text-sm font-medium text-accent hover:bg-accent/25">
-            Open Transfer Lab →
-          </Link>
+        <div className="relative h-[26rem] sm:h-[32rem] md:h-[40rem]">
+          <ParticleHand />
         </div>
-      </div>
+      </section>
 
       <div className="grid gap-4 md:grid-cols-[1fr_1fr_20rem]">
         {robots.error && <ErrorNote message={robots.error} />}
