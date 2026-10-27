@@ -46,9 +46,14 @@
 | D42 | `wall_roof_v1` roof gap widened 0.10–0.16 → 0.16–0.30 m after a probe found zero feasible scenes | A family nobody can solve can't discriminate; tuned for solvability before running any comparison. |
 | D43 | Report generated only from the stored run; findings on the UI generated from numbers | Prevents hand-written claims drifting from data; losses are stated automatically. |
 | D44 | Playwright runs an isolated stack (temp DB, separate `distDir`) | Running `next build` beside `next dev` corrupted the dev server earlier; tests must not touch dev data. |
+| D45 | Separate demo registry (`backend/app/data/demo/`) seeded only by real runs; `seed_demo.py` refuses non-demo paths | Clean screen for recording without deleting dev history; nothing fabricated. |
+| D46 | Recording uses a production build in `.next-demo` (`make demo`) | No Next.js dev indicator on video; doesn't disturb `next dev`. |
+| D47 | Clips encoded with imageio `macro_block_size=4` | 540 px is even but not a multiple of 8; the default resized frames to 544 px (slight stretch). |
+| D48 | Fresh-clone check runs on a copy of `git ls-files -co --exclude-standard` | Tests exactly what a commit would contain (catches missing/ignored files) without committing. |
 
 ## Open questions / blockers
 - Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.
-- Hackathon deadline/rules to be verified in the participant portal.
+- Deadline verified: Nov 4, 2026, 9:00 PM ET. Official Rules (video length, required fields, repo/license, asset
+  rules) were not publicly reachable — check the participant portal (see docs/SUBMISSION.md).
 - The repo lives under `~/Documents`; macOS created `* 2.*` conflict copies inside `frontend/.next` (likely a sync
   service racing with Next's writes). Consider moving the repo outside synced folders.

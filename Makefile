@@ -1,11 +1,13 @@
 PY := backend/.venv/bin/python
+PYTHON ?= python3.13
+DEMO_ENV := AGENTNET_DB_PATH=$(CURDIR)/backend/app/data/demo/agentnet.db AGENTNET_ARTIFACT_DIR=$(CURDIR)/backend/app/data/demo/artifacts
 
-.PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer benchmark e2e lint build
+.PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer benchmark e2e demo-seed demo demo-check lint build
 
 setup: backend-deps models frontend-deps ## one-time install
 
 backend-deps:
-	test -d backend/.venv || python3.13 -m venv backend/.venv
+	test -d backend/.venv || $(PYTHON) -m venv backend/.venv
 	$(PY) -m pip install -q --upgrade pip
 	$(PY) -m pip install -q -e "backend[dev]"
 
@@ -35,6 +37,15 @@ benchmark:
 
 e2e:
 	cd frontend && npx playwright install chromium && npx playwright test
+
+demo-seed: ## clean registry with real recorded runs for the video
+	cd backend && $(DEMO_ENV) .venv/bin/python scripts/seed_demo.py --reset
+
+demo: ## production frontend + backend on the demo registry
+	scripts/demo.sh
+
+demo-check: ## repeat the demo chain and check it is stable
+	cd backend && .venv/bin/python scripts/demo_check.py
 
 lint:
 	npm --prefix frontend run lint

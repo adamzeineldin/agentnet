@@ -14,12 +14,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import DB_PATH  # noqa: E402
 from app.services.fleet import ensure_passports  # noqa: E402
-from app.services.jobs import SimulationWorker, create_run, run_guarded  # noqa: E402
+from app.services.demo_pipeline import run_chain  # noqa: E402
+from app.services.jobs import SimulationWorker  # noqa: E402
 from app.services.registry import Registry  # noqa: E402
-from app.services.skill_discovery import discover_skill  # noqa: E402
-from app.services.skill_discovery import PLANNER_NAME as DISCOVER_PLANNER  # noqa: E402
-from app.services.skill_registry import publish_from_run  # noqa: E402
-from app.services.transfer import PLANNER_NAME, transfer_skill  # noqa: E402
 
 
 def _print(run) -> None:
@@ -39,29 +36,21 @@ def main() -> int:
     registry, worker = Registry(DB_PATH), SimulationWorker()
     try:
         passports = {p.robot_id: p for p in worker.submit(ensure_passports, worker, registry).result()}
-        run = create_run(registry, "discover", args.seed, DISCOVER_PLANNER, source_robot_id="panda_01")
-        src = worker.submit(run_guarded, registry, run.run_id,
-                            lambda ctx: discover_skill(ctx, "panda_01", args.seed, passports["panda_01"])).result()
-        _print(src)
-        if src.status != "succeeded":
-            return 1
-        capsule = publish_from_run(registry, src.run_id)
-        print("published source:", capsule.skill_id)
-        seed = args.target_seed if args.target_seed is not None else capsule.task.seed
-        run = create_run(registry, "transfer", seed, PLANNER_NAME, source_robot_id="panda_01",
-                         target_robot_id="ur5e_01", skill_id=capsule.skill_id)
-        dst = worker.submit(run_guarded, registry, run.run_id,
-                            lambda ctx: transfer_skill(ctx, registry, capsule.skill_id, "ur5e_01",
-                                                       args.target_seed, passports["ur5e_01"])).result()
+        chain = run_chain(registry, worker, passports, args.seed, args.target_seed, publish=args.publish)
     finally:
         worker.shutdown()
+    _print(chain.source_run)
+    if chain.target_run is None:
+        return 1
+    print("published source:", chain.source_capsule.skill_id)
+    dst = chain.target_run
     _print(dst)
     for c in dst.results.get("compatibility", []):
         print(f"  [{c['status']}] {c['check']}: {c['detail']}")
-    print("adaptation:", dst.results.get("adaptation"), "\nmetrics:", {k: v for k, v in dst.results.get("search_metrics", {}).items() if "order" not in k})
-    if args.publish and dst.status == "succeeded":
-        print("published adaptation:", publish_from_run(registry, dst.run_id).skill_id)
-    return 0 if dst.status == "succeeded" else 1
+    print("adaptation:", dst.results.get("adaptation"))
+    if chain.target_capsule:
+        print("published adaptation:", chain.target_capsule.skill_id)
+    return 0 if chain.ok else 1
 
 
 if __name__ == "__main__":

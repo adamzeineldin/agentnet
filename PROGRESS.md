@@ -122,5 +122,18 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - **Gate met:** tests pass end to end; benchmark summary includes raw runs, actual numbers and limitations.
 - Not done: fresh-clone startup check (M7), Meta evaluation (needs key + approval).
 
-## M7 — Record & finalize ⬜
-Next: fresh-clone startup check, freeze, stable demo runs, 2–3 min video, verify submission rules/deadline.
+## M7 — Record & finalize 🟡 (engineering done 2026-10-27; recording and submission are yours)
+- ✅ Deadline verified on dev.meta.ai: **Nov 4, 2026, 9:00 PM ET**. Official Rules (video length, fields,
+  repo/license, asset rules) were not publicly reachable → `docs/SUBMISSION.md` checklist.
+- ✅ Fresh-clone check on a copy of exactly the committable files (no venv/node_modules/models):
+  `make setup` → `make smoke` (PASS both) → `make test` (104 passed) → `make e2e` (7 passed). ~1 min with warm
+  pip/npm caches; a cold machine will take longer.
+- ✅ Stability: `make demo-check` — seed 7 and seed 42 chains, 5 repeats each in a throwaway registry, identical
+  selections and errors every time (seed 7: Panda far_side@0.12 0.57 mm → UR5e over@0.08 0.64 mm), ~1.9 s per chain.
+- ✅ Recording stack: `make demo-seed` (clean demo registry from real runs) + `make demo` (production build,
+  no dev badge, demo registry only). Clips fixed to exact 960×540 (were being resized to 544).
+- ✅ Screenshots of every screen in `assets/screenshots/` (generated from the demo stack); README shows them.
+- ✅ `docs/DEMO_SCRIPT.md` recording checklist + evaluation scene; `docs/SUBMISSION.md`.
+- ⬜ Read Official Rules in the portal; choose track/theme; add a LICENSE.
+- ⬜ Optional: Meta Muse Spark run (needs `MODEL_API_KEY` and your go-ahead to spend).
+- ⬜ Record the 2–3 min video and submit.

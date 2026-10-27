@@ -5,7 +5,7 @@ experience across different simulated embodiments. Robot A (Franka Emika Panda) 
 publishes a verified skill; Robot B (Universal Robots UR5e) adapts it with its own kinematics,
 previews candidates in MuJoCo, and publishes the adaptation with lineage.
 
-> **Status:** Milestones 0–6 complete (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
+> **Status:** Milestones 0–6 complete, M7 engineering done (recording/submission pending) (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
 > only been exercised against mocked responses (no API key configured).
 >
 > **Measured result:** on 20 held-out scenes, shared experience matched a from-scratch search on success
@@ -36,9 +36,12 @@ previews candidates in MuJoCo, and publishes the adaptation with lineage.
   and a one-click **Presentation mode** (`/present`) that replays a recorded chain or runs it live.
   See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
+![Transfer Lab](assets/screenshots/03-transfer-lab.png)
+
 ## Quick start
 
-Requirements: macOS/Linux, Python 3.11+ (tested 3.13), Node 20+ (tested 24), git.
+Requirements: macOS/Linux, Python 3.11+ (tested 3.13; override with `PYTHON=python3.11 make setup`),
+Node 20+ (tested 24), git, network access for the first setup (pip, npm, MuJoCo Menagerie, Playwright Chromium).
 
 ```bash
 make setup     # venv + backend deps, pinned Menagerie models, frontend deps
@@ -48,11 +51,19 @@ make discover  # headless: Panda discovers + publishes a skill on seed 42
 make transfer  # headless: Panda skill (seed 7) transferred to the UR5e (also seeds replay data)
 make benchmark # held-out evaluation; writes docs/EVALUATION_RESULTS.md from the stored run
 make e2e       # Playwright UI tests on an isolated stack (ports 8011/3011, temp DB)
+make demo-check && make demo-seed && make demo   # recording: stability check, clean registry, prod build
 make dev       # backend http://127.0.0.1:8000 + frontend http://localhost:3000
 ```
 
 Copy `.env.example` to `.env` to configure. With no `MODEL_API_KEY` the app runs in the clearly
 labelled **Offline deterministic planner** mode.
+
+## Screens
+
+| | |
+|---|---|
+| ![Overview](assets/screenshots/01-overview.png) | ![Robot Fleet](assets/screenshots/02-robot-fleet.png) |
+| ![Presentation: imagine](assets/screenshots/08-present-imagine.png) | ![Evaluation](assets/screenshots/06-evaluation.png) |
 
 ## Layout
 

@@ -14,6 +14,7 @@ htmlcov/
 backend/app/data/menagerie/
 backend/app/data/*.db
 backend/app/data/artifacts/
+backend/app/data/demo/
 
 # node
 frontend/node_modules/
@@ -28,6 +29,7 @@ frontend/next-env.d.ts
 
 # e2e
 frontend/.next-e2e/
+frontend/.next-demo/
 frontend/test-results/
 frontend/playwright-report/
 .e2e-data/

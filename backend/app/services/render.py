@@ -62,7 +62,8 @@ class FrameRecorder:
         if not self.frames:
             raise ValueError("No frames captured")
         path.parent.mkdir(parents=True, exist_ok=True)
-        iio.imwrite(path, np.stack(self.frames), fps=fps, codec="libx264", macro_block_size=8)
+        # 540 px is even (fine for H.264 yuv420) but not a multiple of 8; avoid a resize that would stretch frames.
+        iio.imwrite(path, np.stack(self.frames), fps=fps, codec="libx264", macro_block_size=4)
         return path
 
     def close(self) -> None:
