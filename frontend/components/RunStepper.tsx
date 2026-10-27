@@ -1,8 +1,10 @@
 import type { RunEvent, RunStatus } from "@/lib/types";
 
-const STEPS: RunStatus[] = ["queued", "profiling", "proposing", "checking", "simulating", "selecting", "executing", "verifying", "succeeded"];
+const DISCOVER: RunStatus[] = ["queued", "profiling", "proposing", "checking", "simulating", "selecting", "executing", "verifying", "succeeded"];
+const TRANSFER: RunStatus[] = ["queued", "retrieving", "profiling", "checking", "proposing", "simulating", "selecting", "executing", "verifying", "succeeded"];
 
-export function RunStepper({ events }: { events: RunEvent[] }) {
+export function RunStepper({ events, kind = "discover" }: { events: RunEvent[]; kind?: "discover" | "transfer" }) {
+  const STEPS = kind === "transfer" ? TRANSFER : DISCOVER;
   const seen = new Set(events.map((e) => e.status));
   const last = events.at(-1)?.status;
   const failed = last === "failed";

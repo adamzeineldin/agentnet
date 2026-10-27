@@ -24,6 +24,9 @@ export function CandidateCards({ candidates, selectedId, hoverId, onHover }: {
                 <Badge tone={TONE[g]}>{ICON[g]} {c.outcome.replaceAll("_", " ")}</Badge>
               </span>
             </div>
+            {c.prior_rank != null && (
+              <p className="mb-1 text-[11px] text-accent">prior #{c.prior_rank} · {c.prior_note}</p>
+            )}
             <p className="mb-2 line-clamp-2 text-ink-2" title={c.reason}>{c.reason}</p>
             <dl className="tabular grid grid-cols-3 gap-1 font-mono text-[11px] text-ink-3">
               <div><dt>clearance</dt><dd className="text-ink-2">{c.min_clearance_m == null ? "—" : fmtM(c.min_clearance_m, 1)}</dd></div>

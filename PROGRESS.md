@@ -39,11 +39,31 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - Observed: across seeds 1–5 and 42, `over` routes are always feasible for both robots — this scene family is
   easy; harder variants are needed for a meaningful evaluation (M6).
 
-## M3 — Cross-robot transfer ⬜
-Next: retrieve capsule via registry → re-place task in UR5e frame → order/parameterise candidates from the
-capsule (strategy first, source failures deprioritised) → UR5e IK + screening + rollouts → adaptation capsule
-with `parent_skill_id`.
+## M3 — Cross-robot transfer ✅ (2026-10-26) — GO
+- ✅ `POST /api/transfers` → run: `retrieving` (capsule from registry) → `profiling` (task re-placed in UR5e
+  base frame) → `checking` (compatibility vs UR5e passport: validation, 7→6 DOF, EE, scene, reach %) →
+  `proposing` (candidates ordered by source experience) → kinematic evaluation → physics rollouts in prior
+  order (same budget of 3 as discovery) → first verified selected → rendered execution + verify.
+- ✅ Prior order: capsule strategy → same route class at nearest clearances → source's other verified routes
+  → source-feasible → source clearance failures → source collisions.
+- ✅ UR5e solves its own 6-DOF IK from task-frame geometry; capsules contain no joint vectors (tested).
+- ✅ Adaptation capsule: `parent_skill_id`, `lineage`, `transferred_from_robot`, `source_strategy`,
+  `strategy_preserved`, `prior_rank_of_selected`; published via the same explicit publish step.
+- ✅ Measured results (UR5e, offline planner):
+  - seed 42, source `over@0.08` → UR5e `over@0.08` (prior #1, preserved), 0.62 mm, 0 contacts, 1st rollout succeeded.
+  - seed 7, source `far_side@0.12` → all far-side candidates collide on UR5e (forearm/wrist vs wall) →
+    `over@0.08` (prior #4, adapted), 0.64 mm, 0 contacts.
+  - held-out scene seed 3 from the seed-42 skill → `over@0.08` (prior #1), 0.68 mm, 0 contacts.
+- ✅ Reproducible: re-running a transfer gives identical selection, start pose and endpoint error (tested).
+- ✅ UI: Transfer Lab split screen (Panda replay | UR5e live), skill selector, same/new scene, compatibility,
+  adaptation summary, Publish Adaptation, per-robot candidate tabs with prior rank; Skill Library lineage.
+- ✅ 77 backend tests pass (incl. M3 gate); `scripts/transfer_demo.py`.
+- **Gate met:** UR5e executes a transferred strategy; joint arrays are never shared; runs reproduce from stored seed.
+
 ## M4 — Collective Imagination & Meta API ⬜
+Next: `ReasoningProvider` (offline + Meta Muse Spark) proposing/re-ranking strategies from structured tool
+results; record whether the model changed selection vs the offline prior; show multiple predicted futures.
+Note: candidate rollouts already exist (top-3 physics rollouts per run); M4 adds the reasoning layer + UI.
 ## M5 — Full Control Center ⬜
 ## M6 — Evaluation & docs ⬜
 ## M7 — Record & finalize ⬜

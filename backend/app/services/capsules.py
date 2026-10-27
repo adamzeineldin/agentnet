@@ -36,7 +36,8 @@ def new_skill_id(route_class: str) -> str:
 
 
 def compact_outcomes(candidates: list[CandidateSummary]) -> list[dict]:
-    keys = ("candidate_id", "route_class", "clearance_m", "outcome", "reason", "cost", "min_clearance_m")
+    keys = ("candidate_id", "route_class", "clearance_m", "outcome", "reason", "cost",
+            "min_clearance_m", "prior_rank", "prior_note")
     return [{k: getattr(c, k) for k in keys} for c in candidates]
 
 
@@ -54,6 +55,7 @@ def build_capsule(
     parent: ExperienceCapsule | None = None,
     method: str,
     reasoning_mode: str = "offline_deterministic",
+    extra_provenance: dict | None = None,
 ) -> ExperienceCapsule:
     trace = [to_vec3(base_to_task(p, placement)) for p in execution.ee_trace]
     stride = max(1, len(trace) // MAX_TRACE_POINTS)
@@ -99,6 +101,7 @@ def build_capsule(
             "source_model_version": passport.model_version,
             "reasoning": reasoning_mode,
             "simulation_only": True,
+            **(extra_provenance or {}),
         },
         validation=CapsuleValidation(
             success=True,

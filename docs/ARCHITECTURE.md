@@ -1,4 +1,4 @@
-# Architecture (M2)
+# Architecture (M3)
 
 ```
 Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Simulation worker (1 thread)
@@ -32,4 +32,18 @@ generate_task(seed) ─▶ TaskSpec (task frame) ─▶ world_scene(placement) �
  re-execute winner with FrameRecorder ─▶ verify (incl. reproduces rollout) ─▶ capsule draft in run.results
                          ▼
  POST /api/skills {run_id} ─▶ publish_from_run ─▶ skills table (lineage via parent_skill_id)
+```
+
+## Cross-robot transfer (M3)
+
+```
+POST /api/transfers {source_skill_id, target_robot_id, scene_seed?}
+  retrieving  registry.get_skill  ─▶ capsule (task-frame geometry, strategy, source outcomes; no joints)
+  profiling   task (stored or regenerated) placed in target base frame; target solves its own start pose
+  checking    compatibility vs target passport (advisory)
+  proposing   prior_order(candidates, capsule)            (transfer.py)
+  checking    evaluate_all on target kinematics           (candidate_search.py)
+  simulating  rollout(order = prior, budget = 3)
+  selecting   first verified in prior order
+  executing / verifying  → adaptation capsule draft (parent_skill_id, lineage) → POST /api/skills
 ```

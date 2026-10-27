@@ -49,6 +49,13 @@ export function publishSkill(runId: string): Promise<ExperienceCapsule> {
   return apiFetch<ExperienceCapsule>("/api/skills", { method: "POST", body: JSON.stringify({ run_id: runId }) });
 }
 
+export function startTransfer(sourceSkillId: string, targetRobotId: string, sceneSeed: number | null): Promise<RunRecord> {
+  return apiFetch<RunRecord>("/api/transfers", {
+    method: "POST",
+    body: JSON.stringify({ source_skill_id: sourceSkillId, target_robot_id: targetRobotId, scene_seed: sceneSeed }),
+  });
+}
+
 /** Subscribe to a run's server-sent events. Returns an unsubscribe function. */
 export function subscribeRun(
   runId: string,

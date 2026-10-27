@@ -167,6 +167,8 @@ export interface CandidateSummary {
   contacts: Record<string, unknown>[];
   physics: { endpoint_error_m: number; simulated_seconds: number; collisions: unknown[]; checks: Record<string, boolean> } | null;
   cost: number | null;
+  prior_rank?: number | null;
+  prior_note?: string | null;
 }
 
 export interface ExperienceCapsule {
@@ -199,3 +201,14 @@ export interface ExperienceCapsule {
 }
 
 export interface SkillDetail { capsule: ExperienceCapsule; ancestors: ExperienceCapsule[]; children: ExperienceCapsule[] }
+
+export interface CompatibilityCheck { check: string; status: "pass" | "warn" | "fail" | "info"; detail: string }
+export interface Adaptation {
+  transferred_from_robot: string; source_strategy: string; strategy_preserved: boolean;
+  prior_rank_of_selected: number; target_dof: number;
+}
+export interface SearchMetrics {
+  candidates_total: number; feasible: number; physics_rollouts: number; verified: number;
+  order_rank_of_first_feasible: number | null; rollouts_to_first_success: number | null;
+  considered_order: string[]; simulated_order: string[];
+}

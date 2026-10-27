@@ -80,3 +80,16 @@ class DiscoverRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
     robot_id: str = "panda_01"
     scene_seed: int = Field(default=42, ge=0, le=2**31 - 1)
+
+
+class TransferRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    source_skill_id: str
+    target_robot_id: str = "ur5e_01"
+    scene_seed: int | None = Field(
+        default=None, ge=0, le=2**31 - 1,
+        description="None = the capsule's own scene; otherwise a new scene from this seed",
+    )
+    reasoning_mode: Literal["offline"] = Field(
+        default="offline", description="Meta reasoning arrives in Milestone 4"
+    )

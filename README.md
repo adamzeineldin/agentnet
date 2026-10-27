@@ -5,8 +5,8 @@ experience across different simulated embodiments. Robot A (Franka Emika Panda) 
 publishes a verified skill; Robot B (Universal Robots UR5e) adapts it with its own kinematics,
 previews candidates in MuJoCo, and publishes the adaptation with lineage.
 
-> **Status:** Milestones 0–2 complete (see [PROGRESS.md](PROGRESS.md)). Cross-robot transfer,
-> Meta reasoning and evaluation are not built yet. Everything shown is MuJoCo simulation, not
+> **Status:** Milestones 0–3 complete (see [PROGRESS.md](PROGRESS.md)). Meta reasoning and the
+> evaluation suite are not built yet. Everything shown is MuJoCo simulation, not
 > physical-world verification.
 
 ## What works today
@@ -22,7 +22,10 @@ previews candidates in MuJoCo, and publishes the adaptation with lineage.
 - FastAPI backend with a single simulation worker thread, typed run events (SSE) and MP4 renders.
 - Source skill discovery: 10 candidate routes searched with IK, collision screening, clearance and
   physics rollouts; the verified winner becomes a publishable Experience Capsule (task-frame only).
-- Next.js Control Center: Overview, Robot Fleet, Transfer Lab (source side), Skill Library, Run History.
+- Cross-robot transfer: the UR5e retrieves a Panda capsule from the registry, re-places the task in its own
+  frame, orders candidates by the Panda's experience, solves its own IK, verifies in MuJoCo, and publishes an
+  adaptation with lineage.
+- Next.js Control Center: Overview, Robot Fleet, Transfer Lab (Panda ↔ UR5e), Skill Library, Run History.
 
 ## Quick start
 
@@ -33,6 +36,7 @@ make setup     # venv + backend deps, pinned Menagerie models, frontend deps
 make smoke     # loads both robots, jogs a joint, executes an IK reach, renders MP4s
 make test      # backend unit/integration/API tests
 make discover  # headless: Panda discovers + publishes a skill on seed 42
+make transfer  # headless: Panda skill (seed 7) transferred to the UR5e
 make dev       # backend http://127.0.0.1:8000 + frontend http://localhost:3000
 ```
 
@@ -44,9 +48,10 @@ labelled **Offline deterministic planner** mode.
 ```
 backend/app/services   robot_catalog, scene, robot_adapter, kinematics, simulation, render,
                        passports, fleet, registry, jobs, motion_check, task_scene,
-                       route_planner, skill_discovery, capsules, skill_registry
-backend/app/api        health, robots, runs (incl. discover), skills
-backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py
+                       route_planner, candidate_search, skill_discovery, transfer, capsules,
+                       skill_registry
+backend/app/api        health, robots, runs (incl. discover), skills, transfers
+backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py, transfer_demo.py
 backend/tests          passport, IK/physics, registry, API
 frontend/              Next.js 16 App Router + Tailwind 4
 docs/                  ARCHITECTURE.md, KNOWN_LIMITATIONS.md

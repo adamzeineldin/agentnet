@@ -57,11 +57,19 @@ function SkillCard({ c }: { c: ExperienceCapsule }) {
             <dt className="text-ink-3">published</dt><dd className="font-mono text-ink-2">{fmtDateTime(c.created_at)}</dd>
           </dl>
         </details>
-        <div className="flex items-center gap-3">
-          <button disabled title="Cross-robot transfer is Milestone 3"
-            className="cursor-not-allowed rounded-md border border-line px-3 py-1.5 text-ink-3">Transfer to robot…</button>
-          <span className="text-[11px] text-ink-3">available in Milestone 3</span>
-        </div>
+        {c.parent_skill_id === null && (
+          <Link href="/transfer"
+            className="inline-block rounded-md border border-accent-dim bg-accent/10 px-3 py-1.5 text-accent hover:bg-accent/20">
+            Transfer to robot… →
+          </Link>
+        )}
+        {c.parent_skill_id && (
+          <p className="text-[11px] text-ink-3">
+            Adapted from <span className="font-mono">{c.parent_skill_id}</span> ({String(c.provenance.transferred_from_robot)}) ·
+            source strategy {String(c.provenance.source_strategy)} ·{" "}
+            {c.provenance.strategy_preserved ? "strategy preserved" : "strategy adapted"}
+          </p>
+        )}
       </div>
     </Panel>
   );

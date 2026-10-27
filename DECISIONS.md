@@ -25,6 +25,12 @@
 | D21 | Cost = joint path length (rad) + 1.0 × EE path length (m); top 3 feasible by cost get physics rollouts | Matched simulation budget per run; mixed units are documented, weights are not tuned. |
 | D22 | Discovery drafts the capsule; publishing is a separate explicit call | Matches the "Publish Experience" step; failed runs can never become validated capsules. |
 | D23 | Capability `obstacle_aware_reach` derived at read time from published skills (passport copy) | Stored passport stays a pure model/measurement artifact. |
+| D24 | Shared `candidate_search.py` for discovery and transfer; they differ only in candidate order, selection rule and capsule lineage | Same physics budget and checks for both, which the M6 baselines need. |
+| D25 | Transfer selection = first candidate verified in prior order (discovery = lowest cost among verified) | Transfer should trust experience and stop early; "rollouts to first success" becomes the measured benefit. |
+| D26 | Same-scene transfer uses the capsule's stored TaskSpec (not regenerated); new-scene transfer regenerates the strategy's waypoints on the new geometry | Shows the registry is the source of truth; makes held-out transfer possible. |
+| D27 | Compatibility checks are advisory except capsule validation; feasibility is decided by the target's own simulation | Passport reach is a sampled estimate; MuJoCo is the authority. |
+| D28 | Both robots use the same placement (0.50 m in front of base) | Both reaches measured ≈0.95 m; strategy reach check reported (61–79% of UR5e sampled reach). |
+| D29 | Transfer run's `skill_id` = adaptation capsule id on success; the input skill is `results.source_skill_id` | One field means "capsule this run produced" for both discover and transfer runs. |
 
 ## Open questions / blockers
 - Meta Model API: no key configured yet; reasoning runs offline. Endpoint and tool-calling format to be verified against https://dev.meta.ai/docs before M4.

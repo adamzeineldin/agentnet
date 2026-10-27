@@ -78,6 +78,8 @@ class CandidateSummary(_Frozen):
     contacts: list[dict] = Field(default_factory=list)
     physics: dict | None = None
     cost: float | None = None
+    prior_rank: int | None = None
+    prior_note: str | None = None
 
 
 class CapsuleValidation(_Frozen):
