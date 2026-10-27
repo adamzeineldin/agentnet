@@ -22,10 +22,11 @@ def health() -> dict:
             "menagerie_commit": MENAGERIE_COMMIT,
         },
         "reasoning": {
-            # Key presence only; the provider is not exercised until Milestone 4.
+            # Key presence only; whether a run actually used Meta is recorded per run.
             "mode": "meta_configured" if MODEL_API_KEY else "offline",
             "model_id": META_MODEL_ID if MODEL_API_KEY else None,
-            "label": "Meta Muse Spark (configured)" if MODEL_API_KEY
+            "label": "Meta Muse Spark available" if MODEL_API_KEY
             else "Offline deterministic planner",
+            "note": "Per-run provider and model calls are recorded in each transfer run's results.reasoning",
         },
     }

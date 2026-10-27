@@ -14,4 +14,8 @@
 - Both robots see the same scene family and placement; transfer across very different workspaces is untested.
 - On this scene family the from-scratch search also finds `over` routes easily, so a transfer benefit is not
   established yet (M6 will measure it against baselines with matched budgets).
-- Meta reasoning and the evaluation suite are not implemented yet.
+- Meta Muse Spark integration is tested only against mocked HTTP responses; no live call has been made.
+- The model ranks a fixed set of 10 template hypotheses; it cannot invent new routes or parameters.
+- "Offline would select" may be a kinematic estimate when the offline choice was not simulated (labelled).
+- On wall_reach_v1 the offline prior already succeeds on the first future, so there is little room for a model to help.
+- The evaluation suite (M6) is not implemented yet.

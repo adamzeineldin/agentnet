@@ -165,7 +165,10 @@ export interface CandidateSummary {
   ee_path_length_m: number | null;
   min_clearance_m: number | null;
   contacts: Record<string, unknown>[];
-  physics: { endpoint_error_m: number; simulated_seconds: number; collisions: unknown[]; checks: Record<string, boolean> } | null;
+  physics: {
+    endpoint_error_m: number; simulated_seconds: number; collisions: unknown[]; checks: Record<string, boolean>;
+    trace_task?: Vec3[]; thumbnail?: string; future_index?: number;
+  } | null;
   cost: number | null;
   prior_rank?: number | null;
   prior_note?: string | null;
@@ -211,4 +214,17 @@ export interface SearchMetrics {
   candidates_total: number; feasible: number; physics_rollouts: number; verified: number;
   order_rank_of_first_feasible: number | null; rollouts_to_first_success: number | null;
   considered_order: string[]; simulated_order: string[];
+}
+
+export type ReasoningMode = "offline" | "meta";
+export interface ReasoningProposal {
+  kind: "propose" | "revise"; provider?: string; model_id?: string | null; ranking: string[];
+  rationale?: string; notes?: string[]; error?: string | null;
+  calls?: { kind: string; summary: string; latency_s: number; prompt_tokens: number | null; completion_tokens: number | null }[];
+}
+export interface ReasoningTrace {
+  provider_requested: string; provider_used: string; model_id: string | null; fallback_error: string | null;
+  proposals: ReasoningProposal[]; revisions: number; physics_budget: number; final_order: string[]; offline_order: string[];
+  model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null;
+  offline_expected_selection: string | null; comparison_basis: string; changed_selection_vs_offline: boolean;
 }

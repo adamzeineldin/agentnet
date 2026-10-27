@@ -5,8 +5,8 @@ experience across different simulated embodiments. Robot A (Franka Emika Panda) 
 publishes a verified skill; Robot B (Universal Robots UR5e) adapts it with its own kinematics,
 previews candidates in MuJoCo, and publishes the adaptation with lineage.
 
-> **Status:** Milestones 0–3 complete (see [PROGRESS.md](PROGRESS.md)). Meta reasoning and the
-> evaluation suite are not built yet. Everything shown is MuJoCo simulation, not
+> **Status:** Milestones 0–4 complete (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
+> only been exercised against mocked responses (no API key configured). The evaluation suite is not built yet. Everything shown is MuJoCo simulation, not
 > physical-world verification.
 
 ## What works today
@@ -25,6 +25,9 @@ previews candidates in MuJoCo, and publishes the adaptation with lineage.
 - Cross-robot transfer: the UR5e retrieves a Panda capsule from the registry, re-places the task in its own
   frame, orders candidates by the Panda's experience, solves its own IK, verifies in MuJoCo, and publishes an
   adaptation with lineage.
+- Collective Imagination: a reasoning provider (offline prior, or Meta Muse Spark with `MODEL_API_KEY`) ranks
+  hypotheses; MuJoCo simulates several futures before one is executed. Each run records which provider was
+  used, model calls, tokens, estimated cost, and whether the model changed the selection.
 - Next.js Control Center: Overview, Robot Fleet, Transfer Lab (Panda ↔ UR5e), Skill Library, Run History.
 
 ## Quick start
@@ -48,8 +51,8 @@ labelled **Offline deterministic planner** mode.
 ```
 backend/app/services   robot_catalog, scene, robot_adapter, kinematics, simulation, render,
                        passports, fleet, registry, jobs, motion_check, task_scene,
-                       route_planner, candidate_search, skill_discovery, transfer, capsules,
-                       skill_registry
+                       route_planner, candidate_search, skill_discovery, transfer, imagination,
+                       capsules, skill_registry, reasoning/{base,offline,meta_muse}
 backend/app/api        health, robots, runs (incl. discover), skills, transfers
 backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py, transfer_demo.py
 backend/tests          passport, IK/physics, registry, API

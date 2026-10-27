@@ -60,10 +60,12 @@ function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHo
           const g = outcomeGroup(c.outcome);
           const st = STYLE[g];
           const emph = c.candidate_id === selectedId || c.candidate_id === hoverId;
+          // Simulated futures draw the EE trace MuJoCo produced; others draw planned waypoints.
+          const path = c.physics?.trace_task?.length ? c.physics.trace_task : c.waypoints_task;
           return (
             <g key={c.candidate_id} onMouseEnter={() => onHover?.(c.candidate_id)} onMouseLeave={() => onHover?.(null)}>
-              <polyline points={line(c.waypoints_task)} fill="none" stroke="transparent" strokeWidth={10} />
-              <polyline points={line(c.waypoints_task)} fill="none" stroke={st.stroke}
+              <polyline points={line(path)} fill="none" stroke="transparent" strokeWidth={10} />
+              <polyline points={line(path)} fill="none" stroke={st.stroke}
                 strokeWidth={emph ? st.width + 1.5 : st.width} strokeOpacity={emph ? 1 : st.opacity}
                 strokeDasharray={emph ? undefined : st.dash} strokeLinejoin="round" strokeLinecap="round" />
             </g>
@@ -92,6 +94,7 @@ export function RouteDiagram(props: Omit<ViewProps, "title" | "axes" | "labels">
         <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-data" />◦ kinematically feasible</li>
         <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 border-t border-dashed border-bad" />✕ rejected</li>
         <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-ink-3/50" />obstacle</li>
+        <li className="text-ink-3">simulated futures show the MuJoCo end-effector trace; others show planned waypoints</li>
       </ul>
     </div>
   );

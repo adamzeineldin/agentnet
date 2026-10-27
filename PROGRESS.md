@@ -60,10 +60,31 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ 77 backend tests pass (incl. M3 gate); `scripts/transfer_demo.py`.
 - **Gate met:** UR5e executes a transferred strategy; joint arrays are never shared; runs reproduce from stored seed.
 
-## M4 — Collective Imagination & Meta API ⬜
-Next: `ReasoningProvider` (offline + Meta Muse Spark) proposing/re-ranking strategies from structured tool
-results; record whether the model changed selection vs the offline prior; show multiple predicted futures.
-Note: candidate rollouts already exist (top-3 physics rollouts per run); M4 adds the reasoning layer + UI.
+## M4 — Collective Imagination & Meta API ✅ (2026-10-27) — Meta exercised only against mocks
+- ✅ `ReasoningProvider` contract (`propose_strategies`, `revise_strategy`); proposals are candidate ids from a
+  fixed vocabulary, validated server-side (unknown ids dropped, omitted ids appended in offline order).
+- ✅ `OfflinePlanner`: source-experience prior; after a failed future it demotes that route class.
+- ✅ `MetaMuseProvider` (muse-spark-1.3, `POST https://api.meta.ai/v1/chat/completions`, formats checked against
+  dev.meta.ai docs on 2026-10-26): bounded read-only tools `inspect_robot`, `inspect_skill`, `check_candidate`,
+  `summarize_failure` + terminal `submit_ranking`; `parallel_tool_calls=false`; ≤4 tool rounds then forced
+  `json_schema` answer; ≤1 revision; max_tokens 1200; token usage + estimated cost recorded; key never logged.
+  Any Meta error → offline fallback, recorded as `fallback_error`; `model_used` stays null.
+- ✅ Collective Imagination (`imagination.py`): futures simulated in provider order within the physics budget (3),
+  each from a fresh reset; per-future outcome, EE trace (task frame) and rendered final-state thumbnail.
+- ✅ Run records `results.reasoning`: provider requested/used, proposals, calls, tokens, cost, offline expected
+  selection (+ basis: physics or kinematic estimate), `changed_selection_vs_offline`.
+- ✅ API: `reasoning_mode: "offline" | "meta"`; meta without `MODEL_API_KEY` → 409 (never silently substituted).
+- ✅ UI: reasoning selector (Meta disabled + labelled when no key), provider badge, Collective Imagination panel
+  (future thumbnails, reasoning trace, model-changed-selection), route diagram draws MuJoCo traces for futures.
+- ✅ 92 backend tests (15 new: request format, tool loop, id validation, forced JSON final round, error →
+  fallback, mocked model changing selection with cost accounting).
+- **Gate met (offline):** candidate predictions and the final run are captured from MuJoCo; model usage is
+  evidenced per run, and every run so far is marked offline because no key is configured.
+- ⚠️ No real Meta call has been made (no `MODEL_API_KEY`). Live behaviour of tool calling + `json_schema` on
+  muse-spark-1.3 is unverified until a key is added; the adapter falls back honestly if the format differs.
+
 ## M5 — Full Control Center ⬜
+Next: presentation mode (one-click A→B story with replay of recorded runs), run-history detail for transfer/
+imagination, error states, lineage graph, every number traced to backend data.
 ## M6 — Evaluation & docs ⬜
 ## M7 — Record & finalize ⬜

@@ -90,6 +90,7 @@ class TransferRequest(BaseModel):
         default=None, ge=0, le=2**31 - 1,
         description="None = the capsule's own scene; otherwise a new scene from this seed",
     )
-    reasoning_mode: Literal["offline"] = Field(
-        default="offline", description="Meta reasoning arrives in Milestone 4"
+    reasoning_mode: Literal["offline", "meta"] = Field(
+        default="offline",
+        description="offline = deterministic source-experience prior; meta = Meta Muse Spark (needs MODEL_API_KEY)",
     )

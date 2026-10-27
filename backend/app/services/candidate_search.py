@@ -69,11 +69,15 @@ def evaluate_all(
 
 
 def physics_rollout(
-    adapter: RobotAdapter, q_start: np.ndarray, joint_path, target_base: np.ndarray, frame_hook=None
+    adapter: RobotAdapter, q_start: np.ndarray, joint_path, target_base: np.ndarray, frame_hook=None,
+    on_finish=None,
 ) -> tuple[ExecutionResult, dict]:
+    """Fresh MjData reset to q_start, then the path through the servos. on_finish(data) sees the final state."""
     data = adapter.new_data()
     adapter.reset_to(data, q_start)
     res = execute_path(adapter, data, [np.array(q) for q in joint_path], frame_hook=frame_hook)
+    if on_finish is not None:
+        on_finish(data)
     err = float(np.linalg.norm(np.array(res.final_ee_pos) - target_base))
     checks = {
         "endpoint_within_tolerance": err < REACH_TOLERANCE_M,
@@ -92,7 +96,7 @@ def physics_rollout(
     }
 
 
-def _with_physics(s: CandidateSummary, phys: dict) -> CandidateSummary:
+def with_physics(s: CandidateSummary, phys: dict) -> CandidateSummary:
     ok = all(phys["checks"].values())
     failed = [k for k, v in phys["checks"].items() if not v]
     return s.model_copy(update={
@@ -116,7 +120,7 @@ def rollout(
     updated: dict[str, CandidateSummary] = {}
     for cid in simulated:
         _, phys = physics_rollout(setup.adapter, setup.q_start, by_id[cid].joint_path, setup.target_base)
-        updated[cid] = _with_physics(by_id[cid].summary, phys)
+        updated[cid] = with_physics(by_id[cid].summary, phys)
         ctx.event("simulating", f"{cid}: {updated[cid].outcome}", candidate_id=cid,
                   endpoint_error_m=phys["endpoint_error_m"], collisions=len(phys["collisions"]))
     out = []

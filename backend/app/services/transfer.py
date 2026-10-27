@@ -18,15 +18,17 @@ from app.models.robot import RobotPassport
 from app.models.run import RunRecord
 from app.models.skill import CandidateSummary, ExperienceCapsule, TaskSpec
 from app.services.candidate_search import (
+    FEASIBLE_OUTCOMES,
     SearchSetup,
     evaluate_all,
     execute_and_verify,
     prepare,
-    rollout,
     search_metrics,
 )
 from app.services.capsules import build_capsule, compact_outcomes
+from app.services.imagination import build_context, imagine
 from app.services.jobs import RunContext
+from app.services.reasoning import get_provider
 from app.services.registry import Registry
 from app.services.robot_catalog import get_robot_decl
 from app.services.route_planner import RouteCandidate, generate_candidates, route_waypoints
@@ -35,8 +37,9 @@ from app.services.task_scene import DEFAULT_PLACEMENTS, generate_task, task_to_b
 MAX_PHYSICS_ROLLOUTS = 3
 PLANNER_NAME = "transfer_prior_v1"
 METHOD = (
-    "capsule strategy re-placed in target base frame; candidates ordered by source experience; "
-    "target DLS IK tracking, MuJoCo screening + clearance, physics rollouts in prior order"
+    "capsule strategy re-placed in target base frame; hypotheses ranked by a reasoning provider "
+    "(offline source-experience prior or Meta Muse Spark); target DLS IK tracking, MuJoCo screening + "
+    "clearance; physics futures simulated in ranked order (Collective Imagination)"
 )
 
 
@@ -109,6 +112,7 @@ def transfer_skill(
     target_robot_id: str,
     scene_seed: int | None,
     target_passport: RobotPassport,
+    reasoning_mode: str = "offline",
 ) -> RunRecord:
     ctx.event("retrieving", f"Fetching capsule {source_skill_id} from the registry")
     capsule = registry.get_skill(source_skill_id)
@@ -132,30 +136,38 @@ def transfer_skill(
         return ctx.finish(False, "Capsule is not a validated success", results=base)
     if setup is None:
         return ctx.finish(False, f"{decl.short_name} cannot reach the start pose without collision", results=base)
-    return _search_and_execute(ctx, setup, capsule, target_passport, base)
+    provider = get_provider(reasoning_mode)
+    return _search_and_execute(ctx, setup, capsule, target_passport, source_passport, base, provider)
 
 
-def _search_and_execute(ctx, setup: SearchSetup, capsule: ExperienceCapsule, passport, base) -> RunRecord:
+def _search_and_execute(
+    ctx, setup: SearchSetup, capsule: ExperienceCapsule, passport, source_passport, base, provider
+) -> RunRecord:
     ordered = prior_order(generate_candidates(setup.task), capsule)
-    ctx.event("proposing", f"Ordered {len(ordered)} candidates by source experience; "
-              f"first: {ordered[0][0].candidate_id} ({ordered[0][2]})",
-              order=[{"candidate_id": c.candidate_id, "tier": t, "note": n} for c, t, n in ordered])
-    planned = evaluate_all(ctx, setup, [c for c, _, _ in ordered])
     notes = {c.candidate_id: (i + 1, n) for i, (c, _, n) in enumerate(ordered)}
-    order = [c.candidate_id for c, _, _ in ordered]
-    summaries, simulated = rollout(ctx, setup, planned, order, MAX_PHYSICS_ROLLOUTS)
+    offline_order = [c.candidate_id for c, _, _ in ordered]
+    ctx.event("checking", f"Kinematic screening of {len(ordered)} hypotheses on {setup.decl.short_name}")
+    planned = evaluate_all(ctx, setup, [c for c, _, _ in ordered])
+    context = build_context(setup, capsule, source_passport, passport, planned, offline_order, MAX_PHYSICS_ROLLOUTS)
+    imagined = imagine(ctx, setup, planned, provider, context, MAX_PHYSICS_ROLLOUTS)
+    if imagined.trace["model_id"]:
+        ctx.update(model_used=imagined.trace["model_id"])
     summaries = [s.model_copy(update={"prior_rank": notes[s.candidate_id][0], "prior_note": notes[s.candidate_id][1]})
-                 for s in summaries]
+                 for s in imagined.summaries]
     by_id = {s.candidate_id: s for s in summaries}
+    winner = next((by_id[c] for c in imagined.final_order if c in imagined.simulated
+                   and by_id[c].outcome == "verified"), None)
+    reasoning = {**imagined.trace, **_offline_comparison(by_id, offline_order, winner)}
     results = {**base, "q_start": [float(v) for v in setup.q_start],
                "candidates": [s.model_dump(mode="json") for s in summaries],
-               "search_metrics": search_metrics(summaries, order, simulated)}
-    winner = next((by_id[c] for c in simulated if by_id[c].outcome == "verified"), None)
+               "search_metrics": search_metrics(summaries, list(imagined.final_order), imagined.simulated),
+               "reasoning": reasoning}
     if winner is None:
         return ctx.finish(False, "No transferred candidate verified in physics on the target",
                           candidate_summaries=compact_outcomes(summaries), results=results)
     preserved = winner.route_class == capsule.strategy.route_class and winner.clearance_m == capsule.strategy.clearance_m
-    ctx.event("selecting", f"Selected {winner.candidate_id} (prior rank {winner.prior_rank}; "
+    ctx.event("selecting", f"Selected {winner.candidate_id} (first verified future in "
+              f"{reasoning['provider_used']} order; prior rank {winner.prior_rank}; "
               f"{'strategy preserved' if preserved else 'strategy adapted'})", candidate_id=winner.candidate_id)
     joint_path = next(p.joint_path for p in planned if p.summary.candidate_id == winner.candidate_id)
     adaptation = {
@@ -164,6 +176,8 @@ def _search_and_execute(ctx, setup: SearchSetup, capsule: ExperienceCapsule, pas
         "strategy_preserved": preserved,
         "prior_rank_of_selected": winner.prior_rank,
         "target_dof": setup.adapter.dof,
+        "reasoning_provider": reasoning["provider_used"],
+        "model_changed_selection": reasoning["changed_selection_vs_offline"],
     }
 
     def make_capsule(res, phys) -> ExperienceCapsule:
@@ -171,8 +185,24 @@ def _search_and_execute(ctx, setup: SearchSetup, capsule: ExperienceCapsule, pas
             run_id=ctx.run_id, passport=passport, task=setup.task, placement=setup.placement, winner=winner,
             candidates=summaries, execution=res, endpoint_error_m=phys["endpoint_error_m"],
             timestep=setup.adapter.model.opt.timestep, parent=capsule, method=METHOD,
-            extra_provenance=adaptation,
+            reasoning_mode=reasoning["provider_used"], extra_provenance=adaptation,
         )
 
     return execute_and_verify(ctx, setup, winner, joint_path, summaries, {**results, "adaptation": adaptation},
                               make_capsule, "Adaptation verified on target — ready to publish")
+
+
+def _offline_comparison(by_id: dict[str, CandidateSummary], offline_order: list[str], winner) -> dict:
+    """What the offline prior would have selected, from the evidence available in this run.
+
+    If the offline prior's first feasible candidate was simulated, its physics outcome is used;
+    otherwise its kinematic feasibility is used as the estimate (stated in comparison_basis).
+    """
+    first = next((c for c in offline_order if by_id[c].outcome in FEASIBLE_OUTCOMES), None)
+    basis = "physics" if first and by_id[first].physics is not None else "kinematic_estimate"
+    offline_pick = first if first and by_id[first].outcome != "physics_failure" else None
+    return {
+        "offline_expected_selection": offline_pick,
+        "comparison_basis": basis,
+        "changed_selection_vs_offline": bool(winner and offline_pick and winner.candidate_id != offline_pick),
+    }

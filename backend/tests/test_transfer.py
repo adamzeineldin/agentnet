@@ -100,8 +100,8 @@ def test_transfer_validation_errors(client, source_42):
     assert client.post("/api/transfers", json={"source_skill_id": "nope"}).status_code == 404
     same = {"source_skill_id": source_42["skill_id"], "target_robot_id": "panda_01"}
     assert client.post("/api/transfers", json=same).status_code == 409
-    meta = {"source_skill_id": source_42["skill_id"], "reasoning_mode": "meta"}
-    assert client.post("/api/transfers", json=meta).status_code == 422
+    bogus = {"source_skill_id": source_42["skill_id"], "reasoning_mode": "gpt"}
+    assert client.post("/api/transfers", json=bogus).status_code == 422
 
 
 def _capsule_with(strategy_class: str, clearance: float, outcomes: list[dict]) -> ExperienceCapsule:

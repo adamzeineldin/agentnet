@@ -1,4 +1,4 @@
-# Architecture (M3)
+# Architecture (M4)
 
 ```
 Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Simulation worker (1 thread)
@@ -46,4 +46,17 @@ POST /api/transfers {source_skill_id, target_robot_id, scene_seed?}
   simulating  rollout(order = prior, budget = 3)
   selecting   first verified in prior order
   executing / verifying  → adaptation capsule draft (parent_skill_id, lineage) → POST /api/skills
+```
+
+## Collective Imagination + reasoning (M4)
+
+```
+evaluate_all (target kinematics) ─▶ ReasoningContext (task, capsule, both passports, kinematic results, prior)
+  provider.propose_strategies ─▶ validate_ranking ─▶ order
+     OfflinePlanner | MetaMuseProvider (tools: inspect_robot, inspect_skill, check_candidate,
+                                        summarize_failure, submit_ranking; ≤4 rounds; JSON-schema final)
+  imagine: for each feasible id in order (≤ budget): fresh reset → physics_rollout → thumbnail + trace
+           failed future → provider.revise_strategy (bounded)
+  select first verified in final order ─▶ execute_and_verify ─▶ adaptation capsule
+  results.reasoning: provider used, calls, tokens, cost, offline expected selection, changed_selection_vs_offline
 ```

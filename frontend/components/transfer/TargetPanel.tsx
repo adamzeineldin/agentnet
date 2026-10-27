@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import type { Adaptation, CompatibilityCheck } from "@/lib/types";
+import { useApi } from "@/lib/useApi";
+import type { Adaptation, CompatibilityCheck, Health, ReasoningMode, ReasoningTrace } from "@/lib/types";
 import type { RunStream } from "@/lib/useRunStream";
 import { Badge, Panel } from "../ui";
+import { ProviderBadge } from "./ImaginationPanel";
 import { RunSummary, RunVideo } from "./RunMedia";
 
 const CHECK_TONE = { pass: "good", warn: "warn", fail: "bad", info: "neutral" } as const;
@@ -12,7 +14,7 @@ const CHECK_ICON = { pass: "✓", warn: "!", fail: "✕", info: "i" } as const;
 interface TargetPanelProps {
   stream: RunStream;
   sourceSkillId: string | null;
-  onTransfer: (sceneSeed: number | null) => void;
+  onTransfer: (sceneSeed: number | null, mode: ReasoningMode) => void;
   onPublish: () => void;
 }
 
@@ -20,13 +22,17 @@ export function TargetPanel({ stream, sourceSkillId, onTransfer, onPublish }: Ta
   const { run, busy, live } = stream;
   const [newScene, setNewScene] = useState(false);
   const [sceneSeed, setSceneSeed] = useState(3);
+  const [mode, setMode] = useState<ReasoningMode>("offline");
+  const health = useApi<Health>("/api/health");
+  const metaAvailable = health.data?.reasoning.mode === "meta_configured";
+  const trace = run?.results.reasoning as ReasoningTrace | undefined;
   const checks = (run?.results.compatibility ?? []) as CompatibilityCheck[];
   const adaptation = run?.results.adaptation as Adaptation | undefined;
   const published = run?.results.published === true;
 
   return (
     <Panel title="Target · Robot B · UR5e" right={
-      <button onClick={() => onTransfer(newScene ? sceneSeed : null)} disabled={busy || !sourceSkillId}
+      <button onClick={() => onTransfer(newScene ? sceneSeed : null, mode)} disabled={busy || !sourceSkillId}
         title={sourceSkillId ? undefined : "Publish a source skill first"}
         className="rounded-md border border-accent-dim bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/25 disabled:cursor-not-allowed disabled:opacity-50">
         {busy ? "Transferring…" : "Transfer Skill"}
@@ -42,6 +48,17 @@ export function TargetPanel({ stream, sourceSkillId, onTransfer, onPublish }: Ta
             onChange={(e) => setSceneSeed(Math.max(0, Number.parseInt(e.target.value || "0", 10)))}
             className="tabular w-16 rounded-md border border-line bg-panel-2 px-2 py-1 text-ink disabled:opacity-50" />
         </label>
+      </div>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">
+        reasoning
+        <select value={mode} disabled={busy} onChange={(e) => setMode(e.target.value as ReasoningMode)}
+          className="rounded-md border border-line bg-panel-2 px-2 py-1 text-ink">
+          <option value="offline">Offline deterministic planner</option>
+          <option value="meta" disabled={!metaAvailable}>
+            Meta Muse Spark{metaAvailable ? "" : " (MODEL_API_KEY not configured)"}
+          </option>
+        </select>
+        {run && <ProviderBadge trace={trace} />}
       </div>
       <RunVideo run={run} busy={busy} emptyLabel={sourceSkillId ? "Not transferred yet" : "Publish a source skill to enable transfer"} />
       {run && (

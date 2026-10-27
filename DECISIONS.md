@@ -31,7 +31,13 @@
 | D27 | Compatibility checks are advisory except capsule validation; feasibility is decided by the target's own simulation | Passport reach is a sampled estimate; MuJoCo is the authority. |
 | D28 | Both robots use the same placement (0.50 m in front of base) | Both reaches measured ≈0.95 m; strategy reach check reported (61–79% of UR5e sampled reach). |
 | D29 | Transfer run's `skill_id` = adaptation capsule id on success; the input skill is `results.source_skill_id` | One field means "capsule this run produced" for both discover and transfer runs. |
+| D30 | Meta via raw `httpx` against the OpenAI-compatible Chat Completions endpoint (no SDK dependency) | Injectable `MockTransport` for tests; exact request shape visible and asserted. |
+| D31 | Model gets read-only tools only; physics is run by the backend in the validated ranked order | Keeps numerical IK/physics deterministic and makes the simulation budget identical across providers. |
+| D32 | Final answer via `submit_ranking` tool (tool_choice only supports "auto"); last round drops tools and forces `json_schema` | Bounded loop that always terminates with a schema-constrained answer. |
+| D33 | Caps: 4 tool rounds, 1 revision, 1200 max_tokens per call; cost estimated at $1.25/$4.25 per 1M tokens | Plan's "cap tool rounds and cost"; standard-mode pricing from dev.meta.ai. Contributor mode (cheaper, trains Meta models) not used by default. |
+| D34 | "Offline would select" uses physics if that candidate was simulated, else kinematic feasibility (basis recorded) | Avoids extra simulation while never claiming an unmeasured comparison as physics. |
+| D35 | Imagination budget = 3 futures; transfer executes the first verified future in provider order | Multiple futures shown; same budget as discovery and baselines. |
 
 ## Open questions / blockers
-- Meta Model API: no key configured yet; reasoning runs offline. Endpoint and tool-calling format to be verified against https://dev.meta.ai/docs before M4.
+- Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.
 - Hackathon deadline/rules to be verified in the participant portal.

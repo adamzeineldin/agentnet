@@ -10,6 +10,7 @@ import { RouteDiagram } from "./RouteDiagram";
 import { EventLog } from "./RunEvidence";
 import { RunStepper } from "./RunStepper";
 import { SourcePanel } from "./transfer/SourcePanel";
+import { ImaginationPanel } from "./transfer/ImaginationPanel";
 import { TargetPanel } from "./transfer/TargetPanel";
 import { ErrorNote, Panel } from "./ui";
 
@@ -107,13 +108,15 @@ export function TransferLab() {
           onDiscover={() => { setActive("source"); void source.start(() => startDiscover(SOURCE, seed)); }}
           onPublish={() => void publishSource()} />
         <TargetPanel stream={target} sourceSkillId={effectiveSkillId}
-          onTransfer={(sceneSeed) => {
+          onTransfer={(sceneSeed, mode) => {
             if (!effectiveSkillId) return;
             setActive("target");
-            void target.start(() => startTransfer(effectiveSkillId, TARGET, sceneSeed));
+            void target.start(() => startTransfer(effectiveSkillId, TARGET, sceneSeed, mode));
           }}
           onPublish={() => void publishTarget()} />
       </div>
+
+      {target.run && <ImaginationPanel run={target.run} />}
 
       {task && candidates.length > 0 && (
         <Panel title={`Candidate routes · ${active === "target" && target.run ? "UR5e" : "Panda"} · ${task.scene_id}`} right={

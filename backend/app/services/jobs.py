@@ -62,6 +62,11 @@ class RunContext:
             self.run_id, RunEvent(at=utcnow(), status=status, message=message, data=data)
         )
 
+    def update(self, **changes: Any) -> RunRecord:
+        """Persist field changes (new record) without adding an event."""
+        current = self.registry.get_run(self.run_id)
+        return self.registry.save_run(current.model_copy(update=changes))
+
     def finish(self, success: bool, message: str, **changes: Any) -> RunRecord:
         status: RunStatus = "succeeded" if success else "failed"
         return self.registry.append_event(
