@@ -14,6 +14,7 @@ const NAV: { href: string; label: string; ready: boolean }[] = [
   { href: "/skills", label: "Skill Library", ready: true },
   { href: "/transfer", label: "Transfer Lab", ready: true },
   { href: "/history", label: "Run History", ready: true },
+  { href: "/evaluation", label: "Evaluation", ready: true },
 ];
 
 function HealthIndicator() {

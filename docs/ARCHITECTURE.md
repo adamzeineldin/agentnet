@@ -1,4 +1,4 @@
-# Architecture (M4)
+# Architecture (M6)
 
 ```
 Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Simulation worker (1 thread)
@@ -59,4 +59,16 @@ evaluate_all (target kinematics) ─▶ ReasoningContext (task, capsule, both pa
            failed future → provider.revise_strategy (bounded)
   select first verified in final order ─▶ execute_and_verify ─▶ adaptation capsule
   results.reasoning: provider used, calls, tokens, cost, offline expected selection, changed_selection_vs_offline
+```
+
+## Evaluation (M6)
+
+```
+benchmark.run_benchmark
+  dev library: discover_headless(panda, dev seeds × families)   (in memory, never published)
+  for each held-out scene: prepare(ur5e) once → retrieve nearest same-family capsule
+     run_variant(order) for baseline_no_sharing | retarget_only | agentnet_offline
+        lazy: kinematic stages → physics rollout if feasible → stop at first verified (≤3 rollouts)
+  summarize (per family / all / common) + paired_vs_baseline → run.results
+scripts/benchmark.py → docs/EVALUATION_RESULTS.md (generated)     /evaluation page (same run)
 ```

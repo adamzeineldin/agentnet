@@ -25,3 +25,9 @@ frontend/next-env.d.ts
 # os
 .DS_Store
 *.egg-info/
+
+# e2e
+frontend/.next-e2e/
+frontend/test-results/
+frontend/playwright-report/
+.e2e-data/

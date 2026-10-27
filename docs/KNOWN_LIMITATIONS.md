@@ -11,11 +11,11 @@
 - Placement yaw is not supported for box obstacles yet; all placements are pure translations.
 - The side-view route diagram is a 2D projection; side routes appear to cross the wall there (captioned).
 - Transfer ordering is a hand-designed prior over route classes; it is not learned.
-- Both robots see the same scene family and placement; transfer across very different workspaces is untested.
-- On this scene family the from-scratch search also finds `over` routes easily, so a transfer benefit is not
-  established yet (M6 will measure it against baselines with matched budgets).
+- Both robots use the same placement; transfer across very different workspaces is untested.
 - Meta Muse Spark integration is tested only against mocked HTTP responses; no live call has been made.
 - The model ranks a fixed set of 10 template hypotheses; it cannot invent new routes or parameters.
 - "Offline would select" may be a kinematic estimate when the offline choice was not simulated (labelled).
 - On wall_reach_v1 the offline prior already succeeds on the first future, so there is little room for a model to help.
-- The evaluation suite (M6) is not implemented yet.
+- Evaluation: shared experience did not raise success over a from-scratch search; it reduced search effort on
+  11/17 scenes and increased it on 6 (negative transfer on wall_roof_v1). n=20 held-out scenes, no CIs.
+- Side routes are often infeasible because IK is position-only with a posture bias toward the start pose.

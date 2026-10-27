@@ -1,6 +1,6 @@
 PY := backend/.venv/bin/python
 
-.PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer lint build
+.PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer benchmark e2e lint build
 
 setup: backend-deps models frontend-deps ## one-time install
 
@@ -29,6 +29,12 @@ discover:
 
 transfer:
 	cd backend && .venv/bin/python scripts/transfer_demo.py --seed 7 --publish
+
+benchmark:
+	cd backend && .venv/bin/python scripts/benchmark.py
+
+e2e:
+	cd frontend && npx playwright install chromium && npx playwright test
 
 lint:
 	npm --prefix frontend run lint

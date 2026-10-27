@@ -41,7 +41,14 @@
 | D37 | Presentation clips at 0.5× with an on-screen label | ~2 s real-time executions are too fast to follow on video; slowing is disclosed. |
 | D38 | Visual theme applied to Menagerie skybox/floor textures via MjSpec | Matches the dark UI; textures don't affect dynamics; model hash is over source files and unchanged. |
 | D39 | Live presentation uses seed 7 and the offline planner | Seed 7 shows a genuine strategy adaptation (Panda far-side → UR5e over); Meta needs an explicit key + approval. |
+| D40 | Held-out protocol: Panda dev library (seeds 0–9) → UR5e eval (seeds 100–109), nearest same-family capsule | Tests reuse on *new* scenes; no target result can leak into the library. |
+| D41 | Variants evaluate candidates lazily and stop at first verified rollout; budget 3 rollouts | Makes search effort (kinematic evaluations) a real, comparable cost; all variants share start pose and candidates. |
+| D42 | `wall_roof_v1` roof gap widened 0.10–0.16 → 0.16–0.30 m after a probe found zero feasible scenes | A family nobody can solve can't discriminate; tuned for solvability before running any comparison. |
+| D43 | Report generated only from the stored run; findings on the UI generated from numbers | Prevents hand-written claims drifting from data; losses are stated automatically. |
+| D44 | Playwright runs an isolated stack (temp DB, separate `distDir`) | Running `next build` beside `next dev` corrupted the dev server earlier; tests must not touch dev data. |
 
 ## Open questions / blockers
 - Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.
 - Hackathon deadline/rules to be verified in the participant portal.
+- The repo lives under `~/Documents`; macOS created `* 2.*` conflict copies inside `frontend/.next` (likely a sync
+  service racing with Next's writes). Consider moving the repo outside synced folders.

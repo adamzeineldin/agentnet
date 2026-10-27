@@ -102,8 +102,25 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - **Gate met:** the whole A→B story runs from the web UI (live or replay) with no terminal after startup.
 - Not done: automated browser (Playwright) UI tests — planned with M6 end-to-end checks.
 
-## M6 — Evaluation & docs ⬜
-Next: held-out scene set incl. a harder variant where `over` fails; baselines `baseline_no_sharing`,
-`retarget_only`, `agentnet_offline` (+ `agentnet_meta` if a key is provided) with matched budgets; raw run table
-+ medians; benchmark API/UI; Playwright UI tests; fresh-clone check.
+## M6 — Evaluation, docs, UI tests ✅ (2026-10-27)
+- ✅ Second scene family `wall_roof_v1` (shorter wall + roof slab). Probed first: original gap made every scene
+  infeasible for both robots; widened the gap once for solvability (documented).
+- ✅ Evaluation harness (`evaluation.py`, `benchmark.py`): dev library from Panda on seeds 0–9 (not published),
+  UR5e on held-out seeds 100–109 × 2 families; nearest-capsule retrieval; variants `baseline_no_sharing`,
+  `retarget_only`, `agentnet_offline` with matched budgets (≤3 rollouts, same start, same candidate set,
+  lazy evaluation); raw rows, per-family/all/common summaries, paired per-scene comparison. `agentnet_meta` not run.
+- ✅ `POST/GET /api/benchmarks`; `make benchmark` writes `docs/EVALUATION_RESULTS.md` from the stored run.
+- ✅ Measured (run `run_20261027_004624_6244c9`, deterministic on re-run): success 17/20 baseline, 10/20 retarget,
+  17/20 AgentNet. AgentNet fewer kinematic evaluations on 11 scenes, more on 6 (negative transfer on the roof
+  family, median 10 vs 7). See `docs/EVALUATION.md`.
+- ✅ Evaluation page: generated findings (including losses), summary by subset, per-scene strip chart, protocol,
+  dev library, raw rows, “Run benchmark”.
+- ✅ Playwright: 7 UI tests on an isolated stack (backend :8011 temp DB, production build in `.next-e2e` :3011):
+  overview, passports, full discover→publish→transfer→publish flow, presentation replay, failed-run display,
+  benchmark page, offline banner — all pass. `make e2e`.
+- ✅ 104 backend tests pass.
+- **Gate met:** tests pass end to end; benchmark summary includes raw runs, actual numbers and limitations.
+- Not done: fresh-clone startup check (M7), Meta evaluation (needs key + approval).
+
 ## M7 — Record & finalize ⬜
+Next: fresh-clone startup check, freeze, stable demo runs, 2–3 min video, verify submission rules/deadline.

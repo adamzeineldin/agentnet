@@ -5,8 +5,12 @@ experience across different simulated embodiments. Robot A (Franka Emika Panda) 
 publishes a verified skill; Robot B (Universal Robots UR5e) adapts it with its own kinematics,
 previews candidates in MuJoCo, and publishes the adaptation with lineage.
 
-> **Status:** Milestones 0–5 complete (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
-> only been exercised against mocked responses (no API key configured). The evaluation suite is not built yet. Everything shown is MuJoCo simulation, not
+> **Status:** Milestones 0–6 complete (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
+> only been exercised against mocked responses (no API key configured).
+>
+> **Measured result:** on 20 held-out scenes, shared experience matched a from-scratch search on success
+> (17/20 each) and reduced search effort on 11 scenes but increased it on 6 (negative transfer). Plain
+> retargeting solved 10/20. Details: [docs/EVALUATION.md](docs/EVALUATION.md). Everything shown is MuJoCo simulation, not
 > physical-world verification.
 
 ## What works today
@@ -42,6 +46,8 @@ make smoke     # loads both robots, jogs a joint, executes an IK reach, renders 
 make test      # backend unit/integration/API tests
 make discover  # headless: Panda discovers + publishes a skill on seed 42
 make transfer  # headless: Panda skill (seed 7) transferred to the UR5e (also seeds replay data)
+make benchmark # held-out evaluation; writes docs/EVALUATION_RESULTS.md from the stored run
+make e2e       # Playwright UI tests on an isolated stack (ports 8011/3011, temp DB)
 make dev       # backend http://127.0.0.1:8000 + frontend http://localhost:3000
 ```
 
@@ -59,7 +65,9 @@ backend/app/api        health, robots, runs (incl. discover), skills, transfers
 backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py, transfer_demo.py
 backend/tests          passport, IK/physics, registry, API
 frontend/              Next.js 16 App Router + Tailwind 4
-docs/                  ARCHITECTURE.md, KNOWN_LIMITATIONS.md
+docs/                  ARCHITECTURE.md, DEMO_SCRIPT.md, EVALUATION.md, EVALUATION_RESULTS.md,
+                       KNOWN_LIMITATIONS.md
+frontend/e2e/          Playwright UI tests
 ```
 
 ## Attribution

@@ -231,3 +231,30 @@ export interface ReasoningTrace {
 
 export interface StoryStep { run: RunRecord; capsule: ExperienceCapsule | null }
 export interface DemoStory { source: StoryStep | null; target: StoryStep | null; complete: boolean; note: string }
+
+// ---- Evaluation (backend/app/services/evaluation.py)
+export type Variant = "baseline_no_sharing" | "retarget_only" | "agentnet_offline";
+export interface EvalRow {
+  variant: Variant; family: string; seed: number; scene_id: string; applicable: boolean; success: boolean;
+  selected: string | null; kinematic_evaluations: number; physics_rollouts: number;
+  rollouts_to_first_success: number | null; endpoint_error_m: number | null; collisions_in_rollouts: number;
+  sim_steps: number; wall_time_s: number; api_calls: number; source_skill: string | null;
+  source_strategy: string | null; note: string;
+}
+export interface EvalSummary {
+  scenes: number; applicable: number; successes: number; success_rate: number | null;
+  median_kinematic_evaluations: number | null; median_rollouts_to_first_success: number | null;
+  median_endpoint_error_m: number | null; median_wall_time_s: number | null; total_sim_steps: number;
+  collisions_in_rollouts: number; api_calls: number;
+}
+export interface Paired {
+  scenes: number; both_succeeded: number; only_variant: number; only_baseline: number; neither: number;
+  fewer_kinematic_evals: number; same_kinematic_evals: number; more_kinematic_evals: number;
+}
+export interface BenchmarkResults {
+  protocol: Record<string, unknown> & { families: string[]; dev_seeds: number[]; eval_seeds: number[]; variants: Record<Variant, string> };
+  dev_library: { scene_id: string; success: boolean; strategy: string | null }[];
+  rows: EvalRow[];
+  summary: Record<Variant, Record<string, EvalSummary>>;
+  paired?: Partial<Record<Variant, Paired>>;
+}

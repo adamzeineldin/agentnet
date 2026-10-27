@@ -94,3 +94,14 @@ class TransferRequest(BaseModel):
         default="offline",
         description="offline = deterministic source-experience prior; meta = Meta Muse Spark (needs MODEL_API_KEY)",
     )
+
+
+class BenchmarkRequest(BaseModel):
+    model_config = ConfigDict(frozen=True)
+    families: list[Literal["wall_reach_v1", "wall_roof_v1"]] = Field(
+        default_factory=lambda: ["wall_reach_v1", "wall_roof_v1"], min_length=1
+    )
+    dev_seeds: list[int] = Field(default_factory=lambda: list(range(0, 10)), min_length=1, max_length=50)
+    eval_seeds: list[int] = Field(default_factory=lambda: list(range(100, 110)), min_length=1, max_length=50)
+    source_robot_id: str = "panda_01"
+    target_robot_id: str = "ur5e_01"

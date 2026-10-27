@@ -15,6 +15,8 @@ from app.models.skill import BoxSpec, Placement, TaskSpec, Vec3
 from app.services.scene import BoxObstacle, SceneSpec
 
 SCENE_FAMILY = "wall_reach_v1"
+ROOF_FAMILY = "wall_roof_v1"
+SCENE_FAMILIES = (SCENE_FAMILY, ROOF_FAMILY)
 DEFAULT_SEED = 42
 FRAME_CONVENTION = (
     "task frame: origin on the floor in front of the robot; +x radially away from the "
@@ -32,7 +34,11 @@ DEFAULT_PLACEMENTS: dict[str, Placement] = {
 }
 
 
-def generate_task(seed: int = DEFAULT_SEED) -> TaskSpec:
+def generate_task(seed: int = DEFAULT_SEED, family: str = SCENE_FAMILY) -> TaskSpec:
+    if family == ROOF_FAMILY:
+        return _generate_roof_task(seed)
+    if family != SCENE_FAMILY:
+        raise ValueError(f"Unknown scene family {family!r}; known: {SCENE_FAMILIES}")
     rng = np.random.default_rng(seed)
     half_x = float(rng.uniform(0.08, 0.13))
     half_y = float(rng.uniform(0.02, 0.03))
@@ -63,6 +69,41 @@ def generate_task(seed: int = DEFAULT_SEED) -> TaskSpec:
             f"({2 * half_x:.2f} m long, {2 * half_y:.2f} m thick) standing on the floor."
         ),
     )
+
+
+def _generate_roof_task(seed: int) -> TaskSpec:
+    """A shorter wall with a roof slab above it: the gap under the roof is tight for a wrist."""
+    rng = np.random.default_rng(seed + 1_000_003)  # independent stream from wall_reach_v1
+    half_x = float(rng.uniform(0.05, 0.09))
+    half_y = float(rng.uniform(0.02, 0.03))
+    height = float(rng.uniform(0.20, 0.26))
+    gap = float(rng.uniform(0.16, 0.30))
+    cx = float(rng.uniform(-0.02, 0.02))
+    wall = BoxSpec(name="wall", center=(cx, 0.0, height / 2), half_size=(half_x, half_y, height / 2))
+    roof = BoxSpec(
+        name="roof",
+        center=(cx, 0.0, height + gap + 0.015),
+        half_size=(half_x + 0.05, float(rng.uniform(0.10, 0.14)), 0.015),
+    )
+    start = (float(rng.uniform(-0.04, 0.04)), -(half_y + float(rng.uniform(0.16, 0.22))),
+             float(rng.uniform(0.12, 0.18)))
+    target = (float(rng.uniform(-0.04, 0.04)), half_y + float(rng.uniform(0.16, 0.22)),
+              float(rng.uniform(0.08, 0.14)))
+    return TaskSpec(
+        scene_id=f"{ROOF_FAMILY}_s{seed}",
+        seed=seed,
+        start=start,
+        target=target,
+        obstacles=[wall, roof],
+        description=(
+            f"Reach past a {height:.2f} m wall ({2 * half_x:.2f} m long) with a roof slab "
+            f"{gap:.2f} m above its top."
+        ),
+    )
+
+
+def family_of(scene_id: str) -> str:
+    return next((f for f in SCENE_FAMILIES if scene_id.startswith(f)), SCENE_FAMILY)
 
 
 def _rot(yaw: float) -> np.ndarray:
