@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import health, robots, runs, skills, transfers
+from app.api import demo, health, robots, runs, skills, transfers
 from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH
 from app.services.fleet import ensure_passports
 from app.services.jobs import SimulationWorker
@@ -39,6 +39,7 @@ def create_app() -> FastAPI:
     app.include_router(runs.router)
     app.include_router(skills.router)
     app.include_router(transfers.router)
+    app.include_router(demo.router)
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/artifacts", StaticFiles(directory=ARTIFACT_DIR), name="artifacts")
     return app

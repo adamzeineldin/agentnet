@@ -41,10 +41,33 @@ def build_model(decl: RobotDecl, scene: SceneSpec | None = None) -> mujoco.MjMod
             f"Model file missing: {decl.scene_path}. Run scripts/fetch_models.sh first."
         )
     spec = mujoco.MjSpec.from_file(str(decl.scene_path))
+    _apply_visual_theme(spec)
     _ensure_end_effector_site(spec, decl)
     if scene is not None:
         _add_scene_objects(spec, scene)
     return spec.compile()
+
+
+# Visual-only restyle (textures/materials) to match the dark Control Center; no effect on dynamics.
+SKY_TOP = [0.16, 0.18, 0.21]
+SKY_BOTTOM = [0.03, 0.035, 0.045]
+FLOOR_A = [0.17, 0.19, 0.22]
+FLOOR_B = [0.13, 0.145, 0.17]
+FLOOR_MARK = [0.28, 0.33, 0.39]
+OFFSCREEN_W, OFFSCREEN_H = 1280, 720
+
+
+def _apply_visual_theme(spec: mujoco.MjSpec) -> None:
+    for tex in spec.textures:
+        if tex.type == mujoco.mjtTexture.mjTEXTURE_SKYBOX:
+            tex.rgb1, tex.rgb2 = SKY_TOP, SKY_BOTTOM
+        elif tex.name == "groundplane":
+            tex.rgb1, tex.rgb2, tex.markrgb = FLOOR_A, FLOOR_B, FLOOR_MARK
+    for mat in spec.materials:
+        if mat.name == "groundplane":
+            mat.reflectance = 0.08
+    spec.visual.global_.offwidth = max(spec.visual.global_.offwidth, OFFSCREEN_W)
+    spec.visual.global_.offheight = max(spec.visual.global_.offheight, OFFSCREEN_H)
 
 
 def _ensure_end_effector_site(spec: mujoco.MjSpec, decl: RobotDecl) -> None:

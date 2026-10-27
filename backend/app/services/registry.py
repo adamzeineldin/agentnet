@@ -130,6 +130,11 @@ class Registry:
             row = s.get(SkillRow, skill_id)
             return ExperienceCapsule.model_validate(row.payload) if row else None
 
+    def get_skill_by_run(self, run_id: str) -> ExperienceCapsule | None:
+        with self._session() as s:
+            row = s.scalars(select(SkillRow).where(SkillRow.run_id == run_id)).first()
+            return ExperienceCapsule.model_validate(row.payload) if row else None
+
     def list_skills(
         self, source_robot_id: str | None = None, parent_skill_id: str | None = None
     ) -> list[ExperienceCapsule]:

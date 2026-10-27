@@ -228,3 +228,6 @@ export interface ReasoningTrace {
   model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null;
   offline_expected_selection: string | null; comparison_basis: string; changed_selection_vs_offline: boolean;
 }
+
+export interface StoryStep { run: RunRecord; capsule: ExperienceCapsule | null }
+export interface DemoStory { source: StoryStep | null; target: StoryStep | null; complete: boolean; note: string }

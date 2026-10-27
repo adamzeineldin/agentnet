@@ -143,3 +143,12 @@ def test_prior_order_puts_capsule_strategy_first_and_source_failures_last():
 def test_capsule_json_never_contains_joint_vectors(source_42):
     text = json.dumps(source_42)
     assert "q_start" not in text and "joint_path" not in text
+
+
+def test_demo_story_returns_recorded_chain(client, source_42, transfer_42):
+    client.post("/api/skills", json={"run_id": transfer_42["run_id"]})  # idempotent enough: 201 or 409
+    story = client.get("/api/demo/story").json()
+    assert story["complete"] is True
+    assert story["target"]["run"]["run_type"] == "transfer" and story["target"]["run"]["status"] == "succeeded"
+    assert story["target"]["capsule"]["parent_skill_id"] == story["source"]["capsule"]["skill_id"]
+    assert story["source"]["run"]["run_id"] == story["source"]["capsule"]["provenance"]["run_id"]

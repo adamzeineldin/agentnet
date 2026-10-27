@@ -78,3 +78,20 @@ export function subscribeRun(
   };
   return () => source.close();
 }
+
+/** Start a run and resolve with its final record once the SSE stream reports completion. */
+export function runToCompletion(
+  starter: () => Promise<RunRecord>,
+  onEvent: (ev: RunEvent) => void,
+): { done: Promise<RunRecord>; cancel: () => void } {
+  let cancel = () => {};
+  const done = starter().then(
+    (queued) =>
+      new Promise<RunRecord>((resolve, reject) => {
+        cancel = subscribeRun(queued.run_id, onEvent, () => {
+          apiFetch<RunRecord>(`/api/runs/${queued.run_id}`).then(resolve, reject);
+        });
+      }),
+  );
+  return { done, cancel: () => cancel() };
+}

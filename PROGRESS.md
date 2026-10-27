@@ -83,8 +83,27 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ⚠️ No real Meta call has been made (no `MODEL_API_KEY`). Live behaviour of tool calling + `json_schema` on
   muse-spark-1.3 is unverified until a key is added; the adapter falls back honestly if the format differs.
 
-## M5 — Full Control Center ⬜
-Next: presentation mode (one-click A→B story with replay of recorded runs), run-history detail for transfer/
-imagination, error states, lineage graph, every number traced to backend data.
+## M5 — Full Control Center ✅ (2026-10-27)
+- ✅ Presentation mode (`/present`, **▶ Present** in the header): 5 scenes (Discover, Publish, Passports, Imagine,
+  Adapt), chrome-less 16:9 layout, keyboard ←/→/space.
+  - **Replay recorded**: latest real chain from `GET /api/demo/story` (selects existing runs/capsules only; failed
+    transfers never used); badge shows recording time.
+  - **Run live**: one click runs discover (seed 7) → publish → transfer → publish and auto-advances; verified in
+    the browser: ~20 s end to end, new capsules published with lineage. Failures stop the show with the reason.
+  - Clips play at 0.5×, labelled “0.5× speed · simulated time”.
+- ✅ Capture-ready renders: 960×540 clips, graphite sky/floor (visual-only texture change; offscreen framebuffer
+  set to 1280×720). A run that crashed before this fix is kept in history as failed with its error.
+- ✅ Run History: type filter, robots/skill/planner·model/seed/candidates columns, evidence drawer with
+  replay, prior-ranked candidates, provider badge, registry lineage graph, event log.
+- ✅ Overview: skills / adaptations / transfers counts, activity list with model used, Presentation + Transfer Lab CTAs.
+- ✅ Error states: app-wide “backend unreachable” banner with recovery hint; empty states on every list.
+- ✅ `docs/DEMO_SCRIPT.md` with scene-by-scene accurate claims.
+- ✅ 96 backend tests (demo-story chain selection, failed-transfer exclusion).
+- **Gate met:** the whole A→B story runs from the web UI (live or replay) with no terminal after startup.
+- Not done: automated browser (Playwright) UI tests — planned with M6 end-to-end checks.
+
 ## M6 — Evaluation & docs ⬜
+Next: held-out scene set incl. a harder variant where `over` fails; baselines `baseline_no_sharing`,
+`retarget_only`, `agentnet_offline` (+ `agentnet_meta` if a key is provided) with matched budgets; raw run table
++ medians; benchmark API/UI; Playwright UI tests; fresh-clone check.
 ## M7 — Record & finalize ⬜

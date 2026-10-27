@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { API_BASE } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import type { Health } from "@/lib/types";
 import { Badge } from "./ui";
@@ -32,8 +33,20 @@ function HealthIndicator() {
   );
 }
 
+function OfflineBanner() {
+  const { error } = useApi<Health>("/api/health", 5000);
+  if (!error) return null;
+  return (
+    <div role="alert" className="border-b border-bad/40 bg-bad/10 px-6 py-2 text-center text-sm text-bad">
+      Backend unreachable at <span className="font-mono">{API_BASE}</span>. Start it with <span className="font-mono">make dev</span>;
+      this page will reconnect automatically. Nothing on screen is being updated meanwhile.
+    </div>
+  );
+}
+
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  if (pathname.startsWith("/present")) return <>{children}</>; // full-screen presentation, no chrome
   return (
     <div className="flex min-h-screen flex-col">
       <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
@@ -62,9 +75,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               );
             })}
           </nav>
-          <div className="ml-auto"><HealthIndicator /></div>
+          <div className="ml-auto flex items-center gap-3">
+            <HealthIndicator />
+            <Link href="/present" className="rounded-md border border-accent-dim px-3 py-1.5 text-sm text-accent hover:bg-accent/10">
+              ▶ Present
+            </Link>
+          </div>
         </div>
       </header>
+      <OfflineBanner />
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6">{children}</main>
       <footer className="border-t border-line px-6 py-3 text-center text-[11px] text-ink-3">
         All robot results are MuJoCo simulation only — not physical-world verification.

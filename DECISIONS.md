@@ -37,6 +37,10 @@
 | D33 | Caps: 4 tool rounds, 1 revision, 1200 max_tokens per call; cost estimated at $1.25/$4.25 per 1M tokens | Plan's "cap tool rounds and cost"; standard-mode pricing from dev.meta.ai. Contributor mode (cheaper, trains Meta models) not used by default. |
 | D34 | "Offline would select" uses physics if that candidate was simulated, else kinematic feasibility (basis recorded) | Avoids extra simulation while never claiming an unmeasured comparison as physics. |
 | D35 | Imagination budget = 3 futures; transfer executes the first verified future in provider order | Multiple futures shown; same budget as discovery and baselines. |
+| D36 | Presentation replay picks the latest succeeded transfer whose source capsule exists, preferring one with a published adaptation | Replays only real recorded chains; never fabricates or mixes unrelated runs. |
+| D37 | Presentation clips at 0.5× with an on-screen label | ~2 s real-time executions are too fast to follow on video; slowing is disclosed. |
+| D38 | Visual theme applied to Menagerie skybox/floor textures via MjSpec | Matches the dark UI; textures don't affect dynamics; model hash is over source files and unchanged. |
+| D39 | Live presentation uses seed 7 and the offline planner | Seed 7 shows a genuine strategy adaptation (Panda far-side → UR5e over); Meta needs an explicit key + approval. |
 
 ## Open questions / blockers
 - Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.

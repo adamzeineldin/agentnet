@@ -5,7 +5,7 @@ experience across different simulated embodiments. Robot A (Franka Emika Panda) 
 publishes a verified skill; Robot B (Universal Robots UR5e) adapts it with its own kinematics,
 previews candidates in MuJoCo, and publishes the adaptation with lineage.
 
-> **Status:** Milestones 0–4 complete (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
+> **Status:** Milestones 0–5 complete (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
 > only been exercised against mocked responses (no API key configured). The evaluation suite is not built yet. Everything shown is MuJoCo simulation, not
 > physical-world verification.
 
@@ -28,7 +28,9 @@ previews candidates in MuJoCo, and publishes the adaptation with lineage.
 - Collective Imagination: a reasoning provider (offline prior, or Meta Muse Spark with `MODEL_API_KEY`) ranks
   hypotheses; MuJoCo simulates several futures before one is executed. Each run records which provider was
   used, model calls, tokens, estimated cost, and whether the model changed the selection.
-- Next.js Control Center: Overview, Robot Fleet, Transfer Lab (Panda ↔ UR5e), Skill Library, Run History.
+- Next.js Control Center: Overview, Robot Fleet, Transfer Lab (Panda ↔ UR5e), Skill Library, Run History,
+  and a one-click **Presentation mode** (`/present`) that replays a recorded chain or runs it live.
+  See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
 
 ## Quick start
 
@@ -39,7 +41,7 @@ make setup     # venv + backend deps, pinned Menagerie models, frontend deps
 make smoke     # loads both robots, jogs a joint, executes an IK reach, renders MP4s
 make test      # backend unit/integration/API tests
 make discover  # headless: Panda discovers + publishes a skill on seed 42
-make transfer  # headless: Panda skill (seed 7) transferred to the UR5e
+make transfer  # headless: Panda skill (seed 7) transferred to the UR5e (also seeds replay data)
 make dev       # backend http://127.0.0.1:8000 + frontend http://localhost:3000
 ```
 
