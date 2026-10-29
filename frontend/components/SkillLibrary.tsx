@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { LineageGraph } from "./LineageGraph";
 import { MemoryGraph } from "./MemoryGraph";
+import { LibrarianPanel } from "./library/LibrarianPanel";
 import Link from "next/link";
 import { fmtDateTime, fmtM, fmtSec } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
@@ -86,12 +87,14 @@ export function SkillLibrary() {
       <div className="segmented" role="tablist" aria-label="Library view">
         <button role="tab" aria-selected={view === "list"} onClick={() => setView("list")}>Skills</button>
         <button role="tab" aria-selected={view === "graph"} onClick={() => setView("graph")}>Memory graph</button>
+        <button role="tab" aria-selected={view === "librarian"} onClick={() => setView("librarian")}>Librarian</button>
       </div>
     </div>
     {skills.error && <ErrorNote message={skills.error} />}
     {skills.loading && <Loading />}
     {skills.data?.length === 0 && <p className="border border-line bg-panel p-8 text-sm text-ink-3">No published skills yet. <Link href="/transfer" className="text-accent">Discover one in the Transfer Lab →</Link></p>}
-    {view === "graph" ? <>
+    {view === "librarian" ? <LibrarianPanel onOpenSkill={(id) => { setSelected(id); setQuery(""); setView("list"); }} />
+    : view === "graph" ? <>
       {robots.error && <ErrorNote message={robots.error} />}
       {skills.data && robots.data && <MemoryGraph skills={skills.data} robots={robots.data} onOpenSkill={(id) => { setSelected(id); setQuery(""); setView("list"); }} />}
     </> : skills.data && skills.data.length > 0 && <div className="grid items-start gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">

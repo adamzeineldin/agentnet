@@ -1,4 +1,4 @@
-import type { ExperienceCapsule, ReasoningMode, RunEvent, RunRecord } from "./types";
+import type { ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RunEvent, RunRecord } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -58,6 +58,11 @@ export function startTransfer(
       source_skill_id: sourceSkillId, target_robot_id: targetRobotId, scene_seed: sceneSeed, reasoning_mode: reasoningMode,
     }),
   });
+}
+
+/** Organize the published registry into a stored Library Report (never edits skills). */
+export function createLibraryReport(provider: LibrarianMode): Promise<LibraryReport> {
+  return apiFetch<LibraryReport>("/api/library/reports", { method: "POST", body: JSON.stringify({ provider }) });
 }
 
 /** Subscribe to a run's server-sent events. Returns an unsubscribe function. */

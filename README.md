@@ -71,8 +71,8 @@ labelled **Offline deterministic planner** mode.
 backend/app/services   robot_catalog, scene, robot_adapter, kinematics, simulation, render,
                        passports, fleet, registry, jobs, motion_check, task_scene,
                        route_planner, candidate_search, skill_discovery, transfer, imagination,
-                       capsules, skill_registry, reasoning/{base,offline,meta_muse}
-backend/app/api        health, robots, runs (incl. discover), skills, transfers
+                       capsules, skill_registry, reasoning/{base,offline,meta_muse}, librarian/offline
+backend/app/api        health, robots, runs (incl. discover), skills, transfers, library
 backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py, transfer_demo.py
 backend/tests          passport, IK/physics, registry, API
 frontend/              Next.js 16 App Router + Tailwind 4

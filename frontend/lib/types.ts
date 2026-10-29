@@ -258,3 +258,28 @@ export interface BenchmarkResults {
   summary: Record<Variant, Record<string, EvalSummary>>;
   paired?: Partial<Record<Variant, Paired>>;
 }
+
+// ---- Skill librarian (backend/app/models/library.py)
+export type LibrarianMode = "offline" | "meta";
+export interface SkillCollection {
+  collection_id: string; title: string; scene_family: string; route_class: string;
+  skill_ids: string[]; robot_ids: string[]; basis: string; model_note: string | null;
+}
+export interface DuplicateGroup {
+  keep_skill_id: string; duplicate_skill_ids: string[]; robot_id: string; scene_id: string; strategy: string; basis: string;
+}
+export interface CoverageGap {
+  kind: "robot_missing_family" | "skill_not_transferred"; robot_id: string; scene_family: string;
+  skill_id: string | null; detail: string;
+}
+export interface LibrarySuggestion { action: "transfer"; source_skill_id: string; target_robot_id: string; reason: string }
+export interface ModelUsage {
+  model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null;
+}
+export interface LibraryReport {
+  schema_version: string; report_id: string; created_at: string;
+  provider: "offline_librarian" | "meta_muse_spark"; provider_requested: string | null; model_id: string | null;
+  fallback_error: string | null; skill_count: number; robot_ids: string[];
+  collections: SkillCollection[]; duplicates: DuplicateGroup[]; gaps: CoverageGap[]; suggestions: LibrarySuggestion[];
+  summary: string | null; priority_rationale: string | null; usage: ModelUsage | null; notes: string[];
+}

@@ -179,3 +179,34 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Refreshed `assets/screenshots/` using `frontend/scripts/screenshots.mjs` against a production build and an
   isolated copy of real recorded test runs. Added memory graph, run evidence, dark landing and mobile views.
 - Backend test runs retain the existing Starlette/httpx deprecation warning; no test failures remain.
+
+## Skill librarian 🟡 (steps 1–3 of 4 done 2026-10-29, branch `feat/skill-librarian`)
+- ✅ Step 1 — offline librarian backend: `services/librarian/offline.py` organizes published capsules by fixed
+  rules into a stored `LibraryReport` (collections by scene family × route class; duplicates = same robot, identical
+  task geometry and strategy, earliest kept; gaps = robot missing a scene family / original never adapted on another
+  robot; one transfer suggestion per untransferred original). Read-only over skills; suggestions are not executed.
+- ✅ API: `POST /api/library/reports` (offline only), `GET /api/library/reports/latest`, `GET /api/library/reports/{id}`;
+  `library_reports` table in the registry. 11 new tests (119 backend total), `make smoke` PASS. No model calls.
+- ✅ Preview on a copy of the dev registry: 11 skills = 3 distinct skills + 8 duplicates; one gap — Panda
+  `over@0.08` on seed 42 has no UR5e adaptation.
+- ✅ Step 2 — Muse librarian (`services/librarian/muse.py`): facts still come from the offline rules; Muse only
+  adds a summary, per-collection notes and a suggestion order + rationale (model-written, labelled). Read-only tools
+  `inspect_skill`, `compare_skills`; 1 tool round + forced JSON answer, low reasoning effort. Unknown ids dropped and
+  noted; text length-capped; text implying hardware/physical/real-world results is dropped (simulation-only).
+  Failure → offline report stored with `fallback_error` and the billed calls. `POST /api/library/reports
+  {"provider": "meta"}` (409 without key). Shared Meta tool loop extracted to `reasoning/meta_client.py`
+  (transfer provider unchanged in behaviour). 10 mocked tests; full suite verified to make no real Meta calls.
+- ✅ One live check (2026-10-29): `lib_20261029_202931_e5fcbd`, 1 call, 2,891 in / 682 out tokens, $0.00043.
+  Muse ranked the one real gap (Panda seed-42 `over@0.08` → UR5e) and wrote sensible notes, but described
+  results as "Panda hardware" / "UR hardware". That report is kept as recorded (pre-guard); the prompt and the
+  hardware-claim guard were added afterwards and are covered by tests, not by a second paid call.
+- ✅ Step 3 — "Librarian" tab in the Skill Library (`components/library/`): shows the latest report; "Organize
+  library" with Offline rules (default, free) or Meta Muse Spark (disabled without a key). Provider badge, model
+  usage/cost line, stats from the report, suggestions linking to the Transfer Lab ("not executed"), collections,
+  duplicates ("skills are kept as published"), gaps; model text marked "model-written"; skill chips open the skill.
+  Verified in the browser on the dev registry (desktop, 375 px, dark theme; no console errors).
+- ✅ e2e: new librarian test (offline only, skills unchanged). The isolated e2e backend now runs with
+  `MODEL_API_KEY` blanked: with the key in `.env` the header label changed and the transfer test failed, and UI
+  tests must never spend credits. 11 Playwright tests pass; 129 backend tests; smoke PASS.
+- ⬜ Step 4 — docs, e2e.
+
