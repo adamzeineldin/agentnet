@@ -7,7 +7,8 @@ from pydantic import BaseModel, ConfigDict
 
 from app.api.deps import get_registry
 from app.models.library import LibraryReport
-from app.services.librarian import organize
+from app.services.librarian import build_report, get_librarian
+from app.services.reasoning import meta_available
 from app.services.registry import Registry
 from app.services.robot_catalog import ROBOTS
 
@@ -16,13 +17,21 @@ router = APIRouter(prefix="/api/library", tags=["library"])
 
 class OrganizeRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    provider: Literal["offline"] = "offline"
+    provider: Literal["offline", "meta"] = "offline"
 
 
 @router.post("/reports", response_model=LibraryReport, status_code=201)
 def create_report(body: OrganizeRequest, registry: Registry = Depends(get_registry)) -> LibraryReport:
-    """Organize the published registry. Read-only over skills; the report itself is stored."""
-    return registry.save_library_report(organize(registry.list_skills(), list(ROBOTS)))
+    """Organize the published registry. Read-only over skills; the report itself is stored.
+
+    `meta` adds Muse-written text and priorities (one bounded call, usually two); if the model
+    fails, the offline report is stored with the error and the billed calls.
+    """
+    if body.provider == "meta" and not meta_available():
+        raise HTTPException(status.HTTP_409_CONFLICT,
+                            "Muse librarian requested but MODEL_API_KEY is not configured; use provider='offline'")
+    report = build_report(registry.list_skills(), list(ROBOTS), get_librarian(body.provider))
+    return registry.save_library_report(report)
 
 
 @router.get("/reports/latest", response_model=LibraryReport)
