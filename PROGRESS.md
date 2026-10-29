@@ -180,7 +180,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   isolated copy of real recorded test runs. Added memory graph, run evidence, dark landing and mobile views.
 - Backend test runs retain the existing Starlette/httpx deprecation warning; no test failures remain.
 
-## Skill librarian 🟡 (steps 1–2 of 4 done 2026-10-29, branch `feat/skill-librarian`)
+## Skill librarian 🟡 (steps 1–3 of 4 done 2026-10-29, branch `feat/skill-librarian`)
 - ✅ Step 1 — offline librarian backend: `services/librarian/offline.py` organizes published capsules by fixed
   rules into a stored `LibraryReport` (collections by scene family × route class; duplicates = same robot, identical
   task geometry and strategy, earliest kept; gaps = robot missing a scene family / original never adapted on another
@@ -200,6 +200,13 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   Muse ranked the one real gap (Panda seed-42 `over@0.08` → UR5e) and wrote sensible notes, but described
   results as "Panda hardware" / "UR hardware". That report is kept as recorded (pre-guard); the prompt and the
   hardware-claim guard were added afterwards and are covered by tests, not by a second paid call.
-- ⬜ Step 3 — "Librarian" tab in the Skill Library.
+- ✅ Step 3 — "Librarian" tab in the Skill Library (`components/library/`): shows the latest report; "Organize
+  library" with Offline rules (default, free) or Meta Muse Spark (disabled without a key). Provider badge, model
+  usage/cost line, stats from the report, suggestions linking to the Transfer Lab ("not executed"), collections,
+  duplicates ("skills are kept as published"), gaps; model text marked "model-written"; skill chips open the skill.
+  Verified in the browser on the dev registry (desktop, 375 px, dark theme; no console errors).
+- ✅ e2e: new librarian test (offline only, skills unchanged). The isolated e2e backend now runs with
+  `MODEL_API_KEY` blanked: with the key in `.env` the header label changed and the transfer test failed, and UI
+  tests must never spend credits. 11 Playwright tests pass; 129 backend tests; smoke PASS.
 - ⬜ Step 4 — docs, e2e.
 

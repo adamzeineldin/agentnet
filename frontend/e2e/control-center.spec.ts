@@ -41,6 +41,26 @@ test("transfer lab: discover, publish, transfer, publish adaptation — real job
   await expect(page.getByText(/Adapted from skill_reach_far_side_/)).toBeVisible();
 });
 
+test("librarian organizes the registry offline without changing skills", async ({ page, request }) => {
+  const before = await (await request.get(`${API}/api/skills`)).json();
+  await page.goto("/skills");
+  await page.getByRole("tab", { name: "Librarian" }).click();
+  await expect(page.getByText("No library report yet. Press “Organize library”.")).toBeVisible();
+  // Offline is the default, and the e2e backend runs without MODEL_API_KEY, so Muse is not selectable.
+  await expect(page.getByRole("combobox", { name: "Librarian" })).toHaveValue("offline");
+  await expect(page.getByRole("option", { name: /MODEL_API_KEY not configured/ })).toBeDisabled();
+  await page.getByRole("button", { name: "Organize library" }).click();
+  await expect(page.getByText("Offline rules · no model")).toBeVisible();
+  await expect(page.getByText("Suggested next transfers")).toBeVisible();
+  const report = await (await request.get(`${API}/api/library/reports/latest`)).json();
+  expect(report.provider).toBe("offline_librarian");
+  expect(report.usage).toBeNull();
+  expect(report.skill_count).toBe(before.length);
+  await page.getByRole("button", { name: `Open skill ${before[0].skill_id}`, exact: true }).first().click();
+  await expect(page.getByRole("heading", { name: before[0].skill_id, exact: true })).toBeVisible();
+  expect(await (await request.get(`${API}/api/skills`)).json()).toEqual(before);
+});
+
 test("presentation replay plays the recorded chain and labels it as replay", async ({ page }) => {
   await page.goto("/present");
   await expect(page.getByText(/^REPLAY · recorded/)).toBeVisible();
