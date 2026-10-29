@@ -135,7 +135,9 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Screenshots of every screen in `assets/screenshots/` (generated from the demo stack); README shows them.
 - ✅ `docs/DEMO_SCRIPT.md` recording checklist + evaluation scene; `docs/SUBMISSION.md`.
 - ⬜ Read Official Rules in the portal; choose track/theme; add a LICENSE.
-- ⬜ Optional: Meta Muse Spark run (needs `MODEL_API_KEY` and your go-ahead to spend).
+- 🟡 Meta Model API key configured locally (2026-10-29, `.env`, git-ignored). Two connectivity calls to
+  `muse-spark-1.3-contributor` returned HTTP 200 (total ≈ $0.00007). Note: a trivial prompt used 211 reasoning
+  tokens, so tight `max_tokens` can leave `content` empty. No AgentNet transfer has used Meta yet.
 - ⬜ Record the 2–3 min video and submit.
 
 ## UI design handoff ✅ (2026-10-28)
