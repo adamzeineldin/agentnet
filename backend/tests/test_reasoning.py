@@ -83,6 +83,7 @@ def test_meta_tool_loop_request_format_and_answer():
     assert req.headers["authorization"] == "Bearer test-key"
     assert first["model"] == "muse-spark-1.3" and first["tool_choice"] == "auto"
     assert first["parallel_tool_calls"] is False
+    assert first["reasoning_effort"] == "low"  # reasoning tokens bill as output and share max_tokens
     assert {t["function"]["name"] for t in first["tools"]} == {
         "inspect_robot", "inspect_skill", "check_candidate", "summarize_failure", "submit_ranking"}
     tool_msg = second["messages"][-1]
@@ -107,6 +108,8 @@ def test_meta_final_round_forces_json_schema():
     proposal = _provider(script).propose_strategies(_context())
     last = script.bodies()[-1]
     assert "tools" not in last and last["response_format"]["type"] == "json_schema"
+    assert last["response_format"]["json_schema"]["strict"] is True
+    assert last["messages"][-1]["role"] == "user" and "JSON" in last["messages"][-1]["content"]
     assert last["response_format"]["json_schema"]["schema"]["properties"]["ranking"]["items"]["enum"] == list(IDS)
     assert proposal.ranking[0] == "over@0.08" and len(script.requests) == MAX_TOOL_ROUNDS + 1
 
@@ -217,6 +220,7 @@ def test_meta_failure_falls_back_to_offline_honestly(client, skill_7, monkeypatc
     assert run["status"] == "succeeded" and run["model_used"] is None
     assert rs["provider_requested"] == "meta_muse_spark" and rs["provider_used"] == "offline_deterministic"
     assert "503" in rs["fallback_error"] and rs["changed_selection_vs_offline"] is False
+    assert rs["model_calls"] == 0 and rs["estimated_cost_usd"] is None  # offline fallback is not a paid call
 
 
 def test_cost_uses_the_configured_models_price():
@@ -224,3 +228,33 @@ def test_cost_uses_the_configured_models_price():
     assert estimated_cost_usd(calls, "muse-spark-1.3") == pytest.approx(1.25 + 4.25)
     assert estimated_cost_usd(calls, "muse-spark-1.3-contributor") == pytest.approx(0.10 + 0.20)
     assert estimated_cost_usd(calls, "unpriced-model") is None
+
+
+def test_meta_final_answer_tolerates_text_around_the_json():
+    wrapped = 'Ranking ready:\n```json\n{"ranking": ["over@0.12"], "rationale": "wider"}\n```'
+    script = Script([httpx.Response(200, json=_completion({"role": "assistant", "content": wrapped}))])
+    assert _provider(script).propose_strategies(_context()).ranking[0] == "over@0.12"
+
+
+def test_meta_failure_keeps_the_paid_calls():
+    loop = [httpx.Response(200, json=_completion(_tool_call("inspect_skill", {}, f"c{i}")))
+            for i in range(MAX_TOOL_ROUNDS)]
+    prose = httpx.Response(200, json=_completion({"role": "assistant", "content": "still thinking"}))
+    with pytest.raises(MetaReasoningError) as info:
+        _provider(Script([*loop, prose])).propose_strategies(_context())
+    assert len(info.value.calls) == MAX_TOOL_ROUNDS + 1
+    assert sum(c.prompt_tokens for c in info.value.calls) == 100 * (MAX_TOOL_ROUNDS + 1)
+
+
+def test_meta_fallback_run_still_records_spend(client, skill_7, monkeypatch):
+    prose = lambda req: httpx.Response(200, json=_completion({"role": "assistant", "content": "no json"}))
+    monkeypatch.setattr("app.api.transfers.meta_available", lambda: True)
+    monkeypatch.setattr("app.services.transfer.get_provider",
+                        lambda mode: MetaMuseProvider("k", "muse-spark-1.3", transport=httpx.MockTransport(prose)))
+    r = client.post("/api/transfers", json={"source_skill_id": skill_7["skill_id"], "reasoning_mode": "meta"})
+    run = _wait(client, r.json()["run_id"])
+    rs = run["results"]["reasoning"]
+    assert run["status"] == "succeeded" and run["model_used"] is None
+    assert rs["provider_used"] == "offline_deterministic" and rs["model_id"] is None
+    assert rs["model_requested"] == "muse-spark-1.3" and rs["model_calls"] == 1
+    assert rs["estimated_cost_usd"] == pytest.approx(100 / 1e6 * 1.25 + 20 / 1e6 * 4.25)

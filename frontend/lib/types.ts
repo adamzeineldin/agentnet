@@ -223,7 +223,7 @@ export interface ReasoningProposal {
   calls?: { kind: string; summary: string; latency_s: number; prompt_tokens: number | null; completion_tokens: number | null }[];
 }
 export interface ReasoningTrace {
-  provider_requested: string; provider_used: string; model_id: string | null; fallback_error: string | null;
+  provider_requested: string; model_requested?: string | null; provider_used: string; model_id: string | null; fallback_error: string | null;
   proposals: ReasoningProposal[]; revisions: number; physics_budget: number; final_order: string[]; offline_order: string[];
   model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null;
   offline_expected_selection: string | null; comparison_basis: string; changed_selection_vs_offline: boolean;

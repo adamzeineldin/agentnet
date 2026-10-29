@@ -32,8 +32,11 @@ from app.services.reasoning.base import (
 log = logging.getLogger(__name__)
 
 BASE_URL = "https://api.meta.ai/v1"
-MAX_TOOL_ROUNDS = 4
+MAX_TOOL_ROUNDS = 2  # live runs used every round on inspection; fewer rounds = fewer paid calls
 MAX_TOKENS = 1200
+# Reasoning tokens bill as output and count toward max_tokens; at the default level live runs spent the
+# whole budget reasoning and returned an empty answer. Ranking pre-screened candidates needs little.
+REASONING_EFFORT = "low"
 TIMEOUT_S = 60.0
 # USD per 1M tokens (input, output), dev.meta.ai/docs/pricing-rate-limits, checked 2026-10-29.
 # Contributor variants are cheaper because Meta may use the traffic for training.
@@ -53,12 +56,24 @@ SYSTEM_PROMPT = (
     "compute motion: the backend solves inverse kinematics and runs MuJoCo physics on your top-ranked "
     "candidates (budget given). Use the read-only tools if useful, then call submit_ranking exactly once. "
     "Only use candidate_ids from the provided list. Candidates whose kinematic_outcome is not 'feasible' "
-    "cannot be simulated, so ranking them first wastes nothing but is uninformative."
+    "cannot be simulated, so ranking them first wastes nothing but is uninformative. Each candidate's "
+    "kinematic outcome is already in the message, so call submit_ranking as soon as you can."
+)
+FINAL_INSTRUCTION = (
+    "Tools are no longer available. Reply now with only the JSON object "
+    '{"ranking": [candidate_ids, best first], "rationale": "<one sentence>"} and no other text.'
 )
 
 
 class MetaReasoningError(RuntimeError):
-    """The Meta call failed or returned an unusable answer."""
+    """The Meta call failed or returned an unusable answer.
+
+    `calls` holds the model calls already made (and billed) before the failure.
+    """
+
+    def __init__(self, message: str, calls: tuple[ReasoningCall, ...] = ()) -> None:
+        super().__init__(message)
+        self.calls = calls
 
 
 def _tool(name: str, description: str, properties: dict, required: list[str]) -> dict:
@@ -171,15 +186,24 @@ class MetaMuseProvider:
 
     def _converse(self, context: ReasoningContext, user: str, feedback: list[RolloutFeedback],
                   kind: str) -> StrategyProposal:
+        calls: list[ReasoningCall] = []
+        try:
+            return self._tool_loop(context, user, feedback, kind, calls)
+        except MetaReasoningError as exc:
+            raise MetaReasoningError(str(exc), tuple(calls)) from exc
+
+    def _tool_loop(self, context: ReasoningContext, user: str, feedback: list[RolloutFeedback],
+                   kind: str, calls: list[ReasoningCall]) -> StrategyProposal:
         messages: list[dict] = [{"role": "system", "content": SYSTEM_PROMPT}, {"role": "user", "content": user}]
         tools = build_tools(context)
-        calls: list[ReasoningCall] = []
         for round_idx in range(MAX_TOOL_ROUNDS + 1):
             final_round = round_idx == MAX_TOOL_ROUNDS
-            body = {"model": self.model_id, "messages": messages, "max_tokens": MAX_TOKENS}
+            body = {"model": self.model_id, "messages": messages, "max_tokens": MAX_TOKENS,
+                    "reasoning_effort": REASONING_EFFORT}
             if final_round:
+                body["messages"] = [*messages, {"role": "user", "content": FINAL_INSTRUCTION}]
                 body["response_format"] = {"type": "json_schema", "json_schema": {
-                    "name": "ranking", "schema": _ranking_schema(context.allowed_ids)}}
+                    "name": "ranking", "strict": True, "schema": _ranking_schema(context.allowed_ids)}}
             else:
                 body |= {"tools": tools, "tool_choice": "auto", "parallel_tool_calls": False}
             message, call = self._post(body)
@@ -241,8 +265,15 @@ def _parse_json(content: object) -> dict:
         raise MetaReasoningError("empty answer")
     try:
         parsed = json.loads(content)
-    except ValueError as exc:
-        raise MetaReasoningError("answer is not JSON") from exc
+    except ValueError:
+        # Live answers sometimes wrap the object in prose or code fences; take the outermost {...}.
+        start, end = content.find("{"), content.rfind("}")
+        try:
+            parsed = json.loads(content[start:end + 1]) if 0 <= start < end else None
+        except ValueError:
+            parsed = None
+        if parsed is None:
+            raise MetaReasoningError("answer is not JSON") from None
     if not isinstance(parsed, dict):
         raise MetaReasoningError("answer must be a JSON object")
     return parsed

@@ -5,8 +5,8 @@ experience across different simulated embodiments. Robot A (Franka Emika Panda) 
 publishes a verified skill; Robot B (Universal Robots UR5e) adapts it with its own kinematics,
 previews candidates in MuJoCo, and publishes the adaptation with lineage.
 
-> **Status:** Milestones 0–6 complete, M7 engineering done (recording/submission pending) (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated but has
-> only been exercised against mocked responses (no API key configured).
+> **Status:** Milestones 0–6 complete, M7 engineering done (recording/submission pending) (see [PROGRESS.md](PROGRESS.md)). Meta Muse Spark is integrated and has
+> made live calls (`muse-spark-1.3-contributor`, about $0.001 per transfer); see PROGRESS.md M7.
 >
 > **Measured result:** on 20 held-out scenes, shared experience matched a from-scratch search on success
 > (17/20 each) and reduced search effort on 11 scenes but increased it on 6 (negative transfer). Plain

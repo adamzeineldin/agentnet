@@ -135,9 +135,17 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Screenshots of every screen in `assets/screenshots/` (generated from the demo stack); README shows them.
 - ✅ `docs/DEMO_SCRIPT.md` recording checklist + evaluation scene; `docs/SUBMISSION.md`.
 - ⬜ Read Official Rules in the portal; choose track/theme; add a LICENSE.
-- 🟡 Meta Model API key configured locally (2026-10-29, `.env`, git-ignored). Two connectivity calls to
-  `muse-spark-1.3-contributor` returned HTTP 200 (total ≈ $0.00007). Note: a trivial prompt used 211 reasoning
-  tokens, so tight `max_tokens` can leave `content` empty. No AgentNet transfer has used Meta yet.
+- ✅ Meta Model API live (2026-10-29, key in git-ignored `.env`, model `muse-spark-1.3-contributor`).
+  - First live transfers exposed: the model spent every tool round inspecting, never called `submit_ranking`,
+    and the forced final round returned prose / an empty answer (reasoning used the whole `max_tokens`).
+    Runs fell back to offline honestly, but the billed calls were dropped from the run record.
+  - Fixed: `reasoning_effort="low"`, 2 tool rounds (was 4), explicit JSON-only final message + `strict`
+    schema, tolerant JSON extraction, billed calls/tokens/cost recorded even on fallback (`model_requested`).
+  - Verified live: `run_20261029_201106_c3fd94` (Panda seed-7 far_side skill → UR5e): Muse ranked
+    over@0.08, over@0.12 first ("only these are kinematically feasible… lower cost first"); executed over@0.08,
+    0.64 mm, 0 contacts; 3 calls, 7,349 in / 926 out tokens, $0.00092. Same selection as offline (offline reaches
+    it as prior #4 after skipping 3 infeasible candidates), so `changed_selection_vs_offline=false`.
+  - Total live spend so far ≈ $0.006 (2 connectivity calls + 4 transfer runs, 3 of which fell back before the fix).
 - ⬜ Record the 2–3 min video and submit.
 
 ## UI design handoff ✅ (2026-10-28)

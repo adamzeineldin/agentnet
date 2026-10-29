@@ -59,9 +59,10 @@
 | D54 | Keep existing routes, labels and backend workflows; link selected original skills into Transfer Lab | Preserve discover/publish/transfer/publish behavior and evidence access. Present remains chrome-less, with shared fonts/colors and a readable video overlay. |
 | D55 | Verify each design step on isolated backend/browser stacks and capture production screenshots from recorded test runs | Avoid touching the user's running stack or manufacturing display data. New regressions cover theme persistence, filters, search/graph keyboard interaction and narrow layouts. |
 | D56 | Local runs use `muse-spark-1.3-contributor`; cost is priced per model id (unknown model → no estimate) | ~12–20× cheaper ($0.10/$0.20 vs $1.25/$4.25 per 1M tokens) to preserve credits. Requests contain only simulated robot/task data, so contributor-mode training use is acceptable. Default stays standard; set via `META_MODEL_ID`. Amends D33. |
+| D57 | Meta calls use `reasoning_effort="low"`, ≤2 tool rounds, a JSON-only final user message with `strict` schema, and tolerant `{...}` extraction; billed calls are kept on `MetaReasoningError` and counted in the run trace | Live runs at default effort spent all 1200 tokens reasoning (empty/prose answer) and 4 rounds went to inspection. Low effort is cheaper and answered correctly. Fallback runs must still show what was spent; `model_used` stays null because the model's answer was not used. Amends D32/D33. |
 
 ## Open questions / blockers
-- Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.
+- Meta Model API: live since 2026-10-29 on `muse-spark-1.3-contributor` (see PROGRESS M7). Keep spend minimal.
 - Deadline verified: Nov 4, 2026, 9:00 PM ET. Official Rules (video length, required fields, repo/license, asset
   rules) were not publicly reachable — check the participant portal (see docs/SUBMISSION.md).
 - The repo lives under `~/Documents`; macOS created `* 2.*` conflict copies inside `frontend/.next` (likely a sync

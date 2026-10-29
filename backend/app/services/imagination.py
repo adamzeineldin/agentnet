@@ -84,23 +84,30 @@ def _proposal_record(p: StrategyProposal, kind: str) -> dict:
             "calls": [asdict(c) for c in p.calls]}
 
 
-def _propose(provider: ReasoningProvider, context: ReasoningContext) -> tuple[StrategyProposal, str | None]:
+def _failed_record(provider: ReasoningProvider, kind: str, exc: MetaReasoningError, order) -> dict:
+    """A model attempt that produced no usable ranking; its calls were still made and billed."""
+    return {"kind": kind, "provider": provider.name, "model_id": provider.model_id, "ranking": list(order),
+            "error": str(exc), "calls": [asdict(c) for c in exc.calls]}
+
+
+def _propose(provider: ReasoningProvider, context: ReasoningContext) -> tuple[StrategyProposal, str | None, list]:
     try:
-        return provider.propose_strategies(context), None
+        return provider.propose_strategies(context), None, []
     except MetaReasoningError as exc:
-        return OfflinePlanner().propose_strategies(context), str(exc)
+        fallback = OfflinePlanner().propose_strategies(context)
+        return fallback, str(exc), [_failed_record(provider, "propose", exc, fallback.ranking)]
 
 
 def imagine(
     ctx: RunContext, setup: SearchSetup, planned: list[PlannedCandidate], provider: ReasoningProvider,
     context: ReasoningContext, budget: int,
 ) -> ImaginationResult:
-    proposal, error = _propose(provider, context)
+    proposal, error, failed = _propose(provider, context)
     label = "offline planner (fallback)" if error else proposal.provider
     ctx.event("proposing", f"{label} ranked {len(proposal.ranking)} hypotheses; top: "
               f"{', '.join(proposal.ranking[:3])}", ranking=list(proposal.ranking), rationale=proposal.rationale,
               provider=proposal.provider, error=error)
-    proposals = [_proposal_record(proposal, "propose")]
+    proposals = [*failed, _proposal_record(proposal, "propose")]
     order = proposal.ranking
     by_id = {p.summary.candidate_id: p for p in planned}
     updated: dict[str, CandidateSummary] = {}
@@ -137,7 +144,7 @@ def _revise(ctx, provider, context, feedback, order, proposals) -> tuple[str, ..
     try:
         revised = provider.revise_strategy(context, list(feedback), tuple(order))
     except MetaReasoningError as exc:
-        proposals.append({"kind": "revise", "error": str(exc), "ranking": list(order)})
+        proposals.append(_failed_record(provider, "revise", exc, order))
         ctx.event("proposing", f"Revision failed ({exc}); keeping current order")
         return tuple(order)
     proposals.append(_proposal_record(revised, "revise"))
@@ -161,12 +168,14 @@ def _merge(planned: list[PlannedCandidate], updated: dict[str, CandidateSummary]
 
 
 def _trace(provider, proposals, error, context, order, revisions) -> dict:
-    all_calls = [c for p in proposals for c in p.get("calls", [])]
-    model_calls = [c for c in all_calls if c["kind"] in ("propose", "revise") and provider.model_id]
+    # Count every call made to the requested model, including attempts that fell back (they were billed).
+    model_calls = [c for p in proposals if provider.model_id and p.get("provider") == provider.name
+                   for c in p.get("calls", []) if c["kind"] in ("propose", "revise")]
     cost = (estimated_cost_usd(tuple(ReasoningCall(**c) for c in model_calls), provider.model_id)
             if model_calls else None)
     return {
         "provider_requested": provider.name,
+        "model_requested": provider.model_id,
         "provider_used": "offline_deterministic" if error else provider.name,
         "model_id": None if error else provider.model_id,
         "fallback_error": error,

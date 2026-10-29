@@ -79,7 +79,7 @@ export function ImaginationPanel({ run }: { run: RunRecord }) {
           <dt className="text-ink-3">Model changed selection</dt>
           <dd>{trace.provider_used === "meta_muse_spark"
             ? <Badge tone={trace.changed_selection_vs_offline ? "accent" : "neutral"}>{trace.changed_selection_vs_offline ? "yes" : "no — same as offline"}</Badge>
-            : <span className="text-ink-3">n/a (no model used)</span>}</dd>
+            : <span className="text-ink-3">{trace.fallback_error ? "n/a (model answer unusable; calls still billed)" : "n/a (no model used)"}</span>}</dd>
         </dl>
       </div>
     </Panel>
