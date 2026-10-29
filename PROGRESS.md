@@ -179,3 +179,17 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Refreshed `assets/screenshots/` using `frontend/scripts/screenshots.mjs` against a production build and an
   isolated copy of real recorded test runs. Added memory graph, run evidence, dark landing and mobile views.
 - Backend test runs retain the existing Starlette/httpx deprecation warning; no test failures remain.
+
+## Skill librarian 🟡 (step 1 of 4 done 2026-10-29, branch `feat/skill-librarian`)
+- ✅ Step 1 — offline librarian backend: `services/librarian/offline.py` organizes published capsules by fixed
+  rules into a stored `LibraryReport` (collections by scene family × route class; duplicates = same robot, identical
+  task geometry and strategy, earliest kept; gaps = robot missing a scene family / original never adapted on another
+  robot; one transfer suggestion per untransferred original). Read-only over skills; suggestions are not executed.
+- ✅ API: `POST /api/library/reports` (offline only), `GET /api/library/reports/latest`, `GET /api/library/reports/{id}`;
+  `library_reports` table in the registry. 11 new tests (119 backend total), `make smoke` PASS. No model calls.
+- ✅ Preview on a copy of the dev registry: 11 skills = 3 distinct skills + 8 duplicates; one gap — Panda
+  `over@0.08` on seed 42 has no UR5e adaptation.
+- ⬜ Step 2 — Muse librarian (read-only tools, bounded, mocked tests; minimal live spend).
+- ⬜ Step 3 — "Librarian" tab in the Skill Library.
+- ⬜ Step 4 — docs, e2e.
+

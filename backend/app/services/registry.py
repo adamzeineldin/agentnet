@@ -1,4 +1,4 @@
-"""SQLite registry (SQLAlchemy 2.x) for passports and runs.
+"""SQLite registry (SQLAlchemy 2.x) for passports, runs, skills and library reports.
 
 Rows store validated Pydantic JSON; the repository functions return Pydantic
 objects so callers never touch ORM state.
@@ -13,6 +13,7 @@ from sqlalchemy import JSON, DateTime, String, create_engine, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
+from app.models.library import LibraryReport
 from app.models.robot import RobotPassport
 from app.models.run import RunEvent, RunRecord
 from app.models.skill import ExperienceCapsule
@@ -45,6 +46,13 @@ class SkillRow(Base):
     source_robot_id: Mapped[str] = mapped_column(String, index=True)
     parent_skill_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     run_id: Mapped[str] = mapped_column(String, unique=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class LibraryReportRow(Base):
+    __tablename__ = "library_reports"
+    report_id: Mapped[str] = mapped_column(String, primary_key=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
@@ -145,6 +153,23 @@ class Registry:
             stmt = stmt.where(SkillRow.parent_skill_id == parent_skill_id)
         with self._session() as s:
             return [ExperienceCapsule.model_validate(r.payload) for r in s.scalars(stmt)]
+
+    def save_library_report(self, report: LibraryReport) -> LibraryReport:
+        with self._tx() as s:
+            s.add(LibraryReportRow(report_id=report.report_id, payload=report.model_dump(mode="json"),
+                                   created_at=report.created_at))
+        return report
+
+    def get_library_report(self, report_id: str) -> LibraryReport | None:
+        with self._session() as s:
+            row = s.get(LibraryReportRow, report_id)
+            return LibraryReport.model_validate(row.payload) if row else None
+
+    def latest_library_report(self) -> LibraryReport | None:
+        stmt = select(LibraryReportRow).order_by(LibraryReportRow.created_at.desc()).limit(1)
+        with self._session() as s:
+            row = s.scalars(stmt).first()
+            return LibraryReport.model_validate(row.payload) if row else None
 
     def append_event(self, run_id: str, event: RunEvent, **changes: object) -> RunRecord:
         """Return a new RunRecord with the event appended (and fields changed), persisted."""
