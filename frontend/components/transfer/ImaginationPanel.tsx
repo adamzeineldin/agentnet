@@ -29,7 +29,7 @@ export function ImaginationPanel({ run }: { run: RunRecord }) {
         {futures.map((c) => {
           const ok = c.outcome === "verified";
           return (
-            <li key={c.candidate_id} className={`overflow-hidden rounded-lg border ${c.candidate_id === selected ? "border-good/60" : "border-line"}`}>
+            <li key={c.candidate_id} className={`overflow-hidden  border ${c.candidate_id === selected ? "border-good/60" : "border-line"}`}>
               {c.physics?.thumbnail && (
                 /* eslint-disable-next-line @next/next/no-img-element -- final MuJoCo state of this future */
                 <img src={apiUrl(c.physics.thumbnail)} alt={`Simulated final state for ${c.candidate_id}`} className="aspect-video w-full object-cover" />
@@ -53,7 +53,7 @@ export function ImaginationPanel({ run }: { run: RunRecord }) {
           <div className="mb-1 text-[11px] tracking-wide text-ink-3 uppercase">Reasoning trace</div>
           <ol className="space-y-2">
             {trace.proposals.map((p, i) => (
-              <li key={i} className="rounded-md border border-line p-2">
+              <li key={i} className="border border-line p-2">
                 <div className="mb-1 flex flex-wrap gap-1.5">
                   <Badge>{p.kind}</Badge><Badge>{p.provider ?? "—"}</Badge>
                   {p.error && <Badge tone="bad">{p.error}</Badge>}

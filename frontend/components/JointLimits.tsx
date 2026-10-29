@@ -10,9 +10,9 @@ export function JointLimits({ joints, home }: { joints: JointInfo[]; home: numbe
       {joints.map((j, i) => (
         <div key={j.name} className="grid grid-cols-[9rem_1fr_8.5rem] items-center gap-3 text-xs">
           <span className="truncate font-mono text-ink-2" title={j.name}>{j.name}</span>
-          <div className="relative h-3 rounded bg-panel-2" title={`[${j.lower.toFixed(3)}, ${j.upper.toFixed(3)}] rad · home ${home[i].toFixed(3)}`}>
+          <div className="relative h-3 bg-panel-2" title={`[${j.lower.toFixed(3)}, ${j.upper.toFixed(3)}] rad · home ${home[i].toFixed(3)}`}>
             <div className="absolute top-1/2 h-px w-full bg-line-strong" />
-            <div className="absolute inset-y-0.5 rounded-sm bg-data/70"
+            <div className="absolute inset-y-0.5 bg-data/70"
               style={{ left: `${pct(j.lower)}%`, width: `${pct(j.upper) - pct(j.lower)}%` }} />
             <div className="absolute inset-y-0 w-0.5 bg-ink" style={{ left: `${pct(home[i])}%` }} />
           </div>

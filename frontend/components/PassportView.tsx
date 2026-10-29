@@ -11,12 +11,12 @@ import { Badge, Panel, ProvenanceTag } from "./ui";
 export function PassportView({ passport: p }: { passport: RobotPassport }) {
   const prov = p.field_provenance;
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-      <div className="space-y-4">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+      <div className="min-w-0 space-y-4">
         <Panel title="Passport" right={<span className="font-mono text-[11px] text-ink-3">schema v{p.schema_version}</span>}>
           {/* eslint-disable-next-line @next/next/no-img-element -- MuJoCo render served by backend */}
           <img src={apiUrl(`/artifacts/snapshots/${p.robot_id}.png`)} alt={`${p.short_name} at home pose`}
-            className="mb-4 aspect-video w-full rounded-lg border border-line object-cover" />
+            className="mb-4 aspect-video w-full border border-line object-cover" />
           <dl className="grid grid-cols-[9rem_1fr] gap-x-4 gap-y-2 text-xs">
             <dt className="text-ink-3">Model</dt><dd className="font-mono">{p.model_file}</dd>
             <dt className="text-ink-3">Version</dt><dd className="font-mono">{p.model_version} · MuJoCo {p.mujoco_version}</dd>
@@ -51,7 +51,7 @@ export function PassportView({ passport: p }: { passport: RobotPassport }) {
           </table>
         </Panel>
       </div>
-      <div className="space-y-4">
+      <div className="min-w-0 space-y-4">
         <MotionCheckPanel robotId={p.robot_id} robotName={p.short_name} />
         <Panel title="Sampled workspace" right={<ProvenanceTag p={prov.workspace} />}>
           <WorkspacePlot workspace={p.workspace} label={p.short_name} />

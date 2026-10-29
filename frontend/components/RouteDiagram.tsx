@@ -48,7 +48,7 @@ function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHo
   return (
     <figure>
       <figcaption className="mb-1 text-[11px] text-ink-3">{title}</figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-lg border border-line bg-panel-2/40" role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full border border-line bg-panel-2/40" role="img"
         aria-label={`${title}: ${candidates.length} candidate routes around the obstacle`}>
         {axes[1] === 2 && <line x1={PAD} x2={W - PAD} y1={sy(0)} y2={sy(0)} stroke="var(--line-strong)" />}
         {task.obstacles.map((o) => (
@@ -93,7 +93,7 @@ export function RouteDiagram(props: Omit<ViewProps, "title" | "axes" | "labels">
         <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-good" />✓ verified in physics</li>
         <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-data" />◦ kinematically feasible</li>
         <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 border-t border-dashed border-bad" />✕ rejected</li>
-        <li className="flex items-center gap-1.5"><span className="size-2.5 rounded-sm bg-ink-3/50" />obstacle</li>
+        <li className="flex items-center gap-1.5"><span className="size-2.5 bg-ink-3/50" />obstacle</li>
         <li className="text-ink-3">simulated futures show the MuJoCo end-effector trace; others show planned waypoints</li>
       </ul>
     </div>

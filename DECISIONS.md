@@ -51,6 +51,14 @@
 | D47 | Clips encoded with imageio `macro_block_size=4` | 540 px is even but not a multiple of 8; the default resized frames to 544 px (slight stretch). |
 | D48 | Fresh-clone check runs on a copy of `git ls-files -co --exclude-standard` | Tests exactly what a commit would contain (catches missing/ignored files) without committing. |
 
+| D49 | Adopt the handoff's light-default palette, IBM Plex fonts, square surfaces and persistent explicit theme choice | Supersedes the former dark-only cyan UI/data palette (D15). Existing semantic color tokens keep diagrams and evidence readable in both themes. |
+| D50 | ParticleArm is a decorative Canvas illustration, not a model preview or simulation result | Port the supplied geometry and motion without presenting its animation constants as measured robot data. Respect reduced motion and clean up frames, observers and event listeners. |
+| D51 | Use only available backend measurements in redesigned slots | Show passport DOF/reach/limits, recorded run timings/errors/contacts and benchmark summaries. Omit GPU-hours, storage, environment counts, training curves and predicted success/fit metrics because the API does not supply them. Editable seed inputs remain run parameters, not reported results. |
+| D52 | Joint correspondence compares model chain order and allowed range, not an inferred one-to-one mapping | The API supplies joint topology and limits but no correspondence/fit score. Bars are explicitly labelled as relative range spans; transfers continue to carry task geometry and independently solve target IK. |
+| D53 | Build memory graph edges only from published capsules and parent-child adaptations | Solid edges identify the publishing robot; dashed edges identify adoption of the parent skill by the adaptation's source robot. No speculative adoption or training state is inferred. |
+| D54 | Keep existing routes, labels and backend workflows; link selected original skills into Transfer Lab | Preserve discover/publish/transfer/publish behavior and evidence access. Present remains chrome-less, with shared fonts/colors and a readable video overlay. |
+| D55 | Verify each design step on isolated backend/browser stacks and capture production screenshots from recorded test runs | Avoid touching the user's running stack or manufacturing display data. New regressions cover theme persistence, filters, search/graph keyboard interaction and narrow layouts. |
+
 ## Open questions / blockers
 - Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.
 - Deadline verified: Nov 4, 2026, 9:00 PM ET. Official Rules (video length, required fields, repo/license, asset

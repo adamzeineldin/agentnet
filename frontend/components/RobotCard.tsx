@@ -6,25 +6,26 @@ import { Badge, Stat } from "./ui";
 
 export function RobotCard({ robot, href }: { robot: RobotSummary; href?: string }) {
   const body = (
-    <article className="group overflow-hidden rounded-xl border border-line bg-panel transition-colors hover:border-line-strong">
-      <div className="relative aspect-video bg-panel-2">
+    <article className="group overflow-hidden border border-line bg-panel transition-colors hover:border-line-strong">
+      <div className="relative aspect-[4/3] bg-panel-2">
         {/* eslint-disable-next-line @next/next/no-img-element -- rendered by the backend from MuJoCo state */}
         <img src={apiUrl(robot.snapshot_url)} alt={`${robot.short_name} rendered in MuJoCo at its home pose`}
           className="size-full object-cover" />
-        <div className="absolute top-2 left-2 flex gap-1.5">
-          <Badge tone="accent">simulated</Badge>
+        <div className="absolute top-3 left-3 flex gap-1.5">
+          <span className="bg-panel px-2 py-1"><Badge>simulation model</Badge></span>
           {robot.fallback_model && <Badge tone="warn">fallback model</Badge>}
         </div>
+        <span className="absolute right-3 top-3 bg-panel px-2 py-1 font-mono text-[11px] text-ink-3">{robot.dof} DOF</span>
       </div>
       <div className="space-y-3 p-4">
         <div>
           <h3 className="font-medium">{robot.display_name}</h3>
           <p className="font-mono text-[11px] text-ink-3">{robot.model_source} · {shortHash(robot.model_hash)}</p>
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="metric-grid grid grid-cols-3 [&_.stat-value]:text-[22px]">
           <Stat label="Arm DOF" value={robot.dof} />
           <Stat label="Max reach" value={fmtM(robot.max_reach_m, 0)} hint="sampled" />
-          <Stat label="Tool" value={<span className="text-sm">{robot.tool_type.split(" ")[0]}</span>} />
+          <Stat label="Tool" value={<span className="text-sm">{robot.tool_type.replaceAll("_", " ")}</span>} />
         </div>
       </div>
     </article>

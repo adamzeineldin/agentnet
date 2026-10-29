@@ -23,7 +23,7 @@ type Checks = Record<string, boolean>;
 interface Jog { joint: string; commanded_rad: number; achieved_rad: number }
 
 /** Everything shown here is read from the stored run record. */
-export function RunEvidence({ run }: { run: RunRecord }) {
+export function RunEvidence({ run, split = false }: { run: RunRecord; split?: boolean }) {
   const checks = (run.results.checks ?? {}) as Checks;
   const jog = run.results.jog as Jog | undefined;
   return (
@@ -35,11 +35,13 @@ export function RunEvidence({ run }: { run: RunRecord }) {
         <Badge>planner: {run.planner}</Badge>
         <span className="font-mono text-[11px] text-ink-3">{run.run_id}</span>
       </div>
-      {run.artifacts.video && (
+      <div className={split ? "grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" : "space-y-4"}>
+      {run.artifacts.video ? (
         <video key={run.artifacts.video} src={apiUrl(run.artifacts.video)} poster={run.artifacts.poster ? apiUrl(run.artifacts.poster) : undefined}
-          controls autoPlay muted playsInline className="aspect-video w-full rounded-lg border border-line bg-black" />
-      )}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          controls autoPlay muted playsInline className="aspect-video w-full border border-line bg-black" />
+      ) : split ? <div className="grid aspect-video place-items-center border border-line bg-panel-2 text-sm text-ink-3">No execution video for this run.</div> : null}
+      <div className="min-w-0 space-y-4">
+      <div className={`metric-grid grid grid-cols-2 ${split ? "" : "sm:grid-cols-4"}`}>
         <Stat label="Endpoint error" value={fmtM(run.endpoint_error_m, 2)} />
         <Stat label="Collisions" value={run.collision_count ?? "—"} />
         <Stat label="Simulated" value={fmtSec(run.simulated_seconds)} />
@@ -59,6 +61,8 @@ export function RunEvidence({ run }: { run: RunRecord }) {
         </ul>
       )}
       {run.error && <p className="text-xs text-bad">Error: {run.error}</p>}
+      </div>
+      </div>
     </div>
   );
 }

@@ -2,93 +2,97 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { API_BASE } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import type { Health } from "@/lib/types";
-import { Badge } from "./ui";
 
-const NAV: { href: string; label: string; ready: boolean }[] = [
-  { href: "/", label: "Overview", ready: true },
-  { href: "/robots", label: "Robot Fleet", ready: true },
-  { href: "/skills", label: "Skill Library", ready: true },
-  { href: "/transfer", label: "Transfer Lab", ready: true },
-  { href: "/history", label: "Run History", ready: true },
-  { href: "/evaluation", label: "Evaluation", ready: true },
+const NAV = [
+  { href: "/", label: "Overview" },
+  { href: "/robots", label: "Robot Fleet" },
+  { href: "/skills", label: "Skill Library" },
+  { href: "/transfer", label: "Transfer Lab" },
+  { href: "/history", label: "Run History" },
+  { href: "/evaluation", label: "Evaluation" },
 ];
+
+function subscribeTheme(onChange: () => void) {
+  const sync = (event: StorageEvent) => {
+    if (event.key !== "agentnet-theme" && event.key !== null) return;
+    document.documentElement.dataset.theme = event.newValue === "dark" ? "dark" : "light";
+    onChange();
+  };
+  window.addEventListener("agentnet-theme", onChange);
+  window.addEventListener("storage", sync);
+  return () => {
+    window.removeEventListener("agentnet-theme", onChange);
+    window.removeEventListener("storage", sync);
+  };
+}
+
+function ThemeToggle() {
+  const theme = useSyncExternalStore(subscribeTheme,
+    () => document.documentElement.dataset.theme === "dark" ? "dark" : "light", () => "light");
+  return <button type="button" aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
+    className="border-l border-line px-3 py-2 text-xs text-ink-2 hover:text-ink"
+    onClick={() => {
+      const next = theme === "light" ? "dark" : "light";
+      document.documentElement.dataset.theme = next;
+      try { localStorage.setItem("agentnet-theme", next); } catch { /* Theme still works without storage. */ }
+      window.dispatchEvent(new Event("agentnet-theme"));
+    }}>{theme === "light" ? "Dark" : "Light"}</button>;
+}
 
 function HealthIndicator() {
   const { data, error } = useApi<Health>("/api/health", 5000);
-  if (error) return <Badge tone="bad">● backend offline</Badge>;
-  if (!data) return <Badge>● connecting</Badge>;
-  return (
-    <div className="flex items-center gap-2">
-      <Badge tone="good" title={`MuJoCo ${data.versions.mujoco} · Python ${data.versions.python}`}>
-        ● backend live · MuJoCo {data.versions.mujoco}
-      </Badge>
-      <Badge tone={data.reasoning.mode === "offline" ? "warn" : "accent"}
-        title="Strategy reasoning provider. Offline = deterministic planner, no model calls.">
-        {data.reasoning.label}
-      </Badge>
-    </div>
-  );
+  const tone = error ? "bg-bad" : data ? "bg-good" : "bg-ink-3";
+  return <div className="flex items-center gap-2 font-mono text-[11px] text-ink-3" role="status">
+    <span className={`size-1.5 shrink-0 rounded-full ${tone}`} aria-hidden="true" />
+    <span title={data ? `MuJoCo ${data.versions.mujoco} · Python ${data.versions.python}` : undefined}>
+      {error ? "backend offline" : data ? "backend live" : "connecting"}
+    </span>
+    {data && <span className="hidden max-w-48 truncate border-l border-line pl-2 xl:inline"
+      title="Strategy reasoning provider. Offline = deterministic planner, no model calls.">{data.reasoning.label}</span>}
+  </div>;
 }
 
 function OfflineBanner() {
   const { error } = useApi<Health>("/api/health", 5000);
   if (!error) return null;
-  return (
-    <div role="alert" className="border-b border-bad/40 bg-bad/10 px-6 py-2 text-center text-sm text-bad">
-      Backend unreachable at <span className="font-mono">{API_BASE}</span>. Start it with <span className="font-mono">make dev</span>;
-      this page will reconnect automatically. Nothing on screen is being updated meanwhile.
-    </div>
-  );
+  return <div role="alert" className="border-b border-bad/40 bg-panel px-6 py-3 text-center text-sm text-bad">
+    Backend unreachable at <span className="font-mono">{API_BASE}</span>. Start it with <span className="font-mono">make dev</span>;
+    this page will reconnect automatically. Nothing on screen is being updated meanwhile.
+  </div>;
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  if (pathname.startsWith("/present")) return <>{children}</>; // full-screen presentation, no chrome
-  return (
-    <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-20 border-b border-line bg-bg/85 backdrop-blur">
-        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-2 px-4 py-3 md:px-6">
-          <Link href="/" className="flex items-center gap-2">
-            <span className="grid size-7 place-items-center rounded-md border border-accent-dim bg-accent/10 font-mono text-xs text-accent">AN</span>
-            <span className="font-semibold tracking-tight">AgentNet</span>
-            <span className="hidden text-xs text-ink-3 sm:inline">Control Center</span>
-          </Link>
-          <nav className="flex flex-wrap gap-1 text-sm">
-            {NAV.map((item) => {
-              const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-              if (!item.ready) {
-                return (
-                  <span key={item.href} title="Not built yet (later milestone)"
-                    className="cursor-not-allowed rounded-md px-3 py-1.5 text-ink-3/60">
-                    {item.label}
-                  </span>
-                );
-              }
-              return (
-                <Link key={item.href} href={item.href}
-                  className={`rounded-md px-3 py-1.5 transition-colors ${active ? "bg-panel-2 text-ink" : "text-ink-2 hover:text-ink"}`}>
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="ml-auto flex items-center gap-3">
-            <HealthIndicator />
-            <Link href="/present" className="rounded-md border border-accent-dim px-3 py-1.5 text-sm text-accent hover:bg-accent/10">
-              ▶ Present
-            </Link>
-          </div>
+  if (pathname.startsWith("/present")) return <>{children}</>;
+  return <div className="flex min-h-screen flex-col">
+    <header className="sticky top-0 z-20 border-b border-line bg-panel">
+      <div className="flex min-h-14 flex-wrap items-center gap-x-6 px-4 lg:px-8">
+        <Link href="/" aria-label="agentnet home" className="flex h-14 shrink-0 items-center gap-2.5 text-base font-semibold">
+          <span className="size-[11px] bg-ink" aria-hidden="true" />agentnet
+        </Link>
+        <nav aria-label="Main navigation" className="order-3 flex w-full overflow-x-auto text-[13px] lg:order-none lg:w-auto">
+          {NAV.map((item) => {
+            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
+              className={`flex h-12 shrink-0 items-center px-3 transition-colors lg:h-14 ${active ? "text-ink shadow-[inset_0_-2px_0_var(--ink)]" : "text-ink-3 hover:text-ink"}`}>
+              {item.label}
+            </Link>;
+          })}
+        </nav>
+        <div className="ml-auto flex items-center gap-2">
+          <HealthIndicator /><ThemeToggle />
+          <Link href="/present" className="hidden border border-line-strong px-3 py-1.5 text-xs hover:border-ink sm:block">▶ Present</Link>
         </div>
-      </header>
-      <OfflineBanner />
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 md:px-6">{children}</main>
-      <footer className="border-t border-line px-6 py-3 text-center text-[11px] text-ink-3">
-        All robot results are MuJoCo simulation only — not physical-world verification.
-      </footer>
-    </div>
-  );
+      </div>
+    </header>
+    <OfflineBanner />
+    <main className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
+    <footer className="border-t border-line px-6 py-4 text-center font-mono text-[11px] text-ink-3">
+      All robot results are MuJoCo simulation only — not physical-world verification.
+    </footer>
+  </div>;
 }

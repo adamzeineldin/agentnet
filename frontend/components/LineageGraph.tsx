@@ -6,7 +6,7 @@ import { Loading } from "./ui";
 
 function Node({ c, current }: { c: ExperienceCapsule; current: boolean }) {
   return (
-    <div className={`rounded-md border px-2.5 py-1.5 ${current ? "border-good/60 bg-good/5" : "border-line bg-panel-2"}`}>
+    <div className={` border px-2.5 py-1.5 ${current ? "border-good/60 bg-good/5" : "border-line bg-panel-2"}`}>
       <div className="font-mono text-[11px] text-ink">{c.skill_id}</div>
       <div className="text-[10px] text-ink-3">{c.source_robot_id} · {c.strategy.route_class}@{c.strategy.clearance_m.toFixed(2)}</div>
     </div>

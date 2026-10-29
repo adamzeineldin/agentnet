@@ -47,7 +47,7 @@ export function MotionCheckPanel({ robotId, robotName, onFinished }: {
   return (
     <Panel title="Live motion check" right={
       <button onClick={start} disabled={busy}
-        className="rounded-md border border-accent-dim bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent/25 disabled:cursor-wait disabled:opacity-50">
+        className="border border-accent-dim bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent transition-colors hover:bg-accent/25 disabled:cursor-wait disabled:opacity-50">
         {busy ? "Running in MuJoCo…" : `Run on ${robotName}`}
       </button>
     }>

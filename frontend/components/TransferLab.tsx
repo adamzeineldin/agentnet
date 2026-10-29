@@ -1,10 +1,12 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
+import { JointCorrespondence } from "./transfer/JointCorrespondence";
 import { useEffect, useState } from "react";
 import { apiFetch, publishSkill, startDiscover, startTransfer } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import { useRunStream } from "@/lib/useRunStream";
-import type { CandidateSummary, ExperienceCapsule, RunRecord, TaskSpec } from "@/lib/types";
+import type { CandidateSummary, ExperienceCapsule, RunRecord, TaskSpec, RobotSummary } from "@/lib/types";
 import { CandidateCards } from "./CandidateCards";
 import { RouteDiagram } from "./RouteDiagram";
 import { EventLog } from "./RunEvidence";
@@ -19,6 +21,10 @@ const TARGET = "ur5e_01";
 type Side = "source" | "target";
 
 export function TransferLab() {
+  const robots = useApi<RobotSummary[]>("/api/robots");
+  const sourceName = robots.data?.find((r) => r.robot_id === SOURCE)?.display_name ?? "Source robot";
+  const targetName = robots.data?.find((r) => r.robot_id === TARGET)?.display_name ?? "Target robot";
+  const params = useSearchParams();
   const skillsApi = useApi<ExperienceCapsule[]>(`/api/skills?source_robot_id=${SOURCE}`);
   const skills = skillsApi.data ?? [];
   const source = useRunStream();
@@ -29,7 +35,7 @@ export function TransferLab() {
   const [hoverId, setHoverId] = useState<string | null>(null);
   const { load: loadSource, clear: clearSource } = source;
   const { load: loadTarget, clear: clearTarget } = target;
-  const effectiveSkillId = skillId ?? skills[0]?.skill_id ?? null;
+  const effectiveSkillId = skillId ?? skills.find((s) => s.skill_id === params.get("skill"))?.skill_id ?? skills[0]?.skill_id ?? null;
 
   // Replay the recorded source run for the selected skill and its latest transfer, if any.
   useEffect(() => {
@@ -90,9 +96,10 @@ export function TransferLab() {
   const stepperStream = active === "target" ? target : source;
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Transfer Lab</h1>
+        <p className="eyebrow mb-2">Retarget and verify</p>
+        <h1 className="text-[28px] font-normal tracking-[-0.02em]">Transfer Lab</h1>
         <p className="mt-1 max-w-3xl text-sm text-ink-2">
           Robot A discovers and publishes a verified skill. Robot B retrieves it from the registry, re-places the
           task in its own base frame, orders candidates by Robot A&apos;s experience, solves its own IK, and verifies
@@ -102,12 +109,12 @@ export function TransferLab() {
       <RunStepper events={stepperStream.events} kind={active === "target" ? "transfer" : "discover"} />
       {[source.error, target.error, skillsApi.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SourcePanel stream={source} skills={skills} selectedSkillId={effectiveSkillId}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <SourcePanel robotName={sourceName} stream={source} skills={skills} selectedSkillId={effectiveSkillId}
           onSelectSkill={setSkillId} seed={seed} onSeed={setSeed}
           onDiscover={() => { setActive("source"); void source.start(() => startDiscover(SOURCE, seed)); }}
           onPublish={() => void publishSource()} />
-        <TargetPanel stream={target} sourceSkillId={effectiveSkillId}
+        <TargetPanel robotName={targetName} stream={target} sourceSkillId={effectiveSkillId}
           onTransfer={(sceneSeed, mode) => {
             if (!effectiveSkillId) return;
             setActive("target");
@@ -116,16 +123,18 @@ export function TransferLab() {
           onPublish={() => void publishTarget()} />
       </div>
 
+      <JointCorrespondence sourceId={SOURCE} targetId={TARGET} />
+
       {target.run && <ImaginationPanel run={target.run} />}
 
       {task && candidates.length > 0 && (
-        <Panel title={`Candidate routes · ${active === "target" && target.run ? "UR5e" : "Panda"} · ${task.scene_id}`} right={
+        <Panel title={`Candidate routes · ${active === "target" && target.run ? targetName : sourceName} · ${task.scene_id}`} right={
           <div className="flex gap-1 text-xs" role="tablist">
             {(["source", "target"] as const).map((side) => (
               <button key={side} role="tab" aria-selected={active === side} disabled={side === "target" && !target.run}
                 onClick={() => setActive(side)}
-                className={`rounded-md px-2.5 py-1 ${active === side ? "bg-panel-2 text-ink" : "text-ink-3 hover:text-ink"} disabled:opacity-40`}>
-                {side === "source" ? "Robot A · Panda" : "Robot B · UR5e"}
+                className={` px-2.5 py-1 ${active === side ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"} disabled:opacity-40`}>
+                {side === "source" ? sourceName : targetName}
               </button>
             ))}
           </div>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { fmtDateTime, fmtM } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import type { ExperienceCapsule, RobotSummary, RunRecord } from "@/lib/types";
-import { ParticleHand } from "./ParticleHand";
+import { ParticleArm } from "./ParticleArm";
 import { RobotCard } from "./RobotCard";
 import { ErrorNote, Loading, Panel, Stat, StatusBadge } from "./ui";
 
@@ -19,25 +19,24 @@ export function Overview() {
 
   return (
     <div className="space-y-6">
-      <section className="grid items-center gap-6 md:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">Shared experience for physical AI</h1>
-          <p className="mt-3 max-w-xl text-sm text-ink-2 md:text-base">
-            Robots publish simulation-verified motion experience; robots with different bodies adapt it with
-            their own kinematics and verify it in MuJoCo before reuse.
+      <section data-landing-hero className="landing-hero">
+        <ParticleArm />
+        <div data-hero-copy className="hero-copy">
+          <p className="eyebrow">Simulate · Remember · Retarget</p>
+          <h1>One robot learns it.<br />Every robot remembers.</h1>
+          <p className="hero-description">
+            AgentNet discovers robot motion in simulation, stores verified experience in shared memory,
+            and retargets each skill through another robot’s own kinematics.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2">
-            <Link href="/present" className="rounded-lg border border-line px-4 py-2 text-sm text-ink-2 hover:text-ink">
-              ▶ Presentation mode
-            </Link>
-            <Link href="/transfer"
-              className="rounded-lg border border-accent-dim bg-accent/15 px-4 py-2 text-sm font-medium text-accent hover:bg-accent/25">
-              Open Transfer Lab →
-            </Link>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <Link href="/robots" className="button-primary">Open console</Link>
+            <Link href="/skills" className="button-secondary">Browse skills</Link>
           </div>
-        </div>
-        <div className="relative h-[26rem] sm:h-[32rem] md:h-[40rem]">
-          <ParticleHand />
+          <div className="hero-steps">
+            <div><h2>Simulate</h2><p>Search motion candidates and verify them in MuJoCo.</p></div>
+            <div><h2>Remember</h2><p>Publish simulation-verified experience with its evidence.</p></div>
+            <div><h2>Retarget</h2><p>Solve new joint paths and verify each adaptation in simulation.</p></div>
+          </div>
         </div>
       </section>
 
@@ -46,7 +45,7 @@ export function Overview() {
         {robots.loading && <Loading label="Loading robot passports…" />}
         {robots.data?.map((r) => <RobotCard key={r.robot_id} robot={r} href={`/robots?robot=${r.robot_id}`} />)}
         <Panel title="Network activity">
-          <div className="mb-4 grid grid-cols-3 gap-3">
+          <div className="metric-grid mb-4 grid grid-cols-3">
             <Stat label="Sim runs" value={runs.data ? all.length : "—"} hint="recorded" />
             <Stat label="Succeeded" value={runs.data ? succeeded : "—"} />
             <Stat label="Failed" value={runs.data ? failed : "—"} />

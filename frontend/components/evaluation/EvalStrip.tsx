@@ -9,11 +9,12 @@ const STEP = 8;
 const PER_ROW = 5;
 const LEFT = 150;
 const RIGHT = 20;
-const MAX = 10;
 
 /** Per-scene kinematic evaluations for each variant; ✓/✕ by outcome. One axis, one dot per scene. */
 export function EvalStrip({ rows, variants }: { rows: EvalRow[]; variants: Variant[] }) {
   const [hover, setHover] = useState<EvalRow | null>(null);
+  const maximum = Math.max(1, ...rows.map((r) => r.kinematic_evaluations));
+  const ticks = Array.from(new Set(Array.from({ length: 6 }, (_, i) => Math.round(maximum * i / 5))));
   const H = variants.length * ROW_H + 40;
   // Deterministic stacking: marks sharing a value stack away from the row centre (✓ up, ✕ down).
   const place = (vr: EvalRow[]) => {
@@ -26,12 +27,12 @@ export function EvalStrip({ rows, variants }: { rows: EvalRow[]; variants: Varia
       return { r, dx, dy: (r.success ? -1 : 1) * (6 + Math.floor(k / PER_ROW) * STEP) };
     });
   };
-  const sx = (v: number) => LEFT + (v / MAX) * (W - LEFT - RIGHT);
+  const sx = (v: number) => LEFT + (v / maximum) * (W - LEFT - RIGHT);
   return (
     <figure className="relative">
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img"
         aria-label="Kinematic evaluations needed per held-out scene, per variant">
-        {[0, 2, 4, 6, 8, 10].map((t) => (
+        {ticks.map((t) => (
           <g key={t}>
             <line x1={sx(t)} x2={sx(t)} y1={8} y2={H - 24} stroke="var(--line)" />
             <text x={sx(t)} y={H - 8} textAnchor="middle" className="text-[10px]" fill="var(--ink-3)">{t}</text>
@@ -64,7 +65,7 @@ export function EvalStrip({ rows, variants }: { rows: EvalRow[]; variants: Varia
         <text x={LEFT - 10} y={H - 8} textAnchor="end" className="text-[10px]" fill="var(--ink-3)">kinematic evaluations →</text>
       </svg>
       {hover && (
-        <div className="tabular pointer-events-none absolute top-0 right-0 rounded border border-line bg-panel-2 px-2 py-1 font-mono text-[11px] text-ink-2">
+        <div className="tabular pointer-events-none absolute top-0 right-0 border border-line bg-panel-2 px-2 py-1 font-mono text-[11px] text-ink-2">
           {hover.scene_id} · {hover.variant} · {hover.success ? `✓ ${hover.selected}` : "✕ no verified candidate"} · {hover.kinematic_evaluations} evals
         </div>
       )}

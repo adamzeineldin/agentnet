@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f6f6f4;--surf:#fbfbfa;--ink:#17191b;--ink2:#4f5357;--mute:#6b6f73;--faint:#9a9ea2;--line:rgba(0,0,0,.08);--line2:rgba(0,0,0,.18);--st1:#ededea;--st2:#e6e6e2;--acc:#d65a31;--ok:#3f8f5f;--hover:#f0f0ed}
+html[data-theme="dark"]{--bg:#0f1112;--surf:#16181a;--ink:#e9e9e5;--ink2:#b4b7ba;--mute:#8c9094;--faint:#63676b;--line:rgba(255,255,255,.08);--line2:rgba(255,255,255,.2);--st1:#191b1d;--st2:#1e2022;--acc:#e36d43;--ok:#5aa877;--hover:#1c1f21}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans',system-ui,sans-serif;-webkit-font-smoothing:antialiased;transition:background .2s}
+*{box-sizing:border-box}a{color:var(--ink)}a:hover{color:var(--acc)}
+</style>
+</helmet>
+
+<sc-if value="{{ isLanding }}" hint-placeholder-val="{{ true }}">
+<div data-screen-label="01 Landing" style="position:relative;min-height:100vh;overflow:hidden;background:var(--bg)">
+  <div style="position:absolute;top:0;bottom:0;right:0;width:62%;overflow:hidden"><canvas ref="{{ canvasRef }}" style="position:absolute;top:0;left:0;width:100%;height:100%;display:block"></canvas></div>
+  <div style="position:relative;z-index:1;display:flex;flex-direction:column;min-height:100vh;padding:28px 48px 40px;pointer-events:none">
+    <div style="display:flex;align-items:center;justify-content:space-between;pointer-events:auto">
+      <div style="display:flex;align-items:center;gap:10px;font-weight:600;font-size:16px;letter-spacing:-0.01em"><div style="width:12px;height:12px;background:var(--ink)"></div>agentnet</div>
+      <div style="display:flex;gap:28px;font-size:14px;color:var(--ink2)">
+        <span onClick="{{ goSims }}" style="cursor:pointer" style-hover="color:var(--ink)">Simulations</span>
+        <span onClick="{{ goSkills }}" style="cursor:pointer" style-hover="color:var(--ink)">Skills</span>
+        <span onClick="{{ goMemory }}" style="cursor:pointer" style-hover="color:var(--ink)">Memory</span>
+        <span onClick="{{ goLogistics }}" style="cursor:pointer" style-hover="color:var(--ink)">Logistics</span>
+        <span onClick="{{ goFleet }}" style="cursor:pointer;color:var(--ink);font-weight:500">Sign in</span>
+      </div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;justify-content:center;max-width:540px;gap:28px;pointer-events:auto">
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--acc);letter-spacing:0.06em">SIMULATE · REMEMBER · RETARGET</div>
+      <h1 style="margin:0;font-weight:300;font-size:64px;line-height:1.02;letter-spacing:-0.035em;text-wrap:pretty">One robot learns it.<br>Every robot remembers.</h1>
+      <p style="margin:0;font-size:18px;line-height:1.55;color:var(--ink2);max-width:460px;text-wrap:pretty">AgentNet trains robots in simulation, stores what they learn in a shared cloud memory, and maps each skill onto the joints of any other robot.</p>
+      <div style="display:flex;gap:12px">
+        <div onClick="{{ goFleet }}" style="background:var(--ink);color:var(--bg);padding:14px 22px;font-size:15px;font-weight:500;cursor:pointer" style-hover="background:var(--acc)">Open console</div>
+        <div onClick="{{ goSkills }}" style="border:1px solid var(--line2);padding:14px 22px;font-size:15px;cursor:pointer" style-hover="border-color:var(--ink)">Browse skills</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px;max-width:540px;font-size:13px;line-height:1.5;color:var(--ink2);pointer-events:auto">
+      <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line2);padding-top:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink)">01 SIMULATE</span>Thousands of parallel environments per skill.</div>
+      <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line2);padding-top:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink)">02 REMEMBER</span>Converged policies land in shared memory.</div>
+      <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--line2);padding-top:12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink)">03 RETARGET</span>Skills map to new joint layouts and re-verify in sim.</div>
+    </div>
+  </div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isApp }}" hint-placeholder-val="{{ false }}">
+<div style="min-height:100vh;display:flex;flex-direction:column;background:var(--bg)">
+  <div style="display:flex;align-items:center;gap:36px;padding:0 32px;height:56px;border-bottom:1px solid var(--line);background:var(--surf);flex:none">
+    <div onClick="{{ goLanding }}" style="display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;cursor:pointer"><div style="width:11px;height:11px;background:var(--ink)"></div>agentnet</div>
+    <div style="display:flex;height:100%;gap:2px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="5">
+        <div onClick="{{ t.onClick }}" style="display:flex;align-items:center;padding:0 14px;font-size:14px;cursor:pointer;color:{{ t.color }};box-shadow:{{ t.underline }}">{{ t.label }}</div>
+      </sc-for>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:18px;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--mute)">
+      <span style="display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:var(--ok)"></span>memory synced</span>
+      <span>412 envs live</span>
+      <div onClick="{{ toggleTheme }}" style="border:1px solid var(--line2);padding:4px 9px;cursor:pointer" style-hover="border-color:var(--ink)">{{ themeLabel }}</div>
+      <div style="width:28px;height:28px;border-radius:50%;background:var(--line);display:flex;align-items:center;justify-content:center;color:var(--ink);font-family:'IBM Plex Sans',sans-serif;font-size:12px;font-weight:500">JR</div>
+    </div>
+  </div>
+
+  <sc-if value="{{ isFleet }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="02 Fleet" style="padding:32px 32px 56px;display:flex;flex-direction:column;gap:24px;max-width:1440px;width:100%;margin:0 auto">
+    <div style="display:flex;flex-direction:column;gap:4px">
+      <h2 style="margin:0;font-weight:400;font-size:28px;letter-spacing:-0.02em">Fleet</h2>
+      <span style="font-size:14px;color:var(--mute)">5 robot models connected to shared memory.</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px">
+      <sc-for list="{{ fleet }}" as="r" hint-placeholder-count="5">
+        <div onClick="{{ r.onClick }}" style="background:var(--surf);border:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column" style-hover="border-color:var(--ink)">
+          <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,var(--st1) 0 8px,var(--st2) 8px 16px);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);position:relative">
+            robot render
+            <span style="position:absolute;top:10px;left:10px;background:var(--surf);padding:3px 7px;font-size:10.5px;color:var(--ink);display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:{{ r.statusColor }}"></span>{{ r.status }}</span>
+            <span style="position:absolute;top:10px;right:10px;font-size:10.5px;color:var(--mute)">{{ r.dof }}-DOF</span>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:16px;font-weight:500">{{ r.name }}</span>
+              <span style="font-size:12.5px;color:var(--mute)">{{ r.kind }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:12px;color:var(--mute)">
+              <div style="display:flex;flex-direction:column;gap:2px">Learned<span style="font-size:18px;font-weight:300;color:var(--ink)">{{ r.learned }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:2px">Adopted<span style="font-size:18px;font-weight:300;color:var(--ink)">{{ r.adopted }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:2px">Sim hrs<span style="font-size:18px;font-weight:300;color:var(--ink)">{{ r.hours }}</span></div>
+            </div>
+            <div style="border-top:1px solid var(--line);padding-top:12px;font-size:12.5px;color:var(--ink2)">{{ r.task }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isSims }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="03 Simulations" style="padding:32px 32px 56px;display:flex;flex-direction:column;gap:24px;max-width:1440px;width:100%;margin:0 auto">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h2 style="margin:0;font-weight:400;font-size:28px;letter-spacing:-0.02em">Simulations</h2>
+        <span style="font-size:14px;color:var(--mute)">Open any run to watch it live.</span>
+      </div>
+      <div style="display:flex;gap:12px;align-items:center">
+        <div style="display:flex;border:1px solid var(--line2);font-size:13px">
+          <sc-for list="{{ filters }}" as="f" hint-placeholder-count="4">
+            <span onClick="{{ f.onClick }}" style="padding:8px 12px;cursor:pointer;background:{{ f.bg }};color:{{ f.color }}">{{ f.label }}</span>
+          </sc-for>
+        </div>
+        <div style="background:var(--ink);color:var(--bg);padding:9px 16px;font-size:13px;cursor:pointer" style-hover="background:var(--acc)">New simulation</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:16px">
+      <sc-for list="{{ simCards }}" as="s" hint-placeholder-count="8">
+        <div onClick="{{ s.onClick }}" style="background:var(--surf);border:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column" style-hover="border-color:var(--ink)">
+          <div style="aspect-ratio:16/9;background:repeating-linear-gradient(135deg,var(--st1) 0 8px,var(--st2) 8px 16px);position:relative;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint)">
+            sim thumbnail
+            <span style="position:absolute;top:10px;left:10px;background:var(--surf);padding:3px 7px;font-size:10.5px;color:var(--ink);display:flex;align-items:center;gap:5px"><span style="width:5px;height:5px;border-radius:50%;background:{{ s.statusColor }}"></span>{{ s.status }}</span>
+            <span style="position:absolute;top:10px;right:10px;font-size:10.5px;color:var(--mute)">{{ s.id }}</span>
+          </div>
+          <div style="padding:14px 16px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <span style="font-size:15px;font-weight:500">{{ s.name }}</span>
+              <span style="font-size:12.5px;color:var(--mute)">{{ s.robot }} · {{ s.envs }} envs</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink2)">
+              <div style="flex:1;height:2px;background:var(--line);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ s.success }}%;background:var(--ink)"></div></div>
+              <span>{{ s.success }}%</span>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isViewer }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="04 Sim viewer" style="padding:24px 32px 56px;display:flex;flex-direction:column;gap:20px;max-width:1440px;width:100%;margin:0 auto">
+    <div style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--mute)">
+      <span onClick="{{ goSims }}" style="cursor:pointer" style-hover="color:var(--ink)">Simulations</span><span>/</span><span style="color:var(--ink)">{{ sim.id }}</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h2 style="margin:0;font-weight:300;font-size:34px;letter-spacing:-0.03em">{{ sim.name }}</h2>
+        <span style="font-size:14px;color:var(--mute)">{{ sim.robot }} · seeded from {{ sim.seed }}</span>
+      </div>
+      <div style="display:flex;gap:8px">
+        <div style="border:1px solid var(--line2);padding:9px 14px;font-size:13px;cursor:pointer" style-hover="border-color:var(--ink)">Fork run</div>
+        <div onClick="{{ commitSim }}" style="background:var(--ink);color:var(--bg);padding:9px 14px;font-size:13px;cursor:pointer" style-hover="background:var(--acc)">Commit to memory</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:20px">
+      <div style="display:flex;flex-direction:column;border:1px solid var(--line)">
+        <div style="position:relative;aspect-ratio:16/9;background:repeating-linear-gradient(135deg,var(--st1) 0 10px,var(--st2) 10px 20px)">
+          <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--faint)">live sim viewport · env {{ envFocus }}</div>
+          <div style="position:absolute;top:14px;left:14px;display:flex;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px">
+            <span style="background:var(--ink);color:var(--bg);padding:5px 8px;display:flex;align-items:center;gap:6px"><span style="width:6px;height:6px;border-radius:50%;background:{{ sim.statusColor }}"></span>{{ sim.status }}</span>
+            <span style="background:var(--surf);padding:5px 8px">t = {{ simTime }}s</span>
+          </div>
+          <div style="position:absolute;top:14px;right:14px;display:flex;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:11px">
+            <span style="background:var(--surf);padding:5px 8px">rgb</span><span style="background:var(--surf);padding:5px 8px;color:var(--mute)">depth</span><span style="background:var(--surf);padding:5px 8px;color:var(--mute)">contacts</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;background:var(--surf);border-top:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--ink2)">
+          <span onClick="{{ togglePlay }}" style="cursor:pointer;color:var(--ink);width:44px">{{ playLabel }}</span>
+          <div style="flex:1;height:2px;background:var(--line2);position:relative"><div style="position:absolute;left:0;top:-1px;bottom:-1px;width:{{ scrub }}%;background:var(--acc)"></div></div>
+          <span>ep {{ episodes }}</span>
+          <div style="display:flex;gap:2px">
+            <sc-for list="{{ speeds }}" as="sp" hint-placeholder-count="3">
+              <span onClick="{{ sp.onClick }}" style="padding:3px 6px;cursor:pointer;background:{{ sp.bg }};color:{{ sp.color }}">{{ sp.label }}</span>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)">
+          <div style="background:var(--surf);padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Success rate</span><span style="font-size:24px;font-weight:300">{{ sim.success }}%</span></div>
+          <div style="background:var(--surf);padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Episodes</span><span style="font-size:24px;font-weight:300">{{ episodes }}</span></div>
+          <div style="background:var(--surf);padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Parallel envs</span><span style="font-size:24px;font-weight:300">{{ sim.envs }}</span></div>
+          <div style="background:var(--surf);padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">GPU·h</span><span style="font-size:24px;font-weight:300">{{ sim.gpu }}</span></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;color:var(--mute)">Success over training</span>
+          <div style="display:flex;align-items:flex-end;gap:3px;height:64px">
+            <sc-for list="{{ sim.curve }}" as="c" hint-placeholder-count="28">
+              <div style="flex:1;background:var(--ink);height:{{ c.h }}%"></div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--mute)"><span>Parallel envs · last episode</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px">{{ envPass }}/64 pass</span></div>
+          <div style="display:grid;grid-template-columns:repeat(16,1fr);gap:3px">
+            <sc-for list="{{ envCells }}" as="e" hint-placeholder-count="64">
+              <div onClick="{{ e.onClick }}" style="aspect-ratio:1;background:{{ e.color }};cursor:pointer;outline:{{ e.outline }};outline-offset:1px"></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:14px;font-size:11.5px;color:var(--mute)">
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:var(--ink)"></span>pass</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:var(--acc)"></span>fail</span>
+            <span style="display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;background:var(--line2)"></span>running</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isSkills }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="05 Skills" style="flex:1;display:grid;grid-template-columns:320px minmax(0,1fr)">
+    <div style="border-right:1px solid var(--line);background:var(--surf);display:flex;flex-direction:column">
+      <div style="padding:24px 20px 16px;display:flex;flex-direction:column;gap:12px">
+        <h2 style="margin:0;font-weight:400;font-size:24px;letter-spacing:-0.02em">Learned skills</h2>
+        <div style="border:1px solid var(--line2);padding:9px 12px;font-size:13px;color:var(--faint)">Search shared memory…</div>
+      </div>
+      <sc-for list="{{ skillList }}" as="k" hint-placeholder-count="8">
+        <div onClick="{{ k.onClick }}" style="padding:14px 20px;border-top:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column;gap:4px;background:{{ k.bg }};box-shadow:{{ k.mark }}" style-hover="background:var(--hover)">
+          <div style="display:flex;justify-content:space-between;gap:8px"><span style="font-size:14px;font-weight:500">{{ k.name }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute)">{{ k.version }}</span></div>
+          <span style="font-size:12.5px;color:var(--mute)">{{ k.sourceName }} · {{ k.adoptCount }} adopters</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="padding:28px 36px 56px;display:flex;flex-direction:column;gap:28px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:24px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--acc);letter-spacing:0.04em">SKILL · {{ skill.version }}</span>
+          <h2 style="margin:0;font-weight:300;font-size:36px;letter-spacing:-0.03em">{{ skill.name }}</h2>
+          <span style="font-size:14px;color:var(--mute)">Learned by {{ skill.sourceName }} in “{{ skill.sim }}”</span>
+        </div>
+        <div style="display:flex;gap:32px">
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Source success</span><span style="font-size:26px;font-weight:300">{{ skill.success }}%</span></div>
+          <div style="display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Adopted by</span><span style="font-size:26px;font-weight:300">{{ skill.adoptCount }}</span></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font-size:13px;color:var(--mute)">Map to robot</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{ targets }}" as="r" hint-placeholder-count="5">
+            <div onClick="{{ r.onClick }}" style="padding:8px 14px;font-size:13px;cursor:pointer;border:1px solid {{ r.border }};background:{{ r.bg }};color:{{ r.color }};display:flex;gap:8px;align-items:baseline">{{ r.name }}<span style="font-family:'IBM Plex Mono',monospace;font-size:11px;opacity:.6">{{ r.dof }}-DOF</span></div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:24px">
+        <div style="background:var(--surf);border:1px solid var(--line);align-self:start;min-width:0">
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr) 90px;gap:12px;padding:12px 18px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute)">
+            <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ skill.sourceName }}</span><span></span><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ target.name }}</span><span>fit</span>
+          </div>
+          <sc-for list="{{ mapping }}" as="m" hint-placeholder-count="6">
+            <div style="display:grid;grid-template-columns:minmax(0,1fr) 14px minmax(0,1fr) 90px;gap:12px;align-items:center;padding:12px 18px;border-bottom:1px solid var(--line);font-family:'IBM Plex Mono',monospace;font-size:12.5px">
+              <span style="overflow-wrap:anywhere">{{ m.src }}</span><span style="color:var(--faint)">→</span><span style="color:{{ m.dstColor }};overflow-wrap:anywhere">{{ m.dst }}</span>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="flex:1;height:3px;background:var(--line);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ m.fit }}%;background:{{ m.fitColor }}"></div></div>
+                <span style="width:22px;flex:none;text-align:right;color:var(--ink2)">{{ m.fit }}</span>
+              </div>
+            </div>
+          </sc-for>
+          <div style="padding:14px 18px;font-size:13px;line-height:1.5;color:var(--ink2)">{{ mapNote }}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div style="aspect-ratio:4/3;background:repeating-linear-gradient(135deg,var(--st1) 0 10px,var(--st2) 10px 20px);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--faint);text-align:center;line-height:1.6;padding:20px">pose overlay preview<br>{{ skill.sourceName }} ↔ {{ target.name }}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)">
+            <div style="background:var(--surf);padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Predicted success</span><span style="font-size:22px;font-weight:300">{{ predicted }}%</span></div>
+            <div style="background:var(--surf);padding:14px;display:flex;flex-direction:column;gap:2px"><span style="font-size:12px;color:var(--mute)">Verify cost</span><span style="font-size:22px;font-weight:300">{{ verifyCost }} GPU·h</span></div>
+          </div>
+          <div onClick="{{ retarget }}" style="background:var(--ink);color:var(--bg);padding:13px;text-align:center;font-size:14px;cursor:pointer" style-hover="background:var(--acc)">{{ retargetLabel }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isMemory }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="06 Memory" style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) 340px">
+    <div style="padding:28px 32px;display:flex;flex-direction:column;gap:12px;min-width:0">
+      <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h2 style="margin:0;font-weight:400;font-size:28px;letter-spacing:-0.02em">Cloud memory</h2>
+          <span style="font-size:14px;color:var(--mute)">Skills in the center, robots around them. Click a node.</span>
+        </div>
+        <div style="display:flex;gap:18px;font-size:12px;color:var(--mute)">
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:0;border-top:1.5px solid var(--ink)"></span>learned</span>
+          <span style="display:flex;align-items:center;gap:6px"><span style="width:18px;height:0;border-top:1.5px dashed var(--ink)"></span>adopted</span>
+        </div>
+      </div>
+      <div style="position:relative;width:100%">
+      <svg viewBox="0 0 900 600" style="width:100%;height:auto;display:block">
+        <g>
+          <sc-for list="{{ edges }}" as="e" hint-placeholder-count="0">
+            <line x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}" stroke-dasharray="{{ e.dash }}" style="stroke:{{ e.stroke }};stroke-width:{{ e.w }};opacity:{{ e.op }}"></line>
+          </sc-for>
+        </g>
+        <g>
+          <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="0">
+            <g onClick="{{ n.onClick }}" style="cursor:pointer;opacity:{{ n.op }}">
+              <circle cx="{{ n.x }}" cy="{{ n.y }}" r="{{ n.r }}" style="fill:{{ n.fill }};stroke:{{ n.stroke }};stroke-width:1.5"></circle>
+            </g>
+          </sc-for>
+        </g>
+      </svg>
+      <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="0">
+        <div onClick="{{ n.onClick }}" style="position:absolute;left:{{ n.lx }}%;top:{{ n.ly }}%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:1px;white-space:nowrap;cursor:pointer;opacity:{{ n.op }}">
+          <span style="font-size:12.5px;color:var(--ink)">{{ n.label }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--mute)">{{ n.sub }}</span>
+        </div>
+      </sc-for>
+      </div>
+    </div>
+    <div style="border-left:1px solid var(--line);background:var(--surf);padding:28px 24px;display:flex;flex-direction:column;gap:22px">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--acc);letter-spacing:0.04em">{{ node.kindLabel }}</span>
+        <span style="font-size:24px;font-weight:300;letter-spacing:-0.02em">{{ node.name }}</span>
+        <span style="font-size:13px;color:var(--mute)">{{ node.sub }}</span>
+      </div>
+      <sc-for list="{{ node.groups }}" as="g" hint-placeholder-count="2">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font-size:12px;color:var(--mute)">{{ g.title }}</span>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="2">
+            <div onClick="{{ it.onClick }}" style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--line);font-size:13.5px;cursor:pointer" style-hover="color:var(--acc)"><span>{{ it.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:var(--mute)">{{ it.meta }}</span></div>
+          </sc-for>
+        </div>
+      </sc-for>
+      <div onClick="{{ node.action }}" style="margin-top:auto;border:1px solid var(--line2);padding:11px;text-align:center;font-size:13px;cursor:pointer" style-hover="border-color:var(--ink)">{{ node.actionLabel }}</div>
+    </div>
+  </div>
+  </sc-if>
+
+  <sc-if value="{{ isLogistics }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="07 Logistics" style="padding:32px 32px 56px;display:flex;flex-direction:column;gap:24px;max-width:1440px;width:100%;margin:0 auto">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <h2 style="margin:0;font-weight:400;font-size:28px;letter-spacing:-0.02em">Logistics</h2>
+        <span style="font-size:14px;color:var(--mute)">Compute, memory and skill transfer across the network.</span>
+      </div>
+      <div style="display:flex;border:1px solid var(--line2);font-size:13px">
+        <sc-for list="{{ ranges }}" as="rg" hint-placeholder-count="3">
+          <span onClick="{{ rg.onClick }}" style="padding:8px 12px;cursor:pointer;background:{{ rg.bg }};color:{{ rg.color }}">{{ rg.label }}</span>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line)">
+      <sc-for list="{{ kpis }}" as="p" hint-placeholder-count="4">
+        <div style="background:var(--surf);padding:20px;display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:12.5px;color:var(--mute)">{{ p.label }}</span>
+          <span style="font-size:32px;font-weight:300;letter-spacing:-0.02em">{{ p.value }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute)">{{ p.delta }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px">
+      <div style="background:var(--surf);border:1px solid var(--line);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <span style="font-size:14px;font-weight:500">GPU-hours by robot</span>
+        <sc-for list="{{ compute }}" as="c" hint-placeholder-count="5">
+          <div style="display:grid;grid-template-columns:110px minmax(0,1fr) 60px;gap:12px;align-items:center;font-size:13px">
+            <span>{{ c.name }}</span>
+            <div style="height:8px;background:var(--line);position:relative"><div style="position:absolute;left:0;top:0;bottom:0;width:{{ c.w }}%;background:var(--ink)"></div></div>
+            <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;text-align:right;color:var(--ink2)">{{ c.hrs }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:var(--surf);border:1px solid var(--line);padding:20px;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;justify-content:space-between"><span style="font-size:14px;font-weight:500">Memory storage</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--mute)">22.5 TB</span></div>
+        <div style="display:flex;height:24px;gap:2px">
+          <sc-for list="{{ memory }}" as="m" hint-placeholder-count="4">
+            <div style="width:{{ m.w }}%;background:{{ m.color }}"></div>
+          </sc-for>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px 24px">
+          <sc-for list="{{ memory }}" as="m" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:8px;font-size:13px"><span style="width:8px;height:8px;background:{{ m.color }}"></span><span style="flex:1">{{ m.label }}</span><span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--ink2)">{{ m.size }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="background:var(--surf);border:1px solid var(--line)">
+      <div style="padding:16px 20px;font-size:14px;font-weight:500;border-bottom:1px solid var(--line)">Skill transfers</div>
+      <div style="display:grid;grid-template-columns:80px minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) 80px 70px 110px;gap:16px;padding:10px 20px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--mute);border-bottom:1px solid var(--line)">
+        <span>time</span><span>skill</span><span>from</span><span>to</span><span>fit</span><span>GPU·h</span><span>status</span>
+      </div>
+      <sc-for list="{{ transfers }}" as="x" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:80px minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr) 80px 70px 110px;gap:16px;padding:12px 20px;font-size:13px;border-bottom:1px solid var(--line);align-items:center">
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--mute)">{{ x.time }}</span>
+          <span>{{ x.skill }}</span><span style="color:var(--ink2)">{{ x.from }}</span><span>{{ x.to }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">{{ x.fit }}</span>
+          <span style="font-family:'IBM Plex Mono',monospace;font-size:12px">{{ x.gpu }}</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:12.5px"><span style="width:6px;height:6px;border-radius:50%;background:{{ x.color }}"></span>{{ x.status }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+  </sc-if>
+</div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;},&quot;particles&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:2000,&quot;max&quot;:14000,&quot;step&quot;:100,&quot;default&quot;:14000,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;Landing arm&quot;},&quot;armMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Landing arm&quot;},&quot;cursorRepel&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Landing arm&quot;}}">
+const SC = { Running:'var(--acc)', Training:'var(--acc)', Converged:'var(--ok)', Verified:'var(--ok)', Idle:'var(--faint)', Queued:'var(--faint)', Verifying:'var(--acc)', 'Low fit':'var(--acc)' };
+const ROBOTS = [
+  { id:'kestrel', name:'Kestrel A6', kind:'6-DOF arm', dof:6, status:'Training', task:'Training cable routing · sim-0412', hours:'1,284', arm:['base_yaw','shoulder','elbow','wrist_pitch','wrist_roll','gripper'], fit:[100,100,100,100,100,100], note:'Same kinematic chain on both sides. Joints map 1:1.' },
+  { id:'heron', name:'Heron D7', kind:'7-DOF arm', dof:7, status:'Idle', task:'Idle · last ran peg insertion', hours:'962', arm:['j1_yaw','j2_pitch','j4_elbow','j6_pitch','j7_flange','gripper'], fit:[98,95,93,88,90,97], note:'Two redundant joints (j3_roll, j5_roll) are held at their null-space optimum during playback.' },
+  { id:'mako', name:'Mako Q12', kind:'Quadruped', dof:12, status:'Converged', task:'Stair climbing converged · sim-0398', hours:'2,410', arm:['fl_hip','fl_thigh','fl_calf',null,null,null], fit:[61,57,52,0,0,0], note:'No manipulator. Three wrist and gripper joints have no counterpart, so a new policy head must be trained.' },
+  { id:'juno', name:'Juno H28', kind:'Humanoid', dof:28, status:'Training', task:'Training pour liquid · sim-0409', hours:'1,876', arm:['r_shoulder_yaw','r_shoulder_pitch','r_elbow','r_wrist_pitch','r_wrist_roll','r_hand_synergy'], fit:[91,89,94,84,86,77], note:'Gripper maps to the first hand synergy. Torso and legs hold a stance controller.' },
+  { id:'wren', name:'Wren M9', kind:'Mobile manipulator', dof:9, status:'Idle', task:'Idle · deployed box stacking', hours:'388', arm:['arm_yaw','arm_lift','arm_elbow','wrist_pitch','wrist_roll','gripper'], fit:[96,92,94,90,91,95], note:'Base joints stay free for navigation. The arm maps 1:1 with small limit differences on the lift.' },
+];
+const RB = Object.fromEntries(ROBOTS.map(r => [r.id, r]));
+const SKILLS = [
+  { id:'pick', name:'Pick and place', version:'v3.2', source:'kestrel', sim:'Tabletop clutter', success:97, adopters:['heron','wren','juno'] },
+  { id:'drawer', name:'Drawer opening', version:'v1.8', source:'heron', sim:'Kitchen cabinets', success:93, adopters:['kestrel','wren','juno'] },
+  { id:'peg', name:'Peg insertion', version:'v2.4', source:'heron', sim:'0.2 mm tolerance', success:89, adopters:['kestrel','juno','wren'] },
+  { id:'stack', name:'Box stacking', version:'v2.0', source:'wren', sim:'Pallet bay', success:94, adopters:['kestrel','heron','juno'] },
+  { id:'stairs', name:'Stair climbing', version:'v1.1', source:'mako', sim:'Terrain set B', success:90, adopters:['juno'] },
+  { id:'door', name:'Door handle turn', version:'v1.3', source:'juno', sim:'Office doors', success:86, adopters:['wren','heron'] },
+  { id:'cable', name:'Cable routing', version:'v0.9', source:'kestrel', sim:'Harness board', success:71, adopters:['heron'] },
+  { id:'pour', name:'Pour liquid', version:'v0.6', source:'juno', sim:'Fluid sim', success:64, adopters:[] },
+];
+const SK = Object.fromEntries(SKILLS.map(s => [s.id, s]));
+const curve = (s, n = 28) => Array.from({ length:n }, (_, i) => ({ h: Math.max(3, Math.round(s / (1 + Math.exp(-(i - n * 0.32) / (n * 0.11))))) }));
+const SIMS = [
+  { id:'sim-0412', name:'Cable routing', robot:'kestrel', status:'Running', success:71, episodes:184200, envs:256, seed:'Pick and place v3.2', gpu:412, skill:'cable' },
+  { id:'sim-0409', name:'Pour liquid', robot:'juno', status:'Running', success:64, episodes:92400, envs:128, seed:'scratch', gpu:380, skill:'pour' },
+  { id:'sim-0407', name:'Peg insertion → Juno', robot:'juno', status:'Running', success:58, episodes:40100, envs:64, seed:'Peg insertion v2.4', gpu:96, skill:'peg' },
+  { id:'sim-0401', name:'Box stacking', robot:'wren', status:'Converged', success:94, episodes:310500, envs:512, seed:'Pick and place v3.1', gpu:288, skill:'stack' },
+  { id:'sim-0398', name:'Stair climbing', robot:'mako', status:'Converged', success:90, episodes:520000, envs:1024, seed:'scratch', gpu:1140, skill:'stairs' },
+  { id:'sim-0396', name:'Drawer opening → Kestrel', robot:'kestrel', status:'Queued', success:0, episodes:0, envs:128, seed:'Drawer opening v1.8', gpu:0, skill:'drawer' },
+  { id:'sim-0390', name:'Door handle turn', robot:'juno', status:'Converged', success:86, episodes:244000, envs:256, seed:'Drawer opening v1.6', gpu:520, skill:'door' },
+  { id:'sim-0385', name:'Pick and place', robot:'kestrel', status:'Converged', success:97, episodes:402000, envs:512, seed:'scratch', gpu:610, skill:'pick' },
+];
+const fmt = n => n.toLocaleString('en-US');
+const hash = (a, b) => { let x = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return x - Math.floor(x); };
+
+class Component extends DCLogic {
+  state = { screen:'landing', simId:'sim-0412', filter:'All', skillId:'pick', targetId:'heron', nodeId:'s:pick', range:'7d', tick:0, playing:true, speed:1, envFocus:17, retargeted:{}, themeOverride:null };
+
+  constructor(p) { super(p); this.canvasRef = this.canvasRef.bind(this); }
+
+  theme() { return this.state.themeOverride || this.props.theme || 'light'; }
+  applyTheme() {
+    document.documentElement.setAttribute('data-theme', this.theme());
+    const cs = getComputedStyle(document.documentElement);
+    this.col = { ink: cs.getPropertyValue('--ink').trim() || '#17191b', mute: cs.getPropertyValue('--mute').trim() || '#6b6f73', acc: cs.getPropertyValue('--acc').trim() || '#d65a31' };
+  }
+  componentDidMount() {
+    this.applyTheme();
+    this.iv = setInterval(() => { if (this.state.screen === 'viewer' && this.state.playing) this.setState(s => ({ tick: s.tick + 1 })); }, 700);
+  }
+  componentDidUpdate() { this.applyTheme(); }
+  componentWillUnmount() { clearInterval(this.iv); this.stopCanvas(); }
+
+  canvasRef(el) { if (el && el !== this.cv) { this.stopCanvas(); this.startCanvas(el); } else if (!el) this.stopCanvas(); }
+  stopCanvas() {
+    if (!this.cv) return;
+    cancelAnimationFrame(this.raf); this.ro && this.ro.disconnect();
+    window.removeEventListener('mousemove', this.onMove); this.cv = null;
+  }
+  startCanvas(el) {
+    this.cv = el; const ctx = el.getContext('2d');
+    let W = 1, H = 1; const mouse = { x:-9999, y:-9999, in:false, lx:0, ly:0 };
+    const resize = () => { const r = el.parentElement.getBoundingClientRect(), d = window.devicePixelRatio || 1; if (r.width < 2 || r.height < 2) return; const bw = Math.round(r.width * d), bh = Math.round(r.height * d); W = r.width; H = r.height; if (el.width !== bw || el.height !== bh) { el.width = bw; el.height = bh; } ctx.setTransform(d, 0, 0, d, 0, 0); dirty = true; };
+    let dirty = true, safeL = 0, safeB = 1e4;
+    resize(); this.ro = new ResizeObserver(resize); this.ro.observe(el.parentElement || el);
+    const T = [];
+    this.onMove = e => {
+      const r = el.parentElement.getBoundingClientRect(); mouse.x = e.clientX - r.left; mouse.y = e.clientY - r.top;
+      mouse.in = mouse.x > 0 && mouse.y > 0 && mouse.x < W && mouse.y < H;
+      if (mouse.in && (this.props.cursorMemory ?? true) && targets.length) {
+        const dist = Math.hypot(mouse.x - mouse.lx, mouse.y - mouse.ly), n = Math.min(8, dist / 5 | 0);
+        for (let i = 0; i < n && T.length < 500; i++) T.push({ x: mouse.x + (R() - .5) * 6, y: mouse.y + (R() - .5) * 6, vx: (R() - .5) * 3, vy: (R() - .5) * 3, j: targets[R() * targets.length | 0], age: 0 });
+      }
+      mouse.lx = mouse.x; mouse.ly = mouse.y;
+    };
+    window.addEventListener('mousemove', this.onMove);
+    const R = Math.random, PI = Math.PI;
+    let P = [], N = 0, t0 = performance.now(), targets = [];
+    const LL = [.52, .3, .14], LR = [.068, .055, .043], HR = [.1, .084, .068, .046], HW = [.088, .074, .06, .032], BR = .1, BH = .1;
+    const build = () => {
+      N = this.props.particles ?? 14000; P = []; t0 = performance.now();
+      const plan = [['link',0,.25],['link',1,.2],['link',2,.07],['hous',0,.08],['hous',1,.1],['hous',2,.08],['hous',3,.04],['finger',0,.04],['finger',1,.04],['dust',0,.06]];
+      plan.forEach(([kind, k, f]) => {
+        const n = Math.round(N * f);
+        for (let i = 0; i < n; i++) {
+          const q = R(), cap = (kind === 'hous' && q < .45) ? (R() < .5 ? -1 : 1) : 0;
+          P.push({ kind, k, u: R(), a: R() * PI * 2, cap, rr: R() < .7 ? 1 : .55, part: R(),
+            x: R() * W * 1.3 - W * .15, y: R() * H * 1.3 - H * .15, vx:0, vy:0, delay: R() * .9 + (kind === 'base' || kind === 'floor' ? 0 : .15 + k * .12),
+            a0: kind === 'dust' ? .2 + R() * .2 : kind === 'floor' ? .35 : .95, s: R() < .15 ? 2 : 1.4, ph: R() * 6.28, fl: 0 });
+        }
+      });
+      targets = P.map((p, i) => i).filter(i => P[i].kind !== 'dust' && P[i].kind !== 'floor');
+    };
+    build(); let lastN = N;
+    const pose = (t, m) => ({
+      psi: 3.8 + m * .25 * Math.sin(t * .23),
+      p1: 1.42 + m * .08 * Math.sin(t * .31 + .5),
+      p2: .1 + m * .2 * Math.sin(t * .37 + 1.3),
+      p3: -.5 + m * .25 * Math.sin(t * .5 + 2),
+      open: .5 + .5 * Math.sin(t * .7),
+    });
+    const kin = q => {
+      const f = [Math.cos(q.psi), 0, Math.sin(q.psi)], s = [-Math.sin(q.psi), 0, Math.cos(q.psi)];
+      const ph = [q.p1, q.p2, q.p3], d = ph.map(e => [f[0] * Math.cos(e), Math.sin(e), f[2] * Math.cos(e)]);
+      const J = [[0, 0, 0]];
+      for (let i = 0; i < 3; i++) J.push([J[i][0] + d[i][0] * LL[i], J[i][1] + d[i][1] * LL[i], J[i][2] + d[i][2] * LL[i]]);
+      return { f, s, d, J, q };
+    };
+    const wp = (p, K) => {
+      const { f, s, d, J } = K; let P3, n;
+      if (p.kind === 'link') {
+        const dd = d[p.k], n2 = [dd[1] * s[2] - dd[2] * s[1], dd[2] * s[0] - dd[0] * s[2], dd[0] * s[1] - dd[1] * s[0]];
+        const c = Math.cos(p.a), sn = Math.sin(p.a), r = LR[p.k];
+        n = [s[0] * c + n2[0] * sn, s[1] * c + n2[1] * sn, s[2] * c + n2[2] * sn];
+        const L = LL[p.k] * p.u, A = J[p.k];
+        P3 = [A[0] + dd[0] * L + n[0] * r, A[1] + dd[1] * L + n[1] * r, A[2] + dd[2] * L + n[2] * r];
+      } else if (p.kind === 'hous') {
+        const c = Math.cos(p.a), sn = Math.sin(p.a), A = J[p.k], rad = [f[0] * c, sn, f[2] * c];
+        if (p.cap) { const r = HR[p.k] * p.rr, w = HW[p.k] * p.cap; n = [s[0] * p.cap, 0, s[2] * p.cap]; P3 = [A[0] + s[0] * w + rad[0] * r, A[1] + rad[1] * r, A[2] + s[2] * w + rad[2] * r]; }
+        else { const w = HW[p.k] * (p.u * 2 - 1), r = HR[p.k]; n = rad; P3 = [A[0] + s[0] * w + rad[0] * r, A[1] + rad[1] * r, A[2] + s[2] * w + rad[2] * r]; }
+      } else if (p.kind === 'base') {
+        const a = p.a + K.q.psi, c = Math.cos(a), sn = Math.sin(a);
+        if (p.part < .55) { n = [c, 0, sn]; P3 = [c * BR, p.u * BH, sn * BR]; }
+        else if (p.part < .78) { const r = BR * p.rr; n = [0, 1, 0]; P3 = [c * r, BH, sn * r]; }
+        else { const r = BR * (1.25 + .25 * p.rr); n = [0, 1, 0]; P3 = [c * r, .004, sn * r]; }
+      } else if (p.kind === 'finger') {
+        const dd = d[2], side = (p.k ? 1 : -1) * (.012 + .022 * K.q.open), A = J[3], L = .085 * p.u, c = Math.cos(p.a) * .009, sn = Math.sin(p.a) * .009;
+        n = [f[0], 0, f[2]];
+        P3 = [A[0] + dd[0] * L + s[0] * (side + c), A[1] + dd[1] * L + sn, A[2] + dd[2] * L + s[2] * (side + c)];
+      } else {
+        const r = p.rr === 1 ? .24 : .34; n = [0, 1, 0]; P3 = [Math.cos(p.a) * r, 0, Math.sin(p.a) * r];
+      }
+      return [P3, n];
+    };
+    const tau = .34, ct = Math.cos(tau), st = Math.sin(tau), D = 2.8, LGT = (() => { const v = [-.55, .75, -.55], l = Math.hypot(...v); return v.map(x => x / l); })();
+    let S = 1, CX = 0, BY = 0;
+    const proj = P3 => { const Y = P3[1] * ct + P3[2] * st, Z = P3[2] * ct - P3[1] * st, k = D / (Z + D); return [CX + P3[0] * S * k, BY - Y * S * k, k]; };
+    const shade = n => { const lam = Math.max(0, n[0] * LGT[0] + n[1] * LGT[1] + n[2] * LGT[2]), face = -(n[1] * -st + n[2] * ct); return (face < 0 ? .45 : 1) * (.4 + .6 * lam) + (face > 0 && face < .3 ? .25 : 0); };
+    const loop = now => {
+      if (W < 2 || H < 2) { resize(); this.raf = requestAnimationFrame(loop); return; }
+      if ((this.props.particles ?? 14000) !== lastN) { build(); lastN = N; }
+      const t = (now - t0) / 1000, m = (this.props.armMotion ?? true) ? 1 : 0, mem = this.props.cursorMemory ?? true;
+      if (dirty) {
+        dirty = false;
+        const wr = el.parentElement.getBoundingClientRect(), root = el.closest('[data-screen-label]');
+        const h1 = root && root.querySelector('h1'), col = h1 && h1.parentElement, steps = col && col.nextElementSibling;
+        const textRight = n => { const rg = document.createRange(); rg.selectNodeContents(n); return Math.max(0, ...[...rg.getClientRects()].map(r => r.right)); };
+        safeL = col ? Math.max(...[...col.children, steps].filter(Boolean).map(n => n.getBoundingClientRect().right)) - wr.left + 28 : W * .3;
+        safeB = steps ? steps.getBoundingClientRect().top - wr.top - 28 : H - 140;
+        CX = W * .8;
+        let minX = 0, maxX = 0, minY = 0, maxY = -1;
+        for (let tt = 0; tt < 90; tt += .2) {
+          const G = kin(pose(tt, 1)), d3 = G.d[2], tip = [G.J[3][0] + d3[0] * .1, G.J[3][1] + d3[1] * .1, G.J[3][2] + d3[2] * .1];
+          [G.J[1], G.J[2], G.J[3], tip].forEach((q, qi) => {
+            const Y = q[1] * ct + q[2] * st, Z = q[2] * ct - q[1] * st, k = D / (Z + D), x = q[0] * k, y = -Y * k;
+            minX = Math.min(minX, x - .08); maxX = Math.max(maxX, x + .08); minY = Math.min(minY, y - .08); if (qi >= 1) maxY = Math.max(maxY, y + .06);
+          });
+        }
+        const off = .09, left = Math.max(0, safeL - 40), right = W - 24;
+        S = Math.min(H * 1.55, (H - 30) / -(off + minY));
+        CX = Math.min(W * .82, right - maxX * S);
+        BY = H + off * S;
+      }
+      const K = kin(pose(t, m));
+      ctx.clearRect(0, 0, W, H);
+      const c = this.col || { ink:'#17191b', mute:'#6b6f73', acc:'#d65a31' };
+      for (const p of P) {
+        if (p.kind === 'dust') { p.x += Math.sin(t * .3 + p.ph) * .15; p.y += Math.cos(t * .25 + p.ph) * .12; ctx.fillStyle = c.ink; ctx.globalAlpha = p.a0 * Math.min(1, t / 2); ctx.fillRect(p.x, p.y, 1.1, 1.1); continue; }
+        const [P3, n] = wp(p, K), sc = proj(P3);
+        let tx = sc[0] + Math.sin(t * 1.3 + p.ph) * .4, ty = sc[1] + Math.cos(t * 1.1 + p.ph) * .4;
+        const r = Math.max(0, Math.min(1, (t - p.delay) / 1.6)), e = 1 - Math.pow(1 - r, 3), k = r > 0 ? .004 + .09 * e : 0;
+        p.vx += (tx - p.x) * k; p.vy += (ty - p.y) * k;
+        const damp = r > 0 ? .83 : .96; p.vx *= damp; p.vy *= damp;
+        if (r === 0) { p.vx += (R() - .5) * .05; p.vy += (R() - .5) * .05; }
+        p.x += p.vx; p.y += p.vy;
+        const b = p.kind === 'floor' ? 1 : shade(n), sz = p.s * sc[2];
+        if (p.fl > .02) { ctx.fillStyle = c.acc; ctx.globalAlpha = Math.min(1, p.fl * 1.4); ctx.fillRect(p.x - .5, p.y - .5, sz + 1.2, sz + 1.2); p.fl *= .965; continue; }
+        const cf = p.x < safeL ? Math.max(.12, 1 - (safeL - p.x) / 50) : 1;
+        ctx.fillStyle = c.ink; ctx.globalAlpha = p.a0 * b * (.3 + .7 * e) * cf; ctx.fillRect(p.x, p.y, sz, sz);
+      }
+      const ready = Math.max(0, Math.min(1, (t - 2.4) / .8));
+      if (mem && mouse.in && ready > 0) {
+        const RAD = 170, lags = [1.2, 2.4, 3.6, 4.8];
+        ctx.fillStyle = c.acc;
+        lags.forEach((lag, li) => {
+          const G = kin(pose(t + lag, m)), fade = (1 - li / lags.length) * .75 * ready;
+          for (let i = 0; i < P.length; i += 2) {
+            const p = P[i]; if (p.kind === 'dust' || p.kind === 'floor' || p.kind === 'base') continue;
+            const sc = proj(wp(p, G)[0]), dx = sc[0] - mouse.x, dy = sc[1] - mouse.y, d2 = dx * dx + dy * dy;
+            if (d2 > RAD * RAD) continue;
+            const fall = 1 - Math.sqrt(d2) / RAD;
+            ctx.globalAlpha = fade * fall * fall * .9; ctx.fillRect(sc[0], sc[1], 1.1, 1.1);
+          }
+          const tip = proj(G.J[3]), dt = Math.hypot(tip[0] - mouse.x, tip[1] - mouse.y);
+          if (dt < RAD * .9) { ctx.globalAlpha = fade * (1 - dt / RAD); ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.fillText('t+' + lag.toFixed(1) + 's', tip[0] + 6, tip[1] + 14); }
+        });
+      }
+      ctx.fillStyle = c.acc;
+      for (let i = T.length - 1; i >= 0; i--) {
+        const q = T[i], tp = P[q.j]; q.age += 1 / 60;
+        const k = .006 + Math.min(.05, q.age * .03);
+        q.vx += (tp.x - q.x) * k; q.vy += (tp.y - q.y) * k; q.vx *= .9; q.vy *= .9; q.x += q.vx; q.y += q.vy;
+        if (Math.hypot(tp.x - q.x, tp.y - q.y) < 3 || q.age > 4) { tp.fl = 1; T.splice(i, 1); continue; }
+        ctx.globalAlpha = Math.min(1, q.age * 4) * .85; ctx.fillRect(q.x, q.y, 1.6, 1.6);
+      }
+      if (ready > 0) {
+        ctx.fillStyle = c.acc; ctx.globalAlpha = ready;
+        const Js = K.J.map(proj);
+        [Js[1], Js[2], Js[3]].forEach(q => ctx.fillRect(q[0] - 2, q[1] - 2, 4, 4));
+        ctx.font = "11px 'IBM Plex Mono', monospace"; ctx.strokeStyle = c.mute; ctx.lineWidth = 1;
+        const q = K.q, lab = [];
+        lab.forEach(([pt, s, ang], i) => {
+          const flip = pt[0] + 160 > W, ox = flip ? -60 : 60, oy = -50;
+          ctx.globalAlpha = ready * .6; ctx.beginPath(); ctx.moveTo(pt[0] + 8, pt[1] - 6); ctx.lineTo(pt[0] + ox, pt[1] + oy); ctx.lineTo(pt[0] + ox + (flip ? -14 : 14), pt[1] + oy); ctx.stroke(); const tw = ctx.measureText(s).width, tx0 = flip ? pt[0] + ox - 20 - tw : Math.min(pt[0] + ox + 20, W - tw - 8);
+          ctx.globalAlpha = ready; ctx.fillStyle = c.mute; ctx.fillText(s, tx0, pt[1] + oy - 2);
+          ctx.fillStyle = c.ink; ctx.fillText((ang * 180 / PI).toFixed(1) + '°', tx0, pt[1] + oy + 12);
+        });
+      }
+      ctx.globalAlpha = 1;
+      this.raf = requestAnimationFrame(loop);
+    };
+    this.raf = requestAnimationFrame(loop);
+  }
+
+  go(screen, extra = {}) { this.setState({ screen, ...extra }); window.scrollTo(0, 0); }
+
+  renderVals() {
+    const st = this.state, go = s => () => this.go(s);
+    const active = st.screen === 'viewer' ? 'sims' : st.screen;
+    const tabs = [['fleet','Fleet'],['sims','Simulations'],['skills','Skills'],['memory','Memory'],['logistics','Logistics']].map(([id, label]) => ({
+      label, onClick: go(id), color: active === id ? 'var(--ink)' : 'var(--mute)', underline: active === id ? 'inset 0 -2px 0 var(--ink)' : 'none' }));
+    const learnedBy = id => SKILLS.filter(s => s.source === id), adoptedBy = id => SKILLS.filter(s => s.adopters.includes(id));
+
+    const fleet = ROBOTS.map(r => ({ ...r, statusColor: SC[r.status], learned: learnedBy(r.id).length, adopted: adoptedBy(r.id).length,
+      onClick: () => this.go('memory', { nodeId: 'r:' + r.id }) }));
+
+    const filters = ['All','Running','Converged','Queued'].map(f => ({ label:f, onClick:() => this.setState({ filter:f }), bg: st.filter === f ? 'var(--ink)' : 'transparent', color: st.filter === f ? 'var(--bg)' : 'var(--ink)' }));
+    const simCards = SIMS.filter(s => st.filter === 'All' || s.status === st.filter).map(s => ({ ...s, robot: RB[s.robot].name, statusColor: SC[s.status], onClick: () => this.go('viewer', { simId: s.id, tick: 0 }) }));
+
+    const s0 = SIMS.find(s => s.id === st.simId), live = s0.status === 'Running';
+    const sim = { ...s0, robot: RB[s0.robot].name, statusColor: SC[s0.status], curve: curve(s0.success), envs: fmt(s0.envs), gpu: fmt(s0.gpu + (live ? Math.floor(st.tick / 6) : 0)) };
+    const tk = live ? st.tick : 0;
+    const envCells = Array.from({ length:64 }, (_, i) => {
+      const h = hash(i, Math.floor((tk + i % 5) / 3)), running = live && hash(i, tk) < .18;
+      const pass = s0.status === 'Queued' ? null : h < s0.success / 100;
+      return { color: running || pass === null ? 'var(--line2)' : pass ? 'var(--ink)' : 'var(--acc)', outline: i === st.envFocus ? '1px solid var(--ink)' : 'none', pass: !running && pass, onClick: () => this.setState({ envFocus: i }) };
+    });
+    const speeds = [1, 4, 16].map(v => ({ label: v + '×', onClick: () => this.setState({ speed: v }), bg: st.speed === v ? 'var(--ink)' : 'transparent', color: st.speed === v ? 'var(--bg)' : 'var(--ink2)' }));
+
+    const sk = SK[st.skillId], src = RB[sk.source], tgt = RB[st.targetId];
+    const skillList = SKILLS.map(k => ({ ...k, sourceName: RB[k.source].name, adoptCount: k.adopters.length, onClick: () => this.setState({ skillId: k.id, targetId: k.source === st.targetId ? ROBOTS.find(r => r.id !== k.source).id : st.targetId }),
+      bg: k.id === st.skillId ? 'var(--hover)' : 'transparent', mark: k.id === st.skillId ? 'inset 2px 0 0 var(--acc)' : 'none' }));
+    const targets = ROBOTS.filter(r => r.id !== sk.source).map(r => ({ name: r.name, dof: r.dof, onClick: () => this.setState({ targetId: r.id }),
+      border: r.id === st.targetId ? 'var(--ink)' : 'var(--line2)', bg: r.id === st.targetId ? 'var(--ink)' : 'transparent', color: r.id === st.targetId ? 'var(--bg)' : 'var(--ink)' }));
+    const fits = tgt.id === src.id ? [100,100,100,100,100,100] : tgt.fit.map((f, i) => Math.round(f * (src.fit[i] ? 1 : 0) || 0));
+    const mapping = src.arm.map((j, i) => {
+      const dst = tgt.arm[i], f = src.arm[i] && dst ? fits[i] : 0;
+      return { src: j || '—', dst: dst || 'unmapped', dstColor: dst ? 'var(--ink)' : 'var(--faint)', fit: f, fitColor: f >= 85 ? 'var(--ink)' : 'var(--acc)' };
+    });
+    const avg = mapping.reduce((a, m) => a + m.fit, 0) / mapping.length;
+    const predicted = Math.round(sk.success * Math.pow(avg / 100, 1.6));
+    const key = sk.id + '>' + tgt.id, done = sk.adopters.includes(tgt.id) || st.retargeted[key];
+
+    const nodes = [], edges = [], cx = 450, cy = 290;
+    const pos = {};
+    SKILLS.forEach((s, i) => { const a = i / SKILLS.length * Math.PI * 2 - Math.PI / 2; pos['s:' + s.id] = [cx + Math.cos(a) * 165, cy + Math.sin(a) * 110]; });
+    ROBOTS.forEach((r, i) => { const a = i / ROBOTS.length * Math.PI * 2 - Math.PI / 2 + .3; pos['r:' + r.id] = [cx + Math.cos(a) * 375, cy + Math.sin(a) * 225]; });
+    const sel = st.nodeId, touches = (a, b) => sel === a || sel === b;
+    SKILLS.forEach(s => {
+      const sid = 's:' + s.id;
+      [[s.source, false], ...s.adopters.map(a => [a, true])].forEach(([rid, ad]) => {
+        const p1 = pos['r:' + rid], p2 = pos[sid], on = touches(sid, 'r:' + rid);
+        edges.push({ x1:p1[0], y1:p1[1], x2:p2[0], y2:p2[1], dash: ad ? '4 4' : '0', stroke: on ? 'var(--acc)' : 'var(--ink)', w: on ? 1.6 : 1, op: on ? 1 : .18 });
+      });
+    });
+    const linked = new Set([sel]);
+    SKILLS.forEach(s => { const ids = [s.source, ...s.adopters].map(r => 'r:' + r); if (sel === 's:' + s.id) ids.forEach(i => linked.add(i)); if (ids.includes(sel)) linked.add('s:' + s.id); });
+    SKILLS.forEach(s => { const id = 's:' + s.id, [x, y] = pos[id], r = 7 + s.adopters.length * 2.5;
+      nodes.push({ x, y, r, lx: x / 9, ly: (y + r + 4) / 6, label: s.name, sub: s.version, fill: id === sel ? 'var(--acc)' : 'var(--ink)', stroke: id === sel ? 'var(--acc)' : 'var(--ink)', op: linked.has(id) ? 1 : .35, onClick: () => this.setState({ nodeId: id }) }); });
+    ROBOTS.forEach(r => { const id = 'r:' + r.id, [x, y] = pos[id];
+      nodes.push({ x, y, r: 14, lx: x / 9, ly: (y + 18) / 6, label: r.name, sub: r.kind, fill: 'var(--bg)', stroke: id === sel ? 'var(--acc)' : 'var(--ink)', op: linked.has(id) ? 1 : .35, onClick: () => this.setState({ nodeId: id }) }); });
+    let node;
+    if (sel.startsWith('s:')) {
+      const s = SK[sel.slice(2)];
+      node = { kindLabel: 'SKILL · ' + s.version, name: s.name, sub: s.success + '% success in “' + s.sim + '”',
+        groups: [{ title:'Learned by', items:[{ label: RB[s.source].name, meta:'source', onClick: () => this.setState({ nodeId:'r:' + s.source }) }] },
+                 { title:'Adopted by', items: s.adopters.length ? s.adopters.map(a => ({ label: RB[a].name, meta: RB[a].fit[2] + '% fit', onClick: () => this.setState({ nodeId:'r:' + a }) })) : [{ label:'No adopters yet', meta:'', onClick: () => {} }] }],
+        actionLabel:'Open joint mapping', action: () => this.go('skills', { skillId: s.id, targetId: ROBOTS.find(r => r.id !== s.source).id }) };
+    } else {
+      const r = RB[sel.slice(2)];
+      node = { kindLabel: 'ROBOT · ' + r.dof + '-DOF', name: r.name, sub: r.kind,
+        groups: [{ title:'Learned', items: learnedBy(r.id).map(s => ({ label: s.name, meta: s.version, onClick: () => this.setState({ nodeId:'s:' + s.id }) })) },
+                 { title:'Adopted from memory', items: adoptedBy(r.id).map(s => ({ label: s.name, meta: 'from ' + RB[s.source].name.split(' ')[0], onClick: () => this.setState({ nodeId:'s:' + s.id }) })) }].filter(g => g.items.length),
+        actionLabel:'View simulations', action: go('sims') };
+    }
+
+    const mult = { '24h': 1 / 7, '7d': 1, '30d': 4.3 }[st.range];
+    const ranges = ['24h','7d','30d'].map(r => ({ label:r, onClick:() => this.setState({ range:r }), bg: st.range === r ? 'var(--ink)' : 'transparent', color: st.range === r ? 'var(--bg)' : 'var(--ink)' }));
+    const gpu = [['Mako Q12',2410],['Juno H28',1876],['Kestrel A6',1284],['Heron D7',962],['Wren M9',388]];
+    const compute = gpu.map(([name, h]) => ({ name, hrs: fmt(Math.round(h * mult)), w: h / 2410 * 100 }));
+    const kpis = [
+      { label:'GPU-hours', value: fmt(Math.round(6920 * mult)), delta: '+12% vs previous ' + st.range },
+      { label:'Environments live', value:'412', delta:'3 runs active' },
+      { label:'Skills in memory', value:'8', delta:'23 versions stored' },
+      { label:'Transfer success', value:'81%', delta: Math.round(14 * mult) + ' transfers verified' },
+    ];
+    const memory = [['Trajectories',14.2,'var(--ink)'],['Sim snapshots',6.1,'var(--mute)'],['Policies',1.8,'var(--acc)'],['Embeddings',0.4,'var(--line2)']].map(([label, tb, color]) => ({ label, size: tb + ' TB', w: tb / 22.5 * 100, color }));
+    const transfers = [
+      ['14:02','Peg insertion v2.4','Heron D7','Juno H28','84%','96','Verifying'],
+      ['11:47','Box stacking v2.0','Wren M9','Heron D7','92%','38','Verified'],
+      ['09:15','Pick and place v3.2','Kestrel A6','Juno H28','87%','64','Verified'],
+      ['Yesterday','Stair climbing v1.1','Mako Q12','Juno H28','71%','210','Verified'],
+      ['Yesterday','Pick and place v3.2','Kestrel A6','Mako Q12','38%','—','Low fit'],
+      ['Mon','Drawer opening v1.8','Heron D7','Kestrel A6','96%','—','Queued'],
+    ].map(([time, skill, from, to, fit, gpu, status]) => ({ time, skill, from, to, fit, gpu, status, color: SC[status] }));
+
+    return {
+      isLanding: st.screen === 'landing', isApp: st.screen !== 'landing',
+      isFleet: st.screen === 'fleet', isSims: st.screen === 'sims', isViewer: st.screen === 'viewer', isSkills: st.screen === 'skills', isMemory: st.screen === 'memory', isLogistics: st.screen === 'logistics',
+      canvasRef: this.canvasRef, tabs,
+      goLanding: go('landing'), goFleet: go('fleet'), goSims: go('sims'), goSkills: go('skills'), goMemory: go('memory'), goLogistics: go('logistics'),
+      themeLabel: this.theme() === 'dark' ? 'Light' : 'Dark', toggleTheme: () => this.setState({ themeOverride: this.theme() === 'dark' ? 'light' : 'dark' }),
+      fleet, filters, simCards, sim, envCells, speeds, envFocus: String(st.envFocus).padStart(3, '0'),
+      envPass: envCells.filter(e => e.pass).length,
+      episodes: fmt(s0.episodes + tk * s0.envs * st.speed / 8 | 0), simTime: ((tk * .7 * st.speed) % 12).toFixed(1), scrub: live ? (tk * st.speed * 3) % 100 : s0.status === 'Queued' ? 0 : 100,
+      playLabel: st.playing ? '❚❚ live' : '▶ play', togglePlay: () => this.setState(s => ({ playing: !s.playing })),
+      commitSim: () => this.go('skills', { skillId: s0.skill, targetId: ROBOTS.find(r => r.id !== SK[s0.skill].source).id }),
+      skillList, skill: { ...sk, sourceName: src.name, adoptCount: sk.adopters.length }, targets, target: tgt, mapping,
+      mapNote: tgt.note, predicted, verifyCost: Math.round((100 - avg) * 1.4 + 12),
+      retargetLabel: done ? 'Already in ' + tgt.name + ' memory · open sim' : 'Retarget and verify in sim',
+      retarget: () => done ? this.go('sims') : this.setState(s => ({ retargeted: { ...s.retargeted, [key]: true } })),
+      edges, nodes, node, ranges, kpis, compute, memory, transfers,
+    };
+  }
+}
+</script>
+</body>
+</html>

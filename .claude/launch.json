@@ -4,13 +4,59 @@
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 3000
+    },
+    {
+      "name": "frontend-alt",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "NEXT_PUBLIC_API_BASE=http://127.0.0.1:8001",
+        "npm",
+        "--prefix",
+        "frontend",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "3001"
+      ],
+      "port": 3001
     },
     {
       "name": "backend",
       "runtimeExecutable": "backend/.venv/bin/uvicorn",
-      "runtimeArgs": ["app.main:app", "--app-dir", "backend", "--host", "127.0.0.1", "--port", "8000"],
+      "runtimeArgs": [
+        "app.main:app",
+        "--app-dir",
+        "backend",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
+      "port": 8000
+    },
+    {
+      "name": "backend-demo",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "AGENTNET_DB_PATH=backend/app/data/demo/agentnet.db",
+        "AGENTNET_ARTIFACT_DIR=backend/app/data/demo/artifacts",
+        "backend/.venv/bin/uvicorn",
+        "app.main:app",
+        "--app-dir",
+        "backend",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "8000"
+      ],
       "port": 8000
     }
   ]

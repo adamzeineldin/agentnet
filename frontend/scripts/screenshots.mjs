@@ -31,4 +31,22 @@ for (const [i, title] of [[3, "08-present-imagine"], [4, "09-present-adapt"]]) {
   await page.screenshot({ path: `${OUT}${title}.png` });
   console.log("saved", title);
 }
+await page.goto(`${WEB}/skills`, { waitUntil: "networkidle" });
+await page.getByRole("tab", { name: "Memory graph" }).click();
+await page.getByRole("group", { name: "Robot and skill memory graph" }).waitFor();
+await page.screenshot({ path: `${OUT}10-memory-graph.png` });
+await page.goto(`${WEB}/history`, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: /Open transfer/ }).first().click();
+await page.locator("video").waitFor();
+await page.screenshot({ path: `${OUT}11-run-evidence.png` });
+await page.goto(WEB, { waitUntil: "networkidle" });
+await page.getByRole("button", { name: "Switch to dark theme" }).click();
+await page.waitForTimeout(2500); // particle assembly
+await page.screenshot({ path: `${OUT}12-overview-dark.png` });
+await page.getByRole("button", { name: "Switch to light theme" }).click();
+await page.waitForTimeout(250); // finish theme color transitions before the mobile capture
+await page.setViewportSize({ width: 390, height: 844 });
+await page.emulateMedia({ reducedMotion: "reduce" });
+await page.screenshot({ path: `${OUT}13-overview-mobile.png`, fullPage: true });
+console.log("saved memory, run evidence, dark theme and mobile views");
 await browser.close();

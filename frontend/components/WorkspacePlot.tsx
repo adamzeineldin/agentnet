@@ -44,7 +44,7 @@ export function WorkspacePlot({ workspace, label }: { workspace: WorkspaceEstima
         <text x={SIZE - PAD} y={PAD - 8} textAnchor="end" className="text-[9px]" fill="var(--ink-3)">x, y (m) · base ■</text>
       </svg>
       {p && (
-        <div className="tabular pointer-events-none absolute top-1 left-1 rounded border border-line bg-panel-2 px-2 py-1 font-mono text-[11px] text-ink-2">
+        <div className="tabular pointer-events-none absolute top-1 left-1 border border-line bg-panel-2 px-2 py-1 font-mono text-[11px] text-ink-2">
           x {p[0].toFixed(3)} · y {p[1].toFixed(3)} · z {p[2].toFixed(3)} m
         </div>
       )}

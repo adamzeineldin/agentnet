@@ -18,12 +18,12 @@ export function RunStepper({ events, kind = "discover" }: { events: RunEvent[]; 
           : done ? "border-line-strong text-ink-2" : "border-line text-ink-3/60";
         return (
           <li key={s} className="flex items-center gap-1">
-            <span className={`rounded-md border px-2 py-0.5 ${tone}`}>{done ? "✓ " : ""}{s}</span>
+            <span className={` border px-2 py-0.5 ${tone}`}>{done ? "✓ " : ""}{s}</span>
             {i < STEPS.length - 1 && <span className="text-ink-3/50">›</span>}
           </li>
         );
       })}
-      {failed && <li><span className="rounded-md border border-bad/50 bg-bad/10 px-2 py-0.5 text-bad">✕ failed</span></li>}
+      {failed && <li><span className="border border-bad/50 bg-bad/10 px-2 py-0.5 text-bad">✕ failed</span></li>}
     </ol>
   );
 }

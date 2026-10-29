@@ -137,3 +137,35 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ⬜ Read Official Rules in the portal; choose track/theme; add a LICENSE.
 - ⬜ Optional: Meta Muse Spark run (needs `MODEL_API_KEY` and your go-ahead to spend).
 - ⬜ Record the 2–3 min video and submit.
+
+## UI design handoff ✅ (2026-10-28)
+- ✅ Read `design_handoff_agentnet_ui/IMPLEMENTATION.md` and `README.md`; opened the clickable HTML prototype in a browser.
+- ✅ Implemented in the requested order: theme/fonts → shell → landing/ParticleArm → routes → shared UI.
+  - IBM Plex Sans / Mono, light-default handoff palette, persisted light/dark toggle, square panels and cards,
+    underlined navigation, live backend health and existing offline/simulation-only notices.
+  - Canvas particle arm port replaces ParticleHand. Includes assembly, cursor-memory particles, future-pose
+    ghosts, theme-aware colors, resize/unmount cleanup, and a static reduced-motion rendering.
+  - Fleet uses backend snapshots and passport metrics. History has type/status filters, selectable replay cards
+    and a split evidence viewer. Skills have search, selected detail and a keyboard-accessible memory graph.
+  - Transfer retains discover/publish/transfer/publish workflows, accepts a selected skill link, and compares
+    model-derived joint ranges. Evaluation retains generated findings/raw rows and adds backend-derived KPIs.
+  - Shared panels, status dots and metric grids match the handoff. Fixed narrow-screen passport overflow and
+    light-theme video-label contrast; `/present` retains its existing chrome-less flow.
+- ✅ No prototype placeholder robots, successes, GPU-hours, storage totals, predicted transfer success or fit
+  scores were introduced. All reported measurements and graph connections come from backend records.
+- ✅ Checks after each step (full isolated browser stack each time):
+
+  | Step | `make test` | `make smoke` | `npm run e2e` |
+  |---|---|---|---|
+  | Theme and fonts | 104 passed | Both robots PASS | 7 passed |
+  | Shell | 104 passed | Both robots PASS | 8 passed |
+  | Landing and ParticleArm | 104 passed | Both robots PASS | 8 passed |
+  | Routes | 104 passed | Both robots PASS | 9 passed |
+  | Shared UI, final revisions | 104 passed | Both robots PASS | 10 passed |
+
+- ✅ Added browser coverage for theme persistence, history status filters, skill search, keyboard graph selection,
+  and all redesigned routes at a narrow viewport with reduced motion. The initial narrow-screen failure was
+  repaired and the complete suite rerun successfully. `npm run lint` and a separate production build also pass.
+- ✅ Refreshed `assets/screenshots/` using `frontend/scripts/screenshots.mjs` against a production build and an
+  isolated copy of real recorded test runs. Added memory graph, run evidence, dark landing and mobile views.
+- Backend test runs retain the existing Starlette/httpx deprecation warning; no test failures remain.

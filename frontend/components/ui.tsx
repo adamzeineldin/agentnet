@@ -5,33 +5,33 @@ export function Panel({ title, right, children, className = "" }: {
   title?: ReactNode; right?: ReactNode; children: ReactNode; className?: string;
 }) {
   return (
-    <section className={`rounded-xl border border-line bg-panel/80 ${className}`}>
+    <section className={`min-w-0 border border-line bg-panel ${className}`}>
       {(title || right) && (
-        <header className="flex items-center justify-between gap-3 border-b border-line px-4 py-2.5">
-          <h2 className="text-[13px] font-medium tracking-wide text-ink-2 uppercase">{title}</h2>
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-2.5">
+          <h2 className="min-w-0 break-words text-sm font-medium text-ink">{title}</h2>
           {right}
         </header>
       )}
-      <div className="p-4">{children}</div>
+      <div className="min-w-0 overflow-x-auto p-4">{children}</div>
     </section>
   );
 }
 
 const TONES = {
-  neutral: "border-line-strong text-ink-2 bg-panel-2",
-  accent: "border-accent-dim/60 text-accent bg-accent/10",
-  good: "border-good/40 text-good bg-good/10",
-  warn: "border-warn/40 text-warn bg-warn/10",
-  bad: "border-bad/40 text-bad bg-bad/10",
+  neutral: "text-ink-3",
+  accent: "text-accent",
+  good: "text-good",
+  warn: "text-warn",
+  bad: "text-bad",
 } as const;
 
 export function Badge({ tone = "neutral", children, title }: {
   tone?: keyof typeof TONES; children: ReactNode; title?: string;
 }) {
   return (
-    <span title={title}
-      className={`inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-0.5 text-[11px] font-medium ${TONES[tone]}`}>
-      {children}
+    <span title={title} className={`inline-flex max-w-full items-center gap-1.5 font-mono text-[11px] ${TONES[tone]}`}>
+      <span aria-hidden="true" className="size-[5px] shrink-0 rounded-full bg-current" />
+      <span className="min-w-0 break-words">{children}</span>
     </span>
   );
 }
@@ -51,24 +51,23 @@ export function ProvenanceTag({ p }: { p: Provenance }) {
 }
 
 export function StatusBadge({ status }: { status: RunStatus }) {
-  if (status === "succeeded") return <Badge tone="good">✓ succeeded</Badge>;
-  if (status === "failed") return <Badge tone="bad">✕ failed</Badge>;
-  return <Badge tone="accent"><span className="size-1.5 animate-pulse rounded-full bg-accent" />{status}</Badge>;
+  const tone = status === "succeeded" ? "good" : status === "failed" ? "bad" : status === "queued" ? "neutral" : "accent";
+  return <Badge tone={tone}>{status}</Badge>;
 }
 
 export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
   return (
     <div className="min-w-0">
-      <div className="text-[11px] tracking-wide text-ink-3 uppercase">{label}</div>
-      <div className="tabular truncate text-lg font-medium text-ink">{value}</div>
-      {hint && <div className="truncate text-[11px] text-ink-3">{hint}</div>}
+      <div className="text-xs text-ink-3">{label}</div>
+      <div className="stat-value tabular break-words text-[28px] leading-tight font-light text-ink">{value}</div>
+      {hint && <div className="mt-1 text-[11px] text-ink-3">{hint}</div>}
     </div>
   );
 }
 
 export function ErrorNote({ message }: { message: string }) {
   return (
-    <div role="alert" className="rounded-lg border border-bad/40 bg-bad/10 px-3 py-2 text-sm text-bad">
+    <div role="alert" className="border border-bad/40 bg-panel px-3 py-2 text-sm text-bad">
       {message}
     </div>
   );

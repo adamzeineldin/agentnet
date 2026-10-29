@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { fmtDateTime, fmtM } from "@/lib/format";
+import { fmtDateTime, fmtM, fmtSec } from "@/lib/format";
 import { useRunStream } from "@/lib/useRunStream";
 import type { BenchmarkResults, RunRecord, Variant } from "@/lib/types";
 import { EventLog } from "../RunEvidence";
-import { Badge, ErrorNote, Loading, Panel, StatusBadge } from "../ui";
+import { Badge, ErrorNote, Loading, Panel, Stat, StatusBadge } from "../ui";
 import { EvalStrip } from "./EvalStrip";
 
 const VARIANTS: Variant[] = ["baseline_no_sharing", "retarget_only", "agentnet_offline"];
@@ -61,7 +61,8 @@ export function Evaluation() {
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Evaluation</h1>
+          <p className="eyebrow mb-2">Measured performance</p>
+          <h1 className="text-[28px] font-normal tracking-[-0.02em]">Evaluation</h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-2">
             Held-out scenes, matched budgets, every row from MuJoCo. The source robot builds a dev library; the target
             robot is evaluated on unseen seeds with and without that shared experience. Failures and losses are shown.
@@ -69,7 +70,7 @@ export function Evaluation() {
         </div>
         <button onClick={() => void stream.start(() => apiFetch<RunRecord>("/api/benchmarks", { method: "POST", body: "{}" }))}
           disabled={stream.busy}
-          className="rounded-md border border-accent-dim bg-accent/15 px-3 py-1.5 text-sm font-medium text-accent hover:bg-accent/25 disabled:opacity-50">
+          className="button-primary disabled:opacity-50">
           {stream.busy ? "Running benchmark…" : "Run benchmark"}
         </button>
       </div>
@@ -86,6 +87,12 @@ export function Evaluation() {
             <Badge>{fmtDateTime(run.created_at)}</Badge><Badge>{run.simulator}</Badge>
             <Badge>{res.protocol.source_robot_id as string} library → {res.protocol.target_robot_id as string} evaluated</Badge>
           </div>
+          <div className="metric-grid grid grid-cols-2 lg:grid-cols-4">
+            <Stat label="AgentNet success" value={res.summary.agentnet_offline.common.success_rate == null ? "—" : `${Math.round(res.summary.agentnet_offline.common.success_rate * 100)}%`} hint="comparable held-out scenes" />
+            <Stat label="Held-out scenes" value={res.summary.agentnet_offline.common.applicable} hint="comparable across variants" />
+            <Stat label="Benchmark wall clock" value={fmtSec(run.wall_clock_seconds)} hint="recorded duration" />
+            <Stat label="Simulation steps" value={res.summary.agentnet_offline.common.total_sim_steps.toLocaleString()} hint="AgentNet · comparable subset" />
+          </div>
           <Panel title="Findings (generated from this run)">
             <ul className="list-disc space-y-1 pl-5 text-sm text-ink-2">
               {findings(res).map((f) => <li key={f}>{f}</li>)}
@@ -95,7 +102,7 @@ export function Evaluation() {
             <div className="flex gap-1 text-xs" role="tablist">
               {subsets.map((s) => (
                 <button key={s} role="tab" aria-selected={subset === s} onClick={() => setSubset(s)}
-                  className={`rounded-md px-2 py-1 ${subset === s ? "bg-panel-2 text-ink" : "text-ink-3 hover:text-ink"}`}>{s}</button>
+                  className={` px-2 py-1 ${subset === s ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}>{s}</button>
               ))}
             </div>
           }>
@@ -124,7 +131,7 @@ export function Evaluation() {
             </div>
             <div className="mt-5"><EvalStrip rows={subset === "common" ? rows.filter((r) => common.has(r.scene_id)) : rows} variants={VARIANTS} /></div>
           </Panel>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             <Panel title="Protocol">
               <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1.5 text-xs">
                 {Object.entries(res.protocol).filter(([k]) => k !== "variants").map(([k, v]) => (
