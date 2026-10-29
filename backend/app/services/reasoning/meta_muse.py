@@ -35,9 +35,16 @@ BASE_URL = "https://api.meta.ai/v1"
 MAX_TOOL_ROUNDS = 4
 MAX_TOKENS = 1200
 TIMEOUT_S = 60.0
-# USD per 1M tokens for muse-spark-1.3 standard mode (dev.meta.ai pricing page, 2026-10-26).
-PRICE_INPUT_PER_M = 1.25
-PRICE_OUTPUT_PER_M = 4.25
+# USD per 1M tokens (input, output), dev.meta.ai/docs/pricing-rate-limits, checked 2026-10-29.
+# Contributor variants are cheaper because Meta may use the traffic for training.
+PRICES_PER_M: dict[str, tuple[float, float]] = {
+    "muse-spark-1.3": (1.25, 4.25),
+    "muse-spark-1.3-contributor": (0.10, 0.20),
+    "muse-spark-1.2": (1.25, 4.25),
+    "muse-spark-1.2-contributor": (0.10, 0.20),
+    "muse-spark-1.1": (1.25, 4.25),
+    "muse-wonder-1.0": (4.00, 20.00),
+}
 
 SYSTEM_PROMPT = (
     "You are the strategy reasoner for AgentNet, a robot experience-sharing system. A source robot "
@@ -202,12 +209,16 @@ class MetaMuseProvider:
                                 provider=self.name, model_id=self.model_id, calls=tuple(calls), notes=notes)
 
 
-def estimated_cost_usd(calls: tuple[ReasoningCall, ...]) -> float | None:
-    if not calls or any(c.prompt_tokens is None or c.completion_tokens is None for c in calls if c.kind != "tool"):
+def estimated_cost_usd(calls: tuple[ReasoningCall, ...], model_id: str | None) -> float | None:
+    """None when usage is missing or the model has no known price (never guessed)."""
+    price = PRICES_PER_M.get(model_id or "")
+    if price is None or not calls or any(
+        c.prompt_tokens is None or c.completion_tokens is None for c in calls if c.kind != "tool"
+    ):
         return None
     tin = sum(c.prompt_tokens or 0 for c in calls)
     tout = sum(c.completion_tokens or 0 for c in calls)
-    return tin / 1e6 * PRICE_INPUT_PER_M + tout / 1e6 * PRICE_OUTPUT_PER_M
+    return tin / 1e6 * price[0] + tout / 1e6 * price[1]
 
 
 def _brief(c) -> dict:

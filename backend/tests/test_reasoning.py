@@ -10,7 +10,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.services.reasoning.base import CandidateView, ReasoningContext, RolloutFeedback, validate_ranking
-from app.services.reasoning.meta_muse import MAX_TOOL_ROUNDS, MetaMuseProvider, MetaReasoningError
+from app.services.reasoning.base import ReasoningCall
+from app.services.reasoning.meta_muse import (
+    MAX_TOOL_ROUNDS,
+    MetaMuseProvider,
+    MetaReasoningError,
+    estimated_cost_usd,
+)
 from app.services.reasoning.offline import OfflinePlanner
 
 IDS = ("far_side@0.12", "over@0.08", "over@0.12", "direct@0.00")
@@ -211,3 +217,10 @@ def test_meta_failure_falls_back_to_offline_honestly(client, skill_7, monkeypatc
     assert run["status"] == "succeeded" and run["model_used"] is None
     assert rs["provider_requested"] == "meta_muse_spark" and rs["provider_used"] == "offline_deterministic"
     assert "503" in rs["fallback_error"] and rs["changed_selection_vs_offline"] is False
+
+
+def test_cost_uses_the_configured_models_price():
+    calls = (ReasoningCall(kind="propose", summary="", prompt_tokens=1_000_000, completion_tokens=1_000_000),)
+    assert estimated_cost_usd(calls, "muse-spark-1.3") == pytest.approx(1.25 + 4.25)
+    assert estimated_cost_usd(calls, "muse-spark-1.3-contributor") == pytest.approx(0.10 + 0.20)
+    assert estimated_cost_usd(calls, "unpriced-model") is None

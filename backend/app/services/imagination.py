@@ -163,7 +163,8 @@ def _merge(planned: list[PlannedCandidate], updated: dict[str, CandidateSummary]
 def _trace(provider, proposals, error, context, order, revisions) -> dict:
     all_calls = [c for p in proposals for c in p.get("calls", [])]
     model_calls = [c for c in all_calls if c["kind"] in ("propose", "revise") and provider.model_id]
-    cost = estimated_cost_usd(tuple(ReasoningCall(**c) for c in model_calls)) if model_calls else None
+    cost = (estimated_cost_usd(tuple(ReasoningCall(**c) for c in model_calls), provider.model_id)
+            if model_calls else None)
     return {
         "provider_requested": provider.name,
         "provider_used": "offline_deterministic" if error else provider.name,

@@ -58,6 +58,7 @@
 | D53 | Build memory graph edges only from published capsules and parent-child adaptations | Solid edges identify the publishing robot; dashed edges identify adoption of the parent skill by the adaptation's source robot. No speculative adoption or training state is inferred. |
 | D54 | Keep existing routes, labels and backend workflows; link selected original skills into Transfer Lab | Preserve discover/publish/transfer/publish behavior and evidence access. Present remains chrome-less, with shared fonts/colors and a readable video overlay. |
 | D55 | Verify each design step on isolated backend/browser stacks and capture production screenshots from recorded test runs | Avoid touching the user's running stack or manufacturing display data. New regressions cover theme persistence, filters, search/graph keyboard interaction and narrow layouts. |
+| D56 | Local runs use `muse-spark-1.3-contributor`; cost is priced per model id (unknown model → no estimate) | ~12–20× cheaper ($0.10/$0.20 vs $1.25/$4.25 per 1M tokens) to preserve credits. Requests contain only simulated robot/task data, so contributor-mode training use is acceptable. Default stays standard; set via `META_MODEL_ID`. Amends D33. |
 
 ## Open questions / blockers
 - Meta Model API: adapter built and mock-tested; no key configured, so no live call has been made. Spending requires your explicit go-ahead.
