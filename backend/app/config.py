@@ -21,6 +21,9 @@ ARTIFACT_DIR = Path(os.environ.get("AGENTNET_ARTIFACT_DIR", DATA_DIR / "artifact
 MODEL_API_KEY = os.environ.get("MODEL_API_KEY") or None
 META_MODEL_ID = os.environ.get("META_MODEL_ID", "muse-spark-1.3")
 
+# Optional UR controller bridge (backend/ur_bridge, talks ur_rtde to URSim). Unset = controller step unavailable.
+URSIM_BRIDGE_URL = os.environ.get("AGENTNET_URSIM_BRIDGE_URL") or None
+
 # Local-only app: allow any localhost / 127.0.0.1 port (Next dev may move off :3000).
 CORS_ORIGIN_REGEX = os.environ.get(
     "AGENTNET_CORS_ORIGIN_REGEX", r"http://(localhost|127\.0\.0\.1)(:\d+)?"
@@ -35,3 +38,7 @@ REACH_TOLERANCE_M = 0.01
 RENDER_WIDTH = 960
 RENDER_HEIGHT = 540
 VIDEO_FPS = 30
+CONTROLLER_STREAM_HZ = 125.0
+CONTROLLER_FINAL_TOL_RAD = 1e-3
+# Controller TCP vs MuJoCo FK at the same joints; nominal UR kinematics vs the Menagerie model differ by ~1 mm.
+CONTROLLER_MODEL_TOL_M = 0.005

@@ -12,7 +12,11 @@
 - The side-view route diagram is a 2D projection; side routes appear to cross the wall there (captioned).
 - Transfer ordering is a hand-designed prior over route classes; it is not learned.
 - Both robots use the same placement; transfer across very different workspaces is untested.
-- Meta Muse Spark integration is tested only against mocked HTTP responses; no live call has been made.
+- Meta Muse Spark is tested against mocked HTTP responses; live use so far is a handful of runs (see PROGRESS.md).
+- URSim controller execution is controller software on an idealized arm: no payload, no real dynamics, and no
+  obstacle (the wall exists only in MuJoCo). The `moveJ` approach to the path start is not collision-checked.
+  Nothing has run on a physical arm.
+- URSim settings (remote control, safety confirmation) are set by hand in the pendant after every fresh container.
 - The model ranks a fixed set of 10 template hypotheses; it cannot invent new routes or parameters.
 - "Offline would select" may be a kinematic estimate when the offline choice was not simulated (labelled).
 - On wall_reach_v1 the offline prior already succeeds on the first future, so there is little room for a model to help.

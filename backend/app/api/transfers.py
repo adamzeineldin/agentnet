@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.deps import get_registry, get_worker
 from app.models.run import RunRecord, TransferRequest
+from app.services import controller
 from app.services.jobs import SimulationWorker, create_run, run_guarded
 from app.services.reasoning import meta_available
 from app.services.registry import Registry
@@ -31,6 +32,8 @@ def start_transfer(
             status.HTTP_409_CONFLICT,
             "Meta reasoning requested but MODEL_API_KEY is not configured; use reasoning_mode='offline'",
         )
+    if body.execute_on == "ursim" and (reason := controller.unavailable_reason(ROBOTS[body.target_robot_id])):
+        raise HTTPException(status.HTTP_409_CONFLICT, reason)
     passport = registry.get_passport(body.target_robot_id)
     if passport is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Target passport not computed yet")
@@ -43,7 +46,7 @@ def start_transfer(
         run_guarded, registry, run.run_id,
         lambda ctx: transfer_skill(
             ctx, registry, body.source_skill_id, body.target_robot_id, body.scene_seed, passport,
-            body.reasoning_mode,
+            body.reasoning_mode, body.execute_on,
         ),
     )
     return run

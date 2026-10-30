@@ -115,10 +115,10 @@ export function TransferLab() {
           onDiscover={() => { setActive("source"); void source.start(() => startDiscover(SOURCE, seed)); }}
           onPublish={() => void publishSource()} />
         <TargetPanel robotName={targetName} stream={target} sourceSkillId={effectiveSkillId}
-          onTransfer={(sceneSeed, mode) => {
+          onTransfer={(sceneSeed, mode, executeOn) => {
             if (!effectiveSkillId) return;
             setActive("target");
-            void target.start(() => startTransfer(effectiveSkillId, TARGET, sceneSeed, mode));
+            void target.start(() => startTransfer(effectiveSkillId, TARGET, sceneSeed, mode, executeOn));
           }}
           onPublish={() => void publishTarget()} />
       </div>

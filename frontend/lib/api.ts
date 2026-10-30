@@ -1,4 +1,6 @@
-import type { ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RunEvent, RunRecord } from "./types";
+import type {
+  ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RunEvent, RunRecord,
+} from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
 
@@ -51,11 +53,13 @@ export function publishSkill(runId: string): Promise<ExperienceCapsule> {
 
 export function startTransfer(
   sourceSkillId: string, targetRobotId: string, sceneSeed: number | null, reasoningMode: ReasoningMode,
+  executeOn: ExecuteOn = "none",
 ): Promise<RunRecord> {
   return apiFetch<RunRecord>("/api/transfers", {
     method: "POST",
     body: JSON.stringify({
       source_skill_id: sourceSkillId, target_robot_id: targetRobotId, scene_seed: sceneSeed, reasoning_mode: reasoningMode,
+      execute_on: executeOn,
     }),
   });
 }

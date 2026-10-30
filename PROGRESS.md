@@ -210,3 +210,24 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   tests must never spend credits. 11 Playwright tests pass; 129 backend tests; smoke PASS.
 - ⬜ Step 4 — docs, e2e.
 
+
+## URSim controller execution 🟡 (2026-10-29, branch `feat/ursim-execution`)
+- ✅ URSim e-Series 5.26.3 (UR5e) runs on this Mac under amd64 emulation: ~30 s boot, ~1.5 GB RAM. `ur_rtde` 1.6.5
+  has no macOS wheels, so it runs in a Linux container (`backend/ur_bridge`, `make ursim-up`).
+- ✅ Frames: joint zeros/order match the Menagerie UR5e; the controller base frame is the Menagerie base body rotated
+  180° about z. TCP agrees within 1.1 mm at 4 configurations (declared in `robot_catalog.py`, regression test).
+- ✅ Transfer option `execute_on: "ursim"`: after MuJoCo verification the path is retimed with the MuJoCo speed rule,
+  streamed (moveJ approach, 125 Hz servoJ, final pose held) and stored as `results.controller_execution` with
+  checks. It never changes run status or the capsule. `GET /api/controller/status`; Transfer Lab checkbox + panel.
+- ✅ 26 new tests with a fake controller behind `httpx.MockTransport` (no URSim/ur_rtde/network): bridge input
+  checks, safety refusal, protective stop, pacing, final hold, frame regression, unreachable bridge, transfer
+  integration. Backend suite 155 passed.
+- ✅ Live (dev registry, offline planner, no model calls): Librarian gap `skill_reach_over_c2513e` → UR5e.
+  - `run_20261030_033654_dfc601`: URSim step **failed** honestly. 211 samples were sent in 0.92 s (ur_rtde
+    `waitPeriod` paces at 500 Hz) and `servoStop` cut the lagging arm short: 0.30 rad final error, 188 mm from
+    target. Kept as recorded.
+  - Fixed: own-clock pacing and holding the final pose.
+  - `run_20261030_033905_195f82`: **succeeded**. Controller TCP was 0.59 mm from the target and 0.49 mm from
+    MuJoCo FK; final joint error 0.08 mrad; 2.43 s on the controller for a 1.69 s path; all 6 checks pass.
+- ⬜ Not physical: URSim has no obstacle, payload or real dynamics. A borrowed physical UR e-Series arm would use the
+  same bridge (`UR_HOST`); untested.

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import numpy as np
 
+from app.models.controller import ControllerExecution
 from app.models.robot import RobotPassport
 from app.models.run import RunRecord
 from app.models.skill import CandidateSummary, ExperienceCapsule, TaskSpec
@@ -25,7 +26,9 @@ from app.services.candidate_search import (
     prepare,
     search_metrics,
 )
+from app.services import controller
 from app.services.capsules import build_capsule, compact_outcomes
+from app.services.controller.execution import run_on_controller
 from app.services.imagination import build_context, imagine
 from app.services.jobs import RunContext
 from app.services.reasoning import get_provider
@@ -113,6 +116,7 @@ def transfer_skill(
     scene_seed: int | None,
     target_passport: RobotPassport,
     reasoning_mode: str = "offline",
+    execute_on: str = "none",
 ) -> RunRecord:
     ctx.event("retrieving", f"Fetching capsule {source_skill_id} from the registry")
     capsule = registry.get_skill(source_skill_id)
@@ -137,11 +141,35 @@ def transfer_skill(
     if setup is None:
         return ctx.finish(False, f"{decl.short_name} cannot reach the start pose without collision", results=base)
     provider = get_provider(reasoning_mode)
-    return _search_and_execute(ctx, setup, capsule, target_passport, source_passport, base, provider)
+    after = controller_step(ctx, setup) if execute_on == "ursim" else None
+    return _search_and_execute(ctx, setup, capsule, target_passport, source_passport, base, provider, after)
+
+
+def controller_step(ctx: RunContext, setup: SearchSetup):
+    """After MuJoCo verification: stream the same joint path to URSim. Never changes the simulation result."""
+
+    def step(joint_path: list) -> dict:
+        ctx.event("executing", f"Streaming the verified {len(joint_path)}-waypoint path to the URSim controller "
+                  "(controller software, not a physical arm)")
+        try:
+            out = run_on_controller(controller.make_client(), setup.adapter, setup.decl, joint_path,
+                                    setup.target_base)
+        except Exception as exc:  # noqa: BLE001 - recorded as a failed controller execution
+            out = ControllerExecution(label="URSim controller, not physical", status="failed",
+                                      error=f"{type(exc).__name__}: {exc}", stream_hz=0.0,
+                                      path_waypoints=len(joint_path), commanded_samples=0)
+        message = (f"URSim execution succeeded: TCP {out.tcp_to_target_mm:.2f} mm from target, "
+                   f"{out.tcp_vs_model_mm:.2f} mm from the MuJoCo model" if out.status == "succeeded"
+                   else f"URSim execution failed: {out.error}")
+        ctx.event("verifying", message, controller_status=out.status)
+        return {"controller_execution": out.model_dump(mode="json")}
+
+    return step
 
 
 def _search_and_execute(
-    ctx, setup: SearchSetup, capsule: ExperienceCapsule, passport, source_passport, base, provider
+    ctx, setup: SearchSetup, capsule: ExperienceCapsule, passport, source_passport, base, provider,
+    after_verify=None,
 ) -> RunRecord:
     ordered = prior_order(generate_candidates(setup.task), capsule)
     notes = {c.candidate_id: (i + 1, n) for i, (c, _, n) in enumerate(ordered)}
@@ -189,7 +217,7 @@ def _search_and_execute(
         )
 
     return execute_and_verify(ctx, setup, winner, joint_path, summaries, {**results, "adaptation": adaptation},
-                              make_capsule, "Adaptation verified on target — ready to publish")
+                              make_capsule, "Adaptation verified on target — ready to publish", after_verify)
 
 
 def _offline_comparison(by_id: dict[str, CandidateSummary], offline_order: list[str], winner) -> dict:

@@ -2,9 +2,13 @@
 
 import { useState } from "react";
 import { useApi } from "@/lib/useApi";
-import type { Adaptation, CompatibilityCheck, Health, ReasoningMode, ReasoningTrace } from "@/lib/types";
+import type {
+  Adaptation, CompatibilityCheck, ControllerExecution, ControllerStatusInfo, ExecuteOn, Health, ReasoningMode,
+  ReasoningTrace,
+} from "@/lib/types";
 import type { RunStream } from "@/lib/useRunStream";
 import { Badge, Panel } from "../ui";
+import { ControllerPanel } from "./ControllerPanel";
 import { ProviderBadge } from "./ImaginationPanel";
 import { RunSummary, RunVideo } from "./RunMedia";
 
@@ -15,7 +19,7 @@ interface TargetPanelProps {
   robotName: string;
   stream: RunStream;
   sourceSkillId: string | null;
-  onTransfer: (sceneSeed: number | null, mode: ReasoningMode) => void;
+  onTransfer: (sceneSeed: number | null, mode: ReasoningMode, executeOn: ExecuteOn) => void;
   onPublish: () => void;
 }
 
@@ -24,16 +28,20 @@ export function TargetPanel({ robotName, stream, sourceSkillId, onTransfer, onPu
   const [newScene, setNewScene] = useState(false);
   const [sceneSeed, setSceneSeed] = useState(3);
   const [mode, setMode] = useState<ReasoningMode>("offline");
+  const [onUrsim, setOnUrsim] = useState(false);
   const health = useApi<Health>("/api/health");
+  const ursim = useApi<ControllerStatusInfo>("/api/controller/status");
+  const ursimReady = ursim.data?.ready === true;
   const metaAvailable = health.data?.reasoning.mode === "meta_configured";
   const trace = run?.results.reasoning as ReasoningTrace | undefined;
   const checks = (run?.results.compatibility ?? []) as CompatibilityCheck[];
   const adaptation = run?.results.adaptation as Adaptation | undefined;
   const published = run?.results.published === true;
+  const controllerExecution = run?.results.controller_execution as ControllerExecution | undefined;
 
   return (
     <Panel title={`Target · ${robotName}`} right={
-      <button onClick={() => onTransfer(newScene ? sceneSeed : null, mode)} disabled={busy || !sourceSkillId}
+      <button onClick={() => onTransfer(newScene ? sceneSeed : null, mode, onUrsim && ursimReady ? "ursim" : "none")} disabled={busy || !sourceSkillId}
         title={sourceSkillId ? undefined : "Publish a source skill first"}
         className="button-primary disabled:cursor-not-allowed disabled:opacity-50">
         {busy ? "Transferring…" : "Transfer Skill"}
@@ -61,6 +69,13 @@ export function TargetPanel({ robotName, stream, sourceSkillId, onTransfer, onPu
         </select>
         {run && <ProviderBadge trace={trace} />}
       </div>
+      <label className="mb-3 flex items-center gap-1.5 text-xs text-ink-3" title={ursim.data?.detail}>
+        <input type="checkbox" aria-label="Also run on the URSim controller (not physical)"
+          checked={onUrsim && ursimReady} disabled={busy || !ursimReady}
+          onChange={(e) => setOnUrsim(e.target.checked)} />
+        also run on the URSim controller (not physical)
+        {!ursimReady && <span className="text-ink-3">· {ursim.data?.configured ? "not ready" : "not configured"}</span>}
+      </label>
       <RunVideo run={run} busy={busy} emptyLabel={sourceSkillId ? "Not transferred yet" : "Publish a source skill to enable transfer"} />
       {run && (
         <div className="mt-4 space-y-3">
@@ -85,6 +100,7 @@ export function TargetPanel({ robotName, stream, sourceSkillId, onTransfer, onPu
               ))}
             </ul>
           )}
+          {controllerExecution && <ControllerPanel execution={controllerExecution} />}
           {run.status === "succeeded" && (
             <div className="flex flex-wrap items-center gap-2 border-t border-line pt-3">
               <button onClick={onPublish} disabled={busy || published}

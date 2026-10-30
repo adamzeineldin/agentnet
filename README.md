@@ -32,6 +32,9 @@ previews candidates in MuJoCo, and publishes the adaptation with lineage.
 - Collective Imagination: a reasoning provider (offline prior, or Meta Muse Spark with `MODEL_API_KEY`) ranks
   hypotheses; MuJoCo simulates several futures before one is executed. Each run records which provider was
   used, model calls, tokens, estimated cost, and whether the model changed the selection.
+- Optional controller execution: after MuJoCo verification, the UR5e path can be streamed to **URSim** (UR's
+  controller software, PolyScope 5.26) through a `ur_rtde` bridge. The run records what the controller reported.
+  Labelled "URSim controller, not physical". See [backend/ur_bridge/README.md](backend/ur_bridge/README.md).
 - Next.js Control Center: Overview, Robot Fleet, Transfer Lab (Panda ↔ UR5e), Skill Library, Run History,
   and a one-click **Presentation mode** (`/present`) that replays a recorded chain or runs it live.
   See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
@@ -71,8 +74,10 @@ labelled **Offline deterministic planner** mode.
 backend/app/services   robot_catalog, scene, robot_adapter, kinematics, simulation, render,
                        passports, fleet, registry, jobs, motion_check, task_scene,
                        route_planner, candidate_search, skill_discovery, transfer, imagination,
-                       capsules, skill_registry, reasoning/{base,offline,meta_muse}, librarian/offline
-backend/app/api        health, robots, runs (incl. discover), skills, transfers, library
+                       capsules, skill_registry, reasoning/{base,offline,meta_muse}, librarian/offline,
+                       controller/{bridge_client,execution}
+backend/app/api        health, robots, runs (incl. discover), skills, transfers, library, controller
+backend/ur_bridge      ur_rtde HTTP bridge + URSim compose file (make ursim-up)
 backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py, transfer_demo.py
 backend/tests          passport, IK/physics, registry, API
 frontend/              Next.js 16 App Router + Tailwind 4

@@ -30,6 +30,8 @@ from app.services.task_scene import task_to_base, world_scene
 
 START_IK_SEEDS = 8
 CapsuleFactory = Callable[[ExecutionResult, dict], ExperienceCapsule]
+# Runs only after a verified execution; returns extra results (e.g. the controller execution).
+AfterVerify = Callable[[list], dict]
 
 
 @dataclass(frozen=True)
@@ -170,6 +172,7 @@ def execute_and_verify(
     base_results: dict,
     make_capsule: CapsuleFactory,
     success_message: str,
+    after_verify: AfterVerify | None = None,
 ) -> RunRecord:
     ctx.event("executing", f"Executing {winner.candidate_id} in a fresh simulation with rendering")
     render_adapter = RobotAdapter(
@@ -188,6 +191,7 @@ def execute_and_verify(
     success = all(checks.values())
     capsule = make_capsule(res, phys) if success else None
     failed = [k for k, v in checks.items() if not v]
+    extra = after_verify(list(joint_path)) if success and after_verify is not None else {}
     return ctx.finish(
         success,
         success_message if success else f"Execution failed: {', '.join(failed)}",
@@ -200,7 +204,7 @@ def execute_and_verify(
                  "joint_path_dof": len(joint_path[0]),
                  "ee_trace_base": [list(p) for p in res.ee_trace],
                  "capsule_draft": capsule.model_dump(mode="json") if capsule else None,
-                 "published": False},
+                 "published": False, **extra},
         artifacts={"video": artifact_url(video), "poster": artifact_url(poster)},
     )
 

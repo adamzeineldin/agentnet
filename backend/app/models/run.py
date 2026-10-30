@@ -94,6 +94,10 @@ class TransferRequest(BaseModel):
         default="offline",
         description="offline = deterministic source-experience prior; meta = Meta Muse Spark (needs MODEL_API_KEY)",
     )
+    execute_on: Literal["none", "ursim"] = Field(
+        default="none",
+        description="ursim = after MuJoCo verification, also stream the path to the URSim controller (not physical)",
+    )
 
 
 class BenchmarkRequest(BaseModel):

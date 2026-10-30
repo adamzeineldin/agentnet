@@ -41,6 +41,14 @@ test("transfer lab: discover, publish, transfer, publish adaptation — real job
   await expect(page.getByText(/Adapted from skill_reach_far_side_/)).toBeVisible();
 });
 
+test("URSim option is disabled and labelled when no controller bridge is configured", async ({ page, request }) => {
+  const status = await (await request.get(`${API}/api/controller/status`)).json();
+  expect(status.configured).toBe(false);
+  await page.goto("/transfer");
+  await expect(page.getByRole("checkbox", { name: "Also run on the URSim controller (not physical)" })).toBeDisabled();
+  await expect(page.getByText("· not configured")).toBeVisible();
+});
+
 test("librarian organizes the registry offline without changing skills", async ({ page, request }) => {
   const before = await (await request.get(`${API}/api/skills`)).json();
   await page.goto("/skills");

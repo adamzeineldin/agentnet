@@ -217,6 +217,50 @@ export interface SearchMetrics {
 }
 
 export type ReasoningMode = "offline" | "meta";
+export type ExecuteOn = "none" | "ursim";
+
+export interface ControllerStatusInfo {
+  label: string;
+  configured: boolean;
+  reachable: boolean;
+  ready?: boolean;
+  detail: string;
+  controller_version?: string;
+  robot_model?: string;
+  remote_control?: boolean;
+  safety_mode?: number;
+}
+
+export interface ControllerSample {
+  t: number;
+  q_cmd: number[];
+  q: number[];
+  tcp: number[];
+}
+
+/** results.controller_execution on a transfer run: the verified path streamed to URSim (not a physical arm). */
+export interface ControllerExecution {
+  kind: "ursim";
+  label: string;
+  status: "succeeded" | "failed";
+  error: string | null;
+  controller_version: string | null;
+  robot_model: string | null;
+  stream_hz: number;
+  path_waypoints: number;
+  commanded_samples: number;
+  duration_s: number | null;
+  final_joint_error_rad: number | null;
+  path_deviation_rad: number | null;
+  tcp_vs_model_mm: number | null;
+  tcp_to_target_mm: number | null;
+  safety_mode_before: number | null;
+  safety_mode_after: number | null;
+  protective_stopped: boolean;
+  checks: Record<string, boolean>;
+  trace: ControllerSample[];
+  notes: string[];
+}
 export interface ReasoningProposal {
   kind: "propose" | "revise"; provider?: string; model_id?: string | null; ranking: string[];
   rationale?: string; notes?: string[]; error?: string | null;

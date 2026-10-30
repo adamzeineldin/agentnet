@@ -2,7 +2,7 @@ PY := backend/.venv/bin/python
 PYTHON ?= python3.13
 DEMO_ENV := AGENTNET_DB_PATH=$(CURDIR)/backend/app/data/demo/agentnet.db AGENTNET_ARTIFACT_DIR=$(CURDIR)/backend/app/data/demo/artifacts
 
-.PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer benchmark e2e demo-seed demo demo-check lint build
+.PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer benchmark e2e demo-seed demo demo-check lint build ursim-up ursim-down
 
 setup: backend-deps models frontend-deps ## one-time install
 
@@ -52,3 +52,9 @@ lint:
 
 build:
 	npm --prefix frontend run build
+
+ursim-up: ## URSim (UR controller software) + ur_rtde bridge on :8765; enable Remote Control once at :6080
+	docker compose -f backend/ur_bridge/compose.yaml up -d --build
+
+ursim-down:
+	docker compose -f backend/ur_bridge/compose.yaml down
