@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_registry, get_worker
+from app.api.deps import get_job_worker, get_registry
 from app.models.run import RunRecord, TransferRequest
 from app.services import controller
 from app.services.jobs import SimulationWorker, create_run, run_guarded
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/transfers", tags=["transfers"])
 def start_transfer(
     body: TransferRequest,
     registry: Registry = Depends(get_registry),
-    worker: SimulationWorker = Depends(get_worker),
+    worker: SimulationWorker = Depends(get_job_worker),
 ) -> RunRecord:
     if body.target_robot_id not in ROBOTS:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown robot '{body.target_robot_id}'")

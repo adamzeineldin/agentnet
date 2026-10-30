@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import numpy as np
 
-from app.models.controller import ControllerExecution
 from app.models.robot import RobotPassport
 from app.models.run import RunRecord
 from app.models.skill import CandidateSummary, ExperienceCapsule, TaskSpec
@@ -26,9 +25,8 @@ from app.services.candidate_search import (
     prepare,
     search_metrics,
 )
-from app.services import controller
 from app.services.capsules import build_capsule, compact_outcomes
-from app.services.controller.execution import run_on_controller
+from app.services.controller.step import controller_step
 from app.services.imagination import build_context, imagine
 from app.services.jobs import RunContext
 from app.services.reasoning import get_provider
@@ -141,30 +139,8 @@ def transfer_skill(
     if setup is None:
         return ctx.finish(False, f"{decl.short_name} cannot reach the start pose without collision", results=base)
     provider = get_provider(reasoning_mode)
-    after = controller_step(ctx, setup) if execute_on == "ursim" else None
+    after = controller_step(ctx, setup.adapter, setup.decl, setup.target_base) if execute_on == "ursim" else None
     return _search_and_execute(ctx, setup, capsule, target_passport, source_passport, base, provider, after)
-
-
-def controller_step(ctx: RunContext, setup: SearchSetup):
-    """After MuJoCo verification: stream the same joint path to URSim. Never changes the simulation result."""
-
-    def step(joint_path: list) -> dict:
-        ctx.event("executing", f"Streaming the verified {len(joint_path)}-waypoint path to the URSim controller "
-                  "(controller software, not a physical arm)")
-        try:
-            out = run_on_controller(controller.make_client(), setup.adapter, setup.decl, joint_path,
-                                    setup.target_base)
-        except Exception as exc:  # noqa: BLE001 - recorded as a failed controller execution
-            out = ControllerExecution(label="URSim controller, not physical", status="failed",
-                                      error=f"{type(exc).__name__}: {exc}", stream_hz=0.0,
-                                      path_waypoints=len(joint_path), commanded_samples=0)
-        message = (f"URSim execution succeeded: TCP {out.tcp_to_target_mm:.2f} mm from target, "
-                   f"{out.tcp_vs_model_mm:.2f} mm from the MuJoCo model" if out.status == "succeeded"
-                   else f"URSim execution failed: {out.error}")
-        ctx.event("verifying", message, controller_status=out.status)
-        return {"controller_execution": out.model_dump(mode="json")}
-
-    return step
 
 
 def _search_and_execute(

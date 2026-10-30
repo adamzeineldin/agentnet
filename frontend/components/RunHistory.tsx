@@ -12,7 +12,7 @@ import { EventLog, RunEvidence } from "./RunEvidence";
 import { ProviderBadge } from "./transfer/ImaginationPanel";
 import { Badge, ErrorNote, Loading, Panel, StatusBadge } from "./ui";
 
-const TYPES = ["all", "discover", "transfer", "motion_check"] as const;
+const TYPES = ["all", "discover", "transfer", "real_replay", "motion_check"] as const;
 type TypeFilter = (typeof TYPES)[number];
 
 const reasoningOf = (r: RunRecord) => r.results.reasoning as ReasoningTrace | undefined;

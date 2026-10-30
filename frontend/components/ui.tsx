@@ -76,3 +76,22 @@ export function ErrorNote({ message }: { message: string }) {
 export function Loading({ label = "Loading…" }: { label?: string }) {
   return <div className="animate-pulse text-sm text-ink-3">{label}</div>;
 }
+
+export type EvidenceKind = "real" | "sim" | "controller" | "model";
+
+const EVIDENCE: Record<EvidenceKind, { label: string; title: string; className: string }> = {
+  real: { label: "real robot recording", title: "Recorded on physical robot hardware by a public dataset (not by AgentNet)",
+    className: "border-good/50 text-good" },
+  sim: { label: "MuJoCo simulation", title: "Computed by AgentNet in the MuJoCo physics simulator",
+    className: "border-accent/50 text-accent" },
+  controller: { label: "URSim controller software", title: "Universal Robots controller software on an idealized arm; not a physical robot",
+    className: "border-warn/50 text-warn" },
+  model: { label: "model-written", title: "Text written by Meta Muse Spark; never a measurement",
+    className: "border-line-strong text-ink-3" },
+};
+
+/** Says where a piece of evidence came from. Used everywhere real data, simulation and controller results meet. */
+export function EvidenceTag({ kind }: { kind: EvidenceKind }) {
+  const e = EVIDENCE[kind];
+  return <span title={e.title} className={`inline-flex shrink-0 items-center border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${e.className}`}>{e.label}</span>;
+}

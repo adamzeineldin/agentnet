@@ -24,6 +24,10 @@ META_MODEL_ID = os.environ.get("META_MODEL_ID", "muse-spark-1.3")
 # Optional UR controller bridge (backend/ur_bridge, talks ur_rtde to URSim). Unset = controller step unavailable.
 URSIM_BRIDGE_URL = os.environ.get("AGENTNET_URSIM_BRIDGE_URL") or None
 
+# Cloud image: static frontend export served by the API process, and a cap on queued simulation jobs (0 = none).
+WEB_DIR = Path(os.environ["AGENTNET_WEB_DIR"]) if os.environ.get("AGENTNET_WEB_DIR") else None
+MAX_PENDING_JOBS = int(os.environ.get("AGENTNET_MAX_PENDING_JOBS") or 0)
+
 # Local-only app: allow any localhost / 127.0.0.1 port (Next dev may move off :3000).
 CORS_ORIGIN_REGEX = os.environ.get(
     "AGENTNET_CORS_ORIGIN_REGEX", r"http://(localhost|127\.0\.0\.1)(:\d+)?"

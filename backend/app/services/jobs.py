@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 import uuid
 from collections.abc import Callable
@@ -30,9 +31,24 @@ class SimulationWorker:
     def __init__(self) -> None:
         self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="agentnet-sim")
         self._adapters: dict[str, RobotAdapter] = {}
+        self._pending = 0
+        self._lock = threading.Lock()
+
+    @property
+    def pending(self) -> int:
+        """Jobs queued or running on the worker thread."""
+        return self._pending
 
     def submit(self, fn: Callable[..., T], *args: Any) -> Future[T]:
-        return self._pool.submit(fn, *args)
+        with self._lock:
+            self._pending += 1
+        future = self._pool.submit(fn, *args)
+        future.add_done_callback(self._done)
+        return future
+
+    def _done(self, _: Future) -> None:
+        with self._lock:
+            self._pending -= 1
 
     async def call(self, fn: Callable[..., T], *args: Any) -> T:
         return await asyncio.wrap_future(self.submit(fn, *args))

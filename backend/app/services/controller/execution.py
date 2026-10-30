@@ -35,9 +35,11 @@ NOTES = (
 )
 
 
-def controller_samples(joint_path, hz: float = CONTROLLER_STREAM_HZ) -> np.ndarray:
+def controller_samples(
+    joint_path, hz: float = CONTROLLER_STREAM_HZ, max_speed: float = MAX_JOINT_SPEED_RAD_S
+) -> np.ndarray:
     """The joint path re-timed for streaming, with the same speed rule as the MuJoCo execution."""
-    return interpolate_path([np.array(q, dtype=float) for q in joint_path], 1.0 / hz, MAX_JOINT_SPEED_RAD_S)
+    return interpolate_path([np.array(q, dtype=float) for q in joint_path], 1.0 / hz, max_speed)
 
 
 def to_controller_frame(adapter: RobotAdapter, decl: RobotDecl, p_world: np.ndarray) -> np.ndarray:
@@ -55,9 +57,9 @@ def to_controller_frame(adapter: RobotAdapter, decl: RobotDecl, p_world: np.ndar
 
 def run_on_controller(
     client: BridgeClient, adapter: RobotAdapter, decl: RobotDecl, joint_path, target_world: np.ndarray,
-    hz: float = CONTROLLER_STREAM_HZ,
+    hz: float = CONTROLLER_STREAM_HZ, max_speed: float = MAX_JOINT_SPEED_RAD_S,
 ) -> ControllerExecution:
-    samples = controller_samples(joint_path, hz)
+    samples = controller_samples(joint_path, hz, max_speed)
     base = {"label": CONTROLLER_LABEL, "stream_hz": hz, "path_waypoints": len(joint_path),
             "commanded_samples": len(samples), "notes": list(NOTES)}
     try:

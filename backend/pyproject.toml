@@ -20,6 +20,8 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest>=8", "httpx>=0.27"]
+# Only for scripts/import_real_data.py; the app reads the imported JSON.
+data = ["pyarrow>=16"]
 
 [tool.setuptools.packages.find]
 include = ["app*"]

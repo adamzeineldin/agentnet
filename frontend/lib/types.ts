@@ -116,7 +116,7 @@ export interface RunEvent {
 
 export interface RunRecord {
   run_id: string;
-  run_type: "motion_check" | "discover" | "transfer" | "benchmark";
+  run_type: "motion_check" | "discover" | "transfer" | "benchmark" | "real_replay";
   status: RunStatus;
   source_robot_id: string | null;
   target_robot_id: string | null;
@@ -326,4 +326,55 @@ export interface LibraryReport {
   fallback_error: string | null; skill_count: number; robot_ids: string[];
   collections: SkillCollection[]; duplicates: DuplicateGroup[]; gaps: CoverageGap[]; suggestions: LibrarySuggestion[];
   summary: string | null; priority_rationale: string | null; usage: ModelUsage | null; notes: string[];
+}
+
+export interface RealDataSource {
+  dataset_id: string;
+  title: string;
+  url: string;
+  revision: string;
+  license: string;
+  citation: string;
+  recorded_robot: string;
+  recorded_robot_id: string;
+  fps: number;
+  frame: string;
+  state_fields: string[];
+  notes: string[];
+}
+
+export interface RealEpisodeSummary {
+  episode_index: number;
+  task: string;
+  frames: number;
+  duration_s: number;
+}
+
+export interface RealEpisode extends RealEpisodeSummary {
+  source: RealDataSource;
+  ee_xyz: [number, number, number][];
+  gripper: number[];
+}
+
+export interface RealDatasetSummary {
+  source: RealDataSource;
+  selection: string;
+  imported_at: string;
+  episodes: RealEpisodeSummary[];
+}
+
+/** results of a real_replay run (see backend services/real_data/replay.py). */
+export interface RealReplayResults {
+  real_data: {
+    dataset_id: string; title: string; url: string; revision: string; license: string; recorded_robot: string;
+    episode_index: number; task: string; recorded_frames: number; recorded_duration_s: number; fps: number;
+  };
+  embodiment: string;
+  recorded_path: number[][];
+  simulated_path?: number[][];
+  path_points: number;
+  replay_joint_speed_rad_s?: number;
+  path_deviation?: { max_m: number; mean_m: number; tolerance_m: number };
+  checks?: Record<string, boolean>;
+  controller_execution?: ControllerExecution;
 }

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_registry, get_worker
+from app.api.deps import get_job_worker, get_registry
 from app.models.run import BenchmarkRequest, RunRecord
 from app.services.benchmark import run_benchmark
 from app.services.jobs import SimulationWorker, create_run, run_guarded
@@ -21,7 +21,7 @@ def list_benchmarks(limit: int = 20, registry: Registry = Depends(get_registry))
 def start_benchmark(
     body: BenchmarkRequest,
     registry: Registry = Depends(get_registry),
-    worker: SimulationWorker = Depends(get_worker),
+    worker: SimulationWorker = Depends(get_job_worker),
 ) -> RunRecord:
     for rid in (body.source_robot_id, body.target_robot_id):
         if rid not in ROBOTS:

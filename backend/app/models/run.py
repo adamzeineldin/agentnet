@@ -24,7 +24,7 @@ RunStatus = Literal[
 ]
 TERMINAL_STATUSES: frozenset[str] = frozenset({"succeeded", "failed"})
 
-RunType = Literal["motion_check", "discover", "transfer", "benchmark"]
+RunType = Literal["motion_check", "discover", "transfer", "benchmark", "real_replay"]
 
 
 class RunEvent(BaseModel):

@@ -64,6 +64,16 @@ export function startTransfer(
   });
 }
 
+/** Replay a recorded real-robot episode in MuJoCo on `robotId` (optionally also on URSim). */
+export function startRealReplay(
+  datasetId: string, episodeIndex: number, robotId: string, executeOn: ExecuteOn = "none",
+): Promise<RunRecord> {
+  return apiFetch<RunRecord>("/api/real-data/replays", {
+    method: "POST",
+    body: JSON.stringify({ dataset_id: datasetId, episode_index: episodeIndex, robot_id: robotId, execute_on: executeOn }),
+  });
+}
+
 /** Organize the published registry into a stored Library Report (never edits skills). */
 export function createLibraryReport(provider: LibrarianMode): Promise<LibraryReport> {
   return apiFetch<LibraryReport>("/api/library/reports", { method: "POST", body: JSON.stringify({ provider }) });

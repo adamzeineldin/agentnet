@@ -96,6 +96,7 @@ def execute_path(
     trace_every: int = 10,
     max_settle_seconds: float = MAX_SETTLE_SECONDS,
     gravity_comp: bool = True,
+    max_speed: float = MAX_JOINT_SPEED_RAD_S,
 ) -> ExecutionResult:
     """Execute waypoints from the current state of `data` and record what happened.
 
@@ -104,7 +105,7 @@ def execute_path(
     """
     model = adapter.model
     dt = model.opt.timestep
-    path = interpolate_path(waypoints, dt)
+    path = interpolate_path(waypoints, dt, max_speed)
     max_steps = len(path) + int(max_settle_seconds / dt)
     recorder = _StepRecorder(adapter, trace_every)
     step = 0

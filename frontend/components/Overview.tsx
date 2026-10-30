@@ -30,7 +30,7 @@ export function Overview() {
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
             <Link href="/robots" className="button-primary">Open console</Link>
-            <Link href="/skills" className="button-secondary">Browse skills</Link>
+            <Link href="/how-it-works" className="button-secondary">How it works</Link>
           </div>
           <div className="hero-steps">
             <div><h2>Simulate</h2><p>Search motion candidates and verify them in MuJoCo.</p></div>

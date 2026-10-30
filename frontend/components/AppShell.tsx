@@ -9,9 +9,11 @@ import type { Health } from "@/lib/types";
 
 const NAV = [
   { href: "/", label: "Overview" },
+  { href: "/how-it-works", label: "How it works" },
   { href: "/robots", label: "Robot Fleet" },
-  { href: "/skills", label: "Skill Library" },
   { href: "/transfer", label: "Transfer Lab" },
+  { href: "/real", label: "Real Data" },
+  { href: "/skills", label: "Skill Library" },
   { href: "/history", label: "Run History" },
   { href: "/evaluation", label: "Evaluation" },
 ];
@@ -92,7 +94,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     <OfflineBanner />
     <main className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
     <footer className="border-t border-line px-6 py-4 text-center font-mono text-[11px] text-ink-3">
-      All robot results are MuJoCo simulation only — not physical-world verification.
+      Results are MuJoCo simulation; real-robot paths are recorded by the DROID dataset; controller checks run on
+      URSim software. Nothing here ran on a physical arm. <Link href="/how-it-works" className="underline">How it works</Link>
     </footer>
   </div>;
 }

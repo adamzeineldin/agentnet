@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_registry, get_worker
+from app.api.deps import get_job_worker, get_registry
 from app.models.run import TERMINAL_STATUSES, DiscoverRequest, RunRecord
 from app.services.jobs import SimulationWorker, create_run, run_guarded
 from app.services.robot_catalog import ROBOTS
@@ -39,7 +39,7 @@ def list_runs(
 def start_discover(
     body: DiscoverRequest,
     registry: Registry = Depends(get_registry),
-    worker: SimulationWorker = Depends(get_worker),
+    worker: SimulationWorker = Depends(get_job_worker),
 ) -> RunRecord:
     if body.robot_id not in ROBOTS:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown robot '{body.robot_id}'")

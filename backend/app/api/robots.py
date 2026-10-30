@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_registry, get_worker
+from app.api.deps import get_job_worker, get_registry
 from app.models.robot import RobotPassport, RobotSummary
 from app.models.run import MotionCheckRequest, RunRecord
 from app.services import fleet
@@ -39,7 +39,7 @@ async def profile_robot(
     robot_id: str,
     seed: int = 0,
     registry: Registry = Depends(get_registry),
-    worker: SimulationWorker = Depends(get_worker),
+    worker: SimulationWorker = Depends(get_job_worker),
 ) -> RobotPassport:
     return await worker.call(fleet.compute_passport, worker, registry, _require_robot(robot_id), seed)
 
@@ -49,7 +49,7 @@ def start_motion_check(
     robot_id: str,
     body: MotionCheckRequest,
     registry: Registry = Depends(get_registry),
-    worker: SimulationWorker = Depends(get_worker),
+    worker: SimulationWorker = Depends(get_job_worker),
 ) -> RunRecord:
     _require_robot(robot_id)
     try:

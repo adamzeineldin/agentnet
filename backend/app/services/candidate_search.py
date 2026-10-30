@@ -72,12 +72,12 @@ def evaluate_all(
 
 def physics_rollout(
     adapter: RobotAdapter, q_start: np.ndarray, joint_path, target_base: np.ndarray, frame_hook=None,
-    on_finish=None,
+    on_finish=None, **execute_kwargs,
 ) -> tuple[ExecutionResult, dict]:
     """Fresh MjData reset to q_start, then the path through the servos. on_finish(data) sees the final state."""
     data = adapter.new_data()
     adapter.reset_to(data, q_start)
-    res = execute_path(adapter, data, [np.array(q) for q in joint_path], frame_hook=frame_hook)
+    res = execute_path(adapter, data, [np.array(q) for q in joint_path], frame_hook=frame_hook, **execute_kwargs)
     if on_finish is not None:
         on_finish(data)
     err = float(np.linalg.norm(np.array(res.final_ee_pos) - target_base))
