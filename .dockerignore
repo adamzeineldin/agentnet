@@ -1,0 +1,20 @@
+# Cloud image build context (deploy/Dockerfile): source only.
+.git
+.env
+.env.*
+!.env.example
+.e2e-data
+**/node_modules
+**/.venv
+**/__pycache__
+**/.pytest_cache
+frontend/.next*
+frontend/out
+frontend/test-results
+frontend/playwright-report
+backend/app/data/menagerie
+backend/app/data/artifacts
+backend/app/data/demo
+backend/app/data/*.db
+design_handoff_agentnet_ui
+assets

@@ -35,6 +35,10 @@ previews candidates in MuJoCo, and publishes the adaptation with lineage.
 - Optional controller execution: after MuJoCo verification, the UR5e path can be streamed to **URSim** (UR's
   controller software, PolyScope 5.26) through a `ur_rtde` bridge. The run records what the controller reported.
   Labelled "URSim controller, not physical". See [backend/ur_bridge/README.md](backend/ur_bridge/README.md).
+- Real robot data: 8 episodes recorded on a physical Franka Panda (DROID dataset, MIT) replayed in MuJoCo on the
+  Panda and retargeted to the UR5e, measured against the recorded path. See the Real Data page.
+- One-container cloud deployment (Hugging Face Spaces) with the website, API, MuJoCo and URSim:
+  [deploy/README.md](deploy/README.md).
 - Next.js Control Center: Overview, Robot Fleet, Transfer Lab (Panda ↔ UR5e), Skill Library, Run History,
   and a one-click **Presentation mode** (`/present`) that replays a recorded chain or runs it live.
   See [docs/DEMO_SCRIPT.md](docs/DEMO_SCRIPT.md).
@@ -75,8 +79,10 @@ backend/app/services   robot_catalog, scene, robot_adapter, kinematics, simulati
                        passports, fleet, registry, jobs, motion_check, task_scene,
                        route_planner, candidate_search, skill_discovery, transfer, imagination,
                        capsules, skill_registry, reasoning/{base,offline,meta_muse}, librarian/offline,
-                       controller/{bridge_client,execution}
-backend/app/api        health, robots, runs (incl. discover), skills, transfers, library, controller
+                       controller/{bridge_client,execution,step}, real_data/{replay}
+backend/app/api        health, robots, runs (incl. discover), skills, transfers, library, controller, real_data
+backend/app/data/real  imported real-robot episodes (scripts/import_real_data.py)
+deploy/                cloud image (Dockerfile, start.sh, URSim setup, Hugging Face push script)
 backend/ur_bridge      ur_rtde HTTP bridge + URSim compose file (make ursim-up)
 backend/scripts        fetch_models.sh, smoke_sim.py, discover_skill.py, transfer_demo.py
 backend/tests          passport, IK/physics, registry, API

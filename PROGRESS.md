@@ -231,3 +231,26 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
     MuJoCo FK; final joint error 0.08 mrad; 2.43 s on the controller for a 1.69 s path; all 6 checks pass.
 - ⬜ Not physical: URSim has no obstacle, payload or real dynamics. A borrowed physical UR e-Series arm would use the
   same bridge (`UR_HOST`); untested.
+
+## Real robot data, How it works, cloud image 🟡 (2026-10-30, branch `feat/ursim-execution`)
+- ✅ DROID import: 8 real Franka Panda episodes (`lerobot/droid_100`@87301a2d2e99, MIT), end-effector positions at
+  15 Hz, selection rule recorded in the file (D64). 82 of 100 episodes stay above the base plane; the first 8 with a
+  task description, 5–20 s and >= 0.4 m of motion are kept.
+- ✅ Real replays (`POST /api/real-data/replays`, run type `real_replay`): the robot stands where the recording robot
+  stood, re-solves the path with its own IK, executes in MuJoCo paced to the recorded duration, and is measured
+  against the real path (10 mm limit). Optional URSim step (shared with transfers).
+  - First probe at 1 rad/s: every replay failed at 30–70 mm (corners cut, sparse trace). Paced to real timing:
+    Panda 8/8 pass (3.3–6.7 mm); UR5e 2/8 pass (7.3, 9.6 mm), 6 fail at 10.1–14.1 mm, recorded as failed.
+- ✅ Website: Real Data page (recorded vs simulated path plots, replay, step log), How it works page (pipeline,
+  evidence legend, live server status), evidence tags, new nav, footer no longer says "simulation only" for
+  everything.
+- ✅ Cloud mode: static export served by the API (`AGENTNET_WEB_DIR`), queued-job cap (429), one-container image
+  `deploy/Dockerfile` (URSim + bridge + API + site, uid 1000, :7860), `deploy/push_space.sh` for Hugging Face.
+- ✅ Cloud image built and run locally (amd64 emulated, 6.5 GB): site + API on :7860 as uid 1000; demo registry
+  seeded at build (motion checks, seed-7 chain, benchmark all succeeded). URSim self-configures in ~25 s after its
+  dashboard is up (safety confirmed, powered on, brakes released, Remote via xdotool; `/api/controller/status` ready).
+  - First run: URSim's controller restart hung on a zombie (`killall -w`) because uvicorn was PID 1 → `tini`.
+  - `run_20261030_190913_786823` in the container: DROID episode 22 (“Use the duster to wipe the whiteboard”) on the
+    UR5e, max deviation 7.3 mm (pass), then URSim: TCP 0.91 mm from target, 0.54 mm from MuJoCo, 14.8 s.
+- ✅ Tests: 171 backend, 14 Playwright.
+- ⬜ Push to Hugging Face Spaces (needs the owner's `hf auth login`): `deploy/push_space.sh <user>/agentnet`.

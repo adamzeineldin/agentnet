@@ -16,7 +16,13 @@
 - URSim controller execution is controller software on an idealized arm: no payload, no real dynamics, and no
   obstacle (the wall exists only in MuJoCo). The `moveJ` approach to the path start is not collision-checked.
   Nothing has run on a physical arm.
-- URSim settings (remote control, safety confirmation) are set by hand in the pendant after every fresh container.
+- URSim settings (remote control, safety confirmation) are set by hand in the pendant locally; the cloud image clicks
+  them with xdotool at fixed pixel positions for URSim 5.26, which a different URSim version could break.
+- Real data: only DROID end-effector positions are used (no orientation, gripper or scene objects); episodes that
+  go below the robot base plane are excluded because the simulated robots stand on the floor. The DROID end-effector
+  point and AgentNet's Panda TCP site may not be the identical point on the gripper.
+- UR5e replays of real Panda paths pass the 10 mm limit on 2 of 8 episodes; the rest stay within 10–14 mm.
+- The cloud copy's runs are lost when the Space restarts (no persistent disk on the free tier).
 - The model ranks a fixed set of 10 template hypotheses; it cannot invent new routes or parameters.
 - "Offline would select" may be a kinematic estimate when the offline choice was not simulated (labelled).
 - On wall_reach_v1 the offline prior already succeeds on the first future, so there is little room for a model to help.

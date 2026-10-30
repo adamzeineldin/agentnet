@@ -49,6 +49,28 @@ test("URSim option is disabled and labelled when no controller bridge is configu
   await expect(page.getByText("· not configured")).toBeVisible();
 });
 
+test("real data page replays a recorded DROID episode on the Panda in MuJoCo", async ({ page }) => {
+  await page.goto("/real");
+  await expect(page.getByText("DROID (100-episode sample)")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Recorded episodes" }).getByRole("button")).toHaveCount(8);
+  await page.getByRole("button", { name: /Put the orange rubber duck into the pot/ }).click();
+  await page.getByRole("radio", { name: /Panda/ }).check();
+  await page.getByRole("button", { name: "Replay in simulation" }).click();
+  await expect(page.getByText("Max deviation from real path")).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("same robot as recorded")).toBeVisible();
+  await expect(page.getByText("✓ follows recorded path")).toBeVisible();
+});
+
+test("how it works explains the pipeline and labels every evidence source", async ({ page }) => {
+  await page.goto("/how-it-works");
+  await expect(page.getByRole("list", { name: "Pipeline" }).getByRole("listitem")).toHaveCount(6);
+  await expect(page.getByText("8 DROID episodes imported")).toBeVisible();
+  await expect(page.getByText("not configured on this server")).toBeVisible();
+  for (const label of ["real robot recording", "MuJoCo simulation", "URSim controller software", "model-written"]) {
+    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+});
+
 test("librarian organizes the registry offline without changing skills", async ({ page, request }) => {
   const before = await (await request.get(`${API}/api/skills`)).json();
   await page.goto("/skills");
@@ -140,7 +162,7 @@ test("history filters and searchable skill memory use the recorded registry", as
 test("redesigned routes fit a narrow screen with reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const route of ["/", "/robots", "/history", "/skills", "/transfer", "/evaluation"]) {
+  for (const route of ["/", "/how-it-works", "/robots", "/real", "/history", "/skills", "/transfer", "/evaluation"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), { message: `${route} should fit the viewport` }).toBe(true);
