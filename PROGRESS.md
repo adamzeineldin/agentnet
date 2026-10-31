@@ -255,3 +255,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Tests: 171 backend, 14 Playwright.
 - ⬜ Hugging Face Spaces refused the Space (HTTP 402: Docker Spaces need PRO since 2026). Free host instead: GitHub
   Codespaces (`.devcontainer/`, `deploy/codespace.sh`, D68); `deploy/push_space.sh` stays for a later switch.
+- ✅ Live on GitHub Codespaces (2026-10-31): codespace `agentnet-demo` (4-core, 16 GB), image built in ~8 min, port
+  7860 public. URSim self-configured (ready, Remote, NORMAL). `run_20261031_182656_61b523` over the public link:
+  DROID episode 22 on the UR5e, max deviation 7.3 mm (pass), then URSim: TCP 0.92 mm from target, 0.54 mm from
+  MuJoCo, 1802 samples at 125 Hz, no protective stop. Wall clock 154 s.

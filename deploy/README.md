@@ -43,6 +43,8 @@ The public link is `https://<codespace-name>-7860.app.github.dev`. Limits of the
   ```
 
 - Runs and the registry are kept across stops, because the container is reused.
+- The first time a browser opens the link, GitHub shows a one-time notice ("You are about to access a development
+  port"); visitors click **Continue**.
 
 ## Hugging Face Spaces (needs PRO)
 
