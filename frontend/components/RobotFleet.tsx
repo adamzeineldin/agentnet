@@ -6,7 +6,8 @@ import type { RobotPassport, RobotSummary } from "@/lib/types";
 import { CapabilityComparison } from "./CapabilityComparison";
 import { RobotCard } from "./RobotCard";
 import { PassportView } from "./PassportView";
-import { ErrorNote, Loading } from "./ui";
+import { Term } from "./Term";
+import { ErrorNote, Loading, PageHeader } from "./ui";
 
 export function RobotFleet() {
   const robots = useApi<RobotSummary[]>("/api/robots");
@@ -23,15 +24,13 @@ export function RobotFleet() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-[28px] font-normal tracking-[-0.02em]">Robot Fleet</h1>
-        <p className="mt-1 text-sm text-ink-2">
-          Robot Passports generated from the loaded MuJoCo models. Every field is tagged as read from the model,
-          measured in simulation, or declared by AgentNet.
-        </p>
-      </div>
+      <PageHeader eyebrow="The robots" title="Robot Fleet">
+        The two robot arms in this project and what each can do: joints, limits and reach. Each robot&apos;s facts form
+        its <Term id="passport">passport</Term>, and every fact says where it came from: read from the robot&apos;s
+        model, measured in simulation, or written by us.
+      </PageHeader>
       {robots.data?.length === 0 && <p className="text-sm text-ink-3">No robot passports available.</p>}
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,250px),1fr))] gap-4">
+      <div className="grid gap-4 md:grid-cols-2">
         {robots.data?.map((r) => <div key={r.robot_id} className={r.robot_id === selected ? "border-b-2 border-ink" : "border-b-2 border-transparent"}>
           <button className="w-full text-left" aria-pressed={r.robot_id === selected}
             onClick={() => router.replace(`/robots?robot=${r.robot_id}`, { scroll: false })}>

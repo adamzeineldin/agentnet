@@ -7,6 +7,7 @@ import type {
   ReasoningTrace,
 } from "@/lib/types";
 import type { RunStream } from "@/lib/useRunStream";
+import { Term } from "../Term";
 import { Badge, Panel } from "../ui";
 import { ControllerPanel } from "./ControllerPanel";
 import { ProviderBadge } from "./ImaginationPanel";
@@ -52,14 +53,14 @@ export function TargetPanel({ robotName, stream, sourceSkillId, onTransfer, onPu
           <input type="radio" checked={!newScene} onChange={() => setNewScene(false)} disabled={busy} /> same scene as source
         </label>
         <label className="flex items-center gap-1.5">
-          <input type="radio" checked={newScene} onChange={() => setNewScene(true)} disabled={busy} /> new scene, seed
+          <input type="radio" checked={newScene} onChange={() => setNewScene(true)} disabled={busy} /> new scene, <Term id="seed">seed</Term>
           <input type="number" min={0} value={sceneSeed} disabled={busy || !newScene}
             onChange={(e) => setSceneSeed(Math.max(0, Number.parseInt(e.target.value || "0", 10)))}
             className="tabular w-16 border border-line bg-panel-2 px-2 py-1 text-ink disabled:opacity-50" />
         </label>
       </div>
       <div className="mb-3 flex flex-wrap items-center gap-2 text-xs text-ink-3">
-        reasoning
+        <Term id="routeRanking">route ranking</Term>
         <select value={mode} disabled={busy} onChange={(e) => setMode(e.target.value as ReasoningMode)}
           className="border border-line bg-panel-2 px-2 py-1 text-ink">
           <option value="offline">Offline deterministic planner</option>
@@ -73,7 +74,7 @@ export function TargetPanel({ robotName, stream, sourceSkillId, onTransfer, onPu
         <input type="checkbox" aria-label="Also run on the URSim controller (not physical)"
           checked={onUrsim && ursimReady} disabled={busy || !ursimReady}
           onChange={(e) => setOnUrsim(e.target.checked)} />
-        also run on the URSim controller (not physical)
+        also run on the <Term id="ursim">URSim</Term> controller (not physical)
         {!ursimReady && <span className="text-ink-3">· {ursim.data?.configured ? "not ready" : "not configured"}</span>}
       </label>
       <RunVideo run={run} busy={busy} emptyLabel={sourceSkillId ? "Not transferred yet" : "Publish a source skill to enable transfer"} />

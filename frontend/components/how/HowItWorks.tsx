@@ -3,7 +3,8 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { EvidenceTag, Panel } from "../ui";
-import { EVIDENCE, GLOSSARY, STEPS } from "./content";
+import { GLOSSARY } from "@/lib/glossary";
+import { EVIDENCE, STEPS } from "./content";
 import { IdeaFlow } from "./IdeaFlow";
 import { LiveStatus } from "./LiveStatus";
 import { WallSketch } from "./WallSketch";
@@ -123,7 +124,7 @@ export function HowItWorks() {
 
       <Section id="glossary" title="Glossary" intro="Words you will see around the site.">
         <dl className="grid gap-px border border-line bg-line sm:grid-cols-2">
-          {GLOSSARY.map((g) => (
+          {Object.values(GLOSSARY).map((g) => (
             <div key={g.term} className="bg-panel p-3">
               <dt className="text-sm font-medium">{g.term}</dt>
               <dd className="mt-1 text-sm text-ink-2">{g.meaning}</dd>

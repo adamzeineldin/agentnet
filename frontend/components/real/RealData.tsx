@@ -11,7 +11,8 @@ import type {
 import { EventLog } from "../RunEvidence";
 import { ControllerPanel } from "../transfer/ControllerPanel";
 import { RunVideo } from "../transfer/RunMedia";
-import { Badge, ErrorNote, EvidenceTag, Loading, Panel, Stat, StatusBadge } from "../ui";
+import { Term } from "../Term";
+import { Badge, ErrorNote, EvidenceTag, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
 import { PathPlot } from "./PathPlot";
 
 const ROBOTS = [
@@ -46,7 +47,7 @@ function ReplayResult({ run, live }: { run: RunRecord; live: boolean }) {
       </div>
       <RunVideo run={run} busy={live && !run.artifacts.video} emptyLabel="Not replayed yet" />
       <div className="metric-grid grid grid-cols-2 sm:grid-cols-4">
-        <Stat label="Max deviation from real path" value={dev ? fmtM(dev.max_m) : "—"} hint={dev ? `limit ${fmtM(dev.tolerance_m, 0)}` : undefined} />
+        <Stat label={<Term id="pathDeviation">Max deviation from real path</Term>} value={dev ? fmtM(dev.max_m) : "—"} hint={dev ? `limit ${fmtM(dev.tolerance_m, 0)}` : undefined} />
         <Stat label="Mean deviation" value={dev ? fmtM(dev.mean_m) : "—"} />
         <Stat label="Collisions" value={run.collision_count ?? "—"} />
         <Stat label="Simulated time" value={fmtSec(run.simulated_seconds)} hint={`recorded ${fmtSec(r.real_data.recorded_duration_s)}`} />
@@ -139,13 +140,11 @@ export function RealData() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <p className="eyebrow mb-2">Real robot data</p>
-        <h1 className="text-[28px] font-normal tracking-[-0.02em]">Real Data</h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          Motions recorded on a physical Franka Panda by the public DROID dataset. AgentNet takes the recorded
-          end-effector path (task geometry, not joint angles), has a robot re-solve it with its own kinematics, and
-          checks the result in MuJoCo, optionally also on the UR controller software.
-        </p>
+        <PageHeader eyebrow="Real robot data" title="Real Data" guide="trust">
+          Motions recorded on a real Panda arm, from the public <Term id="droid">DROID</Term> dataset. Pick one and
+          replay it in the simulator on either robot to see how closely it can follow the real path. Each robot works
+          out its own joint angles; only the hand&apos;s path is reused.
+        </PageHeader>
         <div className="flex flex-wrap gap-2"><EvidenceTag kind="real" /><EvidenceTag kind="sim" /><EvidenceTag kind="controller" /></div>
       </div>
       {datasets.error && <ErrorNote message={datasets.error} />}

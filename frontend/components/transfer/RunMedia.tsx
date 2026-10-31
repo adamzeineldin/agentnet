@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/api";
 import { fmtM, fmtSec } from "@/lib/format";
 import type { RunRecord, SearchMetrics } from "@/lib/types";
+import { Term } from "../Term";
 import { Badge, Stat, StatusBadge } from "../ui";
 
 interface RunVideoProps { run: RunRecord | null; busy: boolean; emptyLabel: string; rate?: number }
@@ -40,7 +41,7 @@ export function RunSummary({ run, live }: { run: RunRecord; live: boolean }) {
         <span className="font-mono text-[11px] text-ink-3">{run.run_id}</span>
       </div>
       <div className="metric-grid grid grid-cols-2 sm:grid-cols-4">
-        <Stat label="Endpoint error" value={fmtM(run.endpoint_error_m, 2)} />
+        <Stat label={<Term id="endpointError">Endpoint error</Term>} value={fmtM(run.endpoint_error_m, 2)} />
         <Stat label="Collisions" value={run.collision_count ?? "—"} />
         <Stat label="Physics rollouts" value={metrics ? metrics.physics_rollouts : "—"}
           hint={metrics?.rollouts_to_first_success ? `1st success on #${metrics.rollouts_to_first_success}` : undefined} />

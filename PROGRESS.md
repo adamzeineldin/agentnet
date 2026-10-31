@@ -265,3 +265,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   sketch, a "What is a seed?" box, five steps each with a collapsible technical detail, the four evidence labels in
   plain words, a 16-term glossary, a quick start and the live server status (plain wording; raw detail as tooltip).
   Landing page and colour scheme unchanged. Tests: 14 Playwright.
+- ✅ Site-wide plain language: one glossary (`frontend/lib/glossary.ts`) feeds the How it works list and `<Term>` "?" hints
+  (seed, route ranking, URSim, imagination, endpoint error, path deviation, passport, skill, benchmark, DROID). Shared
+  `PageHeader` with a plain one-line intro on every page. Evaluation uses plain approach names and column headers
+  (raw ids kept beside them). Fleet cards side by side. Tests: 15 Playwright.

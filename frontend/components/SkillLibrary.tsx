@@ -8,7 +8,8 @@ import Link from "next/link";
 import { fmtDateTime, fmtM, fmtSec } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import type { ExperienceCapsule, RobotSummary } from "@/lib/types";
-import { Badge, ErrorNote, Loading, Panel, Stat } from "./ui";
+import { Term } from "./Term";
+import { Badge, ErrorNote, Loading, PageHeader, Panel, Stat } from "./ui";
 
 function SkillDetail({ c }: { c: ExperienceCapsule }) {
   const v = c.validation;
@@ -24,7 +25,7 @@ function SkillDetail({ c }: { c: ExperienceCapsule }) {
         </div>
         <p className="text-ink-2">{c.strategy.description}</p>
         <div className="metric-grid grid grid-cols-2 sm:grid-cols-4">
-          <Stat label="Endpoint error" value={fmtM(v.endpoint_error_m, 2)} />
+          <Stat label={<Term id="endpointError">Endpoint error</Term>} value={fmtM(v.endpoint_error_m, 2)} />
           <Stat label="Collisions" value={v.collisions} />
           <Stat label="Min clearance" value={fmtM(v.min_clearance_m, 1)} />
           <Stat label="Verified / tried" value={`${v.candidates_verified} / ${v.candidates_evaluated}`} />
@@ -81,15 +82,16 @@ export function SkillLibrary() {
   const visible = skills.data?.filter((c) => `${c.skill_id} ${c.goal} ${c.source_robot_id} ${c.strategy.route_class}`.toLowerCase().includes(query.toLowerCase())) ?? [];
   const current = visible.find((c) => c.skill_id === selected) ?? visible[0];
   return <div className="space-y-6">
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div><p className="eyebrow mb-2">Shared experience</p><h1 className="text-[28px] font-normal tracking-[-0.02em]">Skill Library</h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink-2">Published, simulation-verified experience. Capsules carry task intent and geometry; target robots solve their own joint paths.</p></div>
+    <PageHeader eyebrow="Shared experience" title="Skill Library" guide="steps" actions={
       <div className="segmented" role="tablist" aria-label="Library view">
         <button role="tab" aria-selected={view === "list"} onClick={() => setView("list")}>Skills</button>
         <button role="tab" aria-selected={view === "graph"} onClick={() => setView("graph")}>Memory graph</button>
         <button role="tab" aria-selected={view === "librarian"} onClick={() => setView("librarian")}>Librarian</button>
       </div>
-    </div>
+    }>
+      Every <Term id="skill">skill</Term> that passed its test. Each one holds the task, the route that worked and the
+      proof. Adapted skills show which skill they came from.
+    </PageHeader>
     {skills.error && <ErrorNote message={skills.error} />}
     {skills.loading && <Loading />}
     {skills.data?.length === 0 && <p className="border border-line bg-panel p-8 text-sm text-ink-3">No published skills yet. <Link href="/transfer" className="text-accent">Discover one in the Transfer Lab →</Link></p>}

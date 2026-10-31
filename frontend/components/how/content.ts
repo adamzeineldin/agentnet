@@ -68,23 +68,3 @@ export const EVIDENCE: { kind: EvidenceKind; plain: string }[] = [
   { kind: "controller", plain: "Reported by Universal Robots' controller software after we sent it the motion. No physical arm." },
   { kind: "model", plain: "Text or rankings written by an AI model. Never a measurement." },
 ];
-
-export const GLOSSARY: { term: string; meaning: string }[] = [
-  { term: "Seed", meaning: "A number that picks the task layout: wall size and where the start and target are. " +
-    "The same seed always gives the same layout; change it to get a new one. Like a level number in a game." },
-  { term: "Scene", meaning: "One task layout: the floor, the wall (sometimes with a roof) and the start and target points." },
-  { term: "Route", meaning: "One way past the wall: straight, over, or around the near or far side. Also called a candidate." },
-  { term: "Skill / Experience Capsule", meaning: "The saved card: the task, the route that worked, and the evidence." },
-  { term: "Transfer (retarget)", meaning: "Giving a skill learned by one robot to a robot with a different body." },
-  { term: "Imagination", meaning: "Quick simulated previews of a few routes before choosing one to run for real in the simulator." },
-  { term: "IK (inverse kinematics)", meaning: "Working out the joint angles that put the robot's hand at a given point." },
-  { term: "Endpoint error", meaning: "How far the hand ended from the target. Under 1 cm (10 mm) passes." },
-  { term: "MuJoCo", meaning: "A physics simulator. It runs the robot's motors, gravity and contacts." },
-  { term: "URSim", meaning: "The controller software that runs real UR robots, running here without an arm attached." },
-  { term: "DROID", meaning: "A public dataset of motions recorded on real Panda arms. We imported 8 of them." },
-  { term: "Simulation-verified", meaning: "Passed every check in the simulator. Not the same as tested on a physical robot." },
-  { term: "Offline planner", meaning: "Built-in rules that rank routes without calling any AI model. The default." },
-  { term: "Robot passport", meaning: "A robot's facts (joints, limits, reach), read from its model, each tagged with where it came from." },
-  { term: "Adaptation (lineage)", meaning: "A skill adapted from another one. It records its parent, so you can trace where it came from." },
-  { term: "Benchmark", meaning: "The same test on 20 layouts the robots never saw, comparing with and without shared experience." },
-];

@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/api";
 import { fmtM } from "@/lib/format";
 import type { CandidateSummary, ReasoningTrace, RunRecord } from "@/lib/types";
+import { Term } from "../Term";
 import { Badge, Panel } from "../ui";
 
 export function ProviderBadge({ trace }: { trace: ReasoningTrace | undefined }) {
@@ -20,7 +21,7 @@ export function ImaginationPanel({ run }: { run: RunRecord }) {
   if (!trace || futures.length === 0) return null;
 
   return (
-    <Panel title="Collective Imagination · predicted futures" right={<ProviderBadge trace={trace} />}>
+    <Panel title={<Term id="imagination">Collective Imagination · predicted futures</Term>} right={<ProviderBadge trace={trace} />}>
       <p className="mb-3 text-xs text-ink-3">
         Each future is a full MuJoCo rollout from the same start state (fresh reset), simulated in the provider&apos;s
         ranked order within a physics budget of {trace.physics_budget}. The first verified future is executed.

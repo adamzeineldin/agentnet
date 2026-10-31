@@ -14,7 +14,7 @@ import { RunStepper } from "./RunStepper";
 import { SourcePanel } from "./transfer/SourcePanel";
 import { ImaginationPanel } from "./transfer/ImaginationPanel";
 import { TargetPanel } from "./transfer/TargetPanel";
-import { ErrorNote, Panel } from "./ui";
+import { ErrorNote, PageHeader, Panel } from "./ui";
 
 const SOURCE = "panda_01";
 const TARGET = "ur5e_01";
@@ -97,15 +97,10 @@ export function TransferLab() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <p className="eyebrow mb-2">Retarget and verify</p>
-        <h1 className="text-[28px] font-normal tracking-[-0.02em]">Transfer Lab</h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          Robot A discovers and publishes a verified skill. Robot B retrieves it from the registry, re-places the
-          task in its own base frame, orders candidates by Robot A&apos;s experience, solves its own IK, and verifies
-          in MuJoCo before publishing an adaptation with lineage.
-        </p>
-      </div>
+      <PageHeader eyebrow="Retarget and verify" title="Transfer Lab" guide="steps">
+        Watch one robot teach another. On the left, the Panda learns to reach past a wall and saves it as a skill.
+        On the right, the UR5e takes that skill, plans its own motion and is tested in physics.
+      </PageHeader>
       <RunStepper events={stepperStream.events} kind={active === "target" ? "transfer" : "discover"} />
       {[source.error, target.error, skillsApi.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
 

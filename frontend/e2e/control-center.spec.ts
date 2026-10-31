@@ -49,6 +49,14 @@ test("URSim option is disabled and labelled when no controller bridge is configu
   await expect(page.getByText("· not configured")).toBeVisible();
 });
 
+test("glossary hints explain jargon in place", async ({ page }) => {
+  await page.goto("/transfer");
+  await page.getByRole("button", { name: "What does “Seed” mean?" }).first().click();
+  await expect(page.getByRole("tooltip")).toContainText("A number that picks the task layout");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+});
+
 test("real data page replays a recorded DROID episode on the Panda in MuJoCo", async ({ page }) => {
   await page.goto("/real");
   await expect(page.getByText("DROID (100-episode sample)")).toBeVisible();
@@ -123,7 +131,7 @@ test("evaluation page runs a benchmark and shows generated findings and raw rows
   await expect(page.getByText("No benchmark recorded yet")).toBeVisible();
   await page.getByRole("button", { name: "Run benchmark" }).click();
   await expect(page.getByText("Findings (generated from this run)")).toBeVisible({ timeout: 90_000 });
-  await expect(page.getByText(/Success on the \d+ comparable held-out scenes/)).toBeVisible();
+  await expect(page.getByText(/Solved on the \d+ comparable new layouts/)).toBeVisible();
   await expect(page.getByText(/Raw rows \(\d+\)/)).toBeVisible();
 });
 

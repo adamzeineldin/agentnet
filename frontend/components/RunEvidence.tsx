@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/api";
 import { fmtM, fmtRad, fmtSec, fmtTime } from "@/lib/format";
 import type { RunEvent, RunRecord } from "@/lib/types";
+import { Term } from "./Term";
 import { Badge, Stat, StatusBadge } from "./ui";
 
 export function EventLog({ events }: { events: RunEvent[] }) {
@@ -42,7 +43,7 @@ export function RunEvidence({ run, split = false }: { run: RunRecord; split?: bo
       ) : split ? <div className="grid aspect-video place-items-center border border-line bg-panel-2 text-sm text-ink-3">No execution video for this run.</div> : null}
       <div className="min-w-0 space-y-4">
       <div className={`metric-grid grid grid-cols-2 ${split ? "" : "sm:grid-cols-4"}`}>
-        <Stat label="Endpoint error" value={fmtM(run.endpoint_error_m, 2)} />
+        <Stat label={<Term id="endpointError">Endpoint error</Term>} value={fmtM(run.endpoint_error_m, 2)} />
         <Stat label="Collisions" value={run.collision_count ?? "—"} />
         <Stat label="Simulated" value={fmtSec(run.simulated_seconds)} />
         <Stat label="Wall clock" value={fmtSec(run.wall_clock_seconds)} />

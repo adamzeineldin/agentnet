@@ -10,7 +10,7 @@ import type { CandidateSummary, ReasoningTrace, RunRecord } from "@/lib/types";
 import { LineageGraph } from "./LineageGraph";
 import { EventLog, RunEvidence } from "./RunEvidence";
 import { ProviderBadge } from "./transfer/ImaginationPanel";
-import { Badge, ErrorNote, Loading, Panel, StatusBadge } from "./ui";
+import { Badge, ErrorNote, Loading, PageHeader, Panel, StatusBadge } from "./ui";
 
 const TYPES = ["all", "discover", "transfer", "real_replay", "motion_check"] as const;
 type TypeFilter = (typeof TYPES)[number];
@@ -67,12 +67,7 @@ export function RunHistory() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow mb-2">Simulation records</p>
-          <h1 className="text-[28px] font-normal tracking-[-0.02em]">Run History</h1>
-          <p className="mt-1 text-sm text-ink-2">Every simulated job recorded by the backend, including failures. Select a run for its evidence and replay.</p>
-        </div>
+      <PageHeader eyebrow="Simulation records" title="Run History" actions={
         <div className="flex gap-1 border border-line p-0.5 text-xs" role="tablist">
           {TYPES.map((t) => (
             <button key={t} role="tab" aria-selected={filter === t} onClick={() => setFilter(t)}
@@ -81,7 +76,9 @@ export function RunHistory() {
             </button>
           ))}
         </div>
-      </div>
+      }>
+        Every simulation run, including the ones that failed. Open a run to see what happened, why, and its video.
+      </PageHeader>
       {runs.error && <ErrorNote message={runs.error} />}
       {runs.loading && <Loading />}
       <div className="flex flex-wrap items-center justify-between gap-3">

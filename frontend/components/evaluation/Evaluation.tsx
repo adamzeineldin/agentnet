@@ -6,35 +6,36 @@ import { fmtDateTime, fmtM, fmtSec } from "@/lib/format";
 import { useRunStream } from "@/lib/useRunStream";
 import type { BenchmarkResults, RunRecord, Variant } from "@/lib/types";
 import { EventLog } from "../RunEvidence";
-import { Badge, ErrorNote, Loading, Panel, Stat, StatusBadge } from "../ui";
+import { Term } from "../Term";
+import { Badge, ErrorNote, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
 import { EvalStrip } from "./EvalStrip";
+import { subsetName, VARIANT_NAME } from "./names";
 
 const VARIANTS: Variant[] = ["baseline_no_sharing", "retarget_only", "agentnet_offline"];
-
 /** Sentences generated from the stored numbers only. */
 function findings(res: BenchmarkResults): string[] {
   const all = res.summary;
   const out: string[] = [];
   const s = (v: Variant) => all[v].common;
-  out.push(`Success on the ${s("agentnet_offline").applicable} comparable held-out scenes: ` +
-    VARIANTS.map((v) => `${v} ${s(v).successes}/${s(v).applicable}`).join(", ") + ".");
+  out.push(`Solved on the ${s("agentnet_offline").applicable} comparable new layouts: ` +
+    VARIANTS.map((v) => `${VARIANT_NAME[v]} ${s(v).successes}/${s(v).applicable}`).join(", ") + ".");
   const p = res.paired?.agentnet_offline;
   if (p) {
-    out.push(`Per scene vs no sharing, AgentNet needed fewer kinematic evaluations on ${p.fewer_kinematic_evals}, ` +
-      `the same on ${p.same_kinematic_evals}, and more on ${p.more_kinematic_evals} of ${p.both_succeeded} scenes both solved; ` +
-      `it solved ${p.only_variant} scene(s) the baseline missed and missed ${p.only_baseline} the baseline solved.`);
+    out.push(`Layout by layout against no sharing, AgentNet planned fewer routes on ${p.fewer_kinematic_evals}, ` +
+      `the same number on ${p.same_kinematic_evals}, and more on ${p.more_kinematic_evals} of the ${p.both_succeeded} layouts ` +
+      `both solved. It solved ${p.only_variant} layout(s) that no sharing missed, and missed ${p.only_baseline} that no sharing solved.`);
   }
   const families = Object.keys(all.agentnet_offline).filter((k) => k !== "all" && k !== "common");
   for (const f of families) {
     const a = all.agentnet_offline[f].median_kinematic_evaluations;
     const b = all.baseline_no_sharing[f].median_kinematic_evaluations;
     if (a != null && b != null) {
-      out.push(`${f}: median kinematic evaluations ${a} (AgentNet) vs ${b} (no sharing)` +
+      out.push(`${subsetName(f)} layouts: median routes planned ${a} with AgentNet vs ${b} with no sharing` +
         (a > b ? " — sharing hurt here." : a < b ? " — sharing helped here." : " — no difference."));
     }
   }
   const r = res.paired?.retarget_only;
-  if (r) out.push(`Simple retargeting failed on ${r.only_baseline} scene(s) that a from-scratch search solved.`);
+  if (r) out.push(`Copying the route alone failed on ${r.only_baseline} layout(s) that a search from scratch solved.`);
   return out;
 }
 
@@ -59,21 +60,17 @@ export function Evaluation() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="eyebrow mb-2">Measured performance</p>
-          <h1 className="text-[28px] font-normal tracking-[-0.02em]">Evaluation</h1>
-          <p className="mt-1 max-w-3xl text-sm text-ink-2">
-            Held-out scenes, matched budgets, every row from MuJoCo. The source robot builds a dev library; the target
-            robot is evaluated on unseen seeds with and without that shared experience. Failures and losses are shown.
-          </p>
-        </div>
+      <PageHeader eyebrow="Measured performance" title="Evaluation" actions={
         <button onClick={() => void stream.start(() => apiFetch<RunRecord>("/api/benchmarks", { method: "POST", body: "{}" }))}
           disabled={stream.busy}
           className="button-primary disabled:opacity-50">
           {stream.busy ? "Running benchmark…" : "Run benchmark"}
         </button>
-      </div>
+      }>
+        Does sharing experience actually help? The <Term id="benchmark">benchmark</Term> tests the UR5e on 20 layouts
+        it has never seen, without the Panda&apos;s experience and with it, using the same effort budget. Every row is a
+        real simulation run, and losses are shown too.
+      </PageHeader>
       {(loadError || stream.error) && <ErrorNote message={(loadError || stream.error)!} />}
       {stream.busy && <Panel title="Progress"><EventLog events={stream.events} /></Panel>}
       {!run && !stream.busy && <Loading label="No benchmark recorded yet — run one." />}
@@ -102,21 +99,21 @@ export function Evaluation() {
             <div className="flex gap-1 text-xs" role="tablist">
               {subsets.map((s) => (
                 <button key={s} role="tab" aria-selected={subset === s} onClick={() => setSubset(s)}
-                  className={` px-2 py-1 ${subset === s ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}>{s}</button>
+                  className={` px-2 py-1 ${subset === s ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}>{subsetName(s)}</button>
               ))}
             </div>
           }>
             <div className="overflow-x-auto">
               <table className="tabular w-full min-w-[760px] text-sm">
                 <thead><tr className="text-left text-[11px] tracking-wide text-ink-3 uppercase">
-                  {["Variant", "Success", "Med. kin. evals", "Med. rollouts to 1st ✓", "Med. error", "Med. wall time", "Sim steps", "Contacts", "API calls"].map((h) => <th key={h} className="pb-2 font-medium">{h}</th>)}
+                  {["Approach", "Solved", "Routes planned", "Physics tries to first pass", "Endpoint error", "Time", "Sim steps", "Contacts", "AI calls"].map((h) => <th key={h} className="pr-4 pb-2 align-bottom font-medium">{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {VARIANTS.map((v) => {
                     const s = res.summary[v][subset];
                     return (
                       <tr key={v} className="border-t border-line">
-                        <td className="py-2"><div className="font-mono">{v}</div><div className="text-[11px] text-ink-3">{res.protocol.variants[v]}</div></td>
+                        <td className="py-2"><div className="font-medium">{VARIANT_NAME[v]} <span className="font-mono text-[11px] font-normal text-ink-3">{v}</span></div><div className="text-[11px] text-ink-3">{res.protocol.variants[v]}</div></td>
                         <td>{s.successes}/{s.applicable} {s.success_rate != null && <span className="text-ink-3">({Math.round(s.success_rate * 100)}%)</span>}</td>
                         <td>{s.median_kinematic_evaluations ?? "—"}</td>
                         <td>{s.median_rollouts_to_first_success ?? "—"}</td>
@@ -129,6 +126,7 @@ export function Evaluation() {
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-[11px] text-ink-3">Routes planned, physics tries, endpoint error and time are medians across layouts.</p>
             <div className="mt-5"><EvalStrip rows={subset === "common" ? rows.filter((r) => common.has(r.scene_id)) : rows} variants={VARIANTS} /></div>
           </Panel>
           <div className="grid gap-6 lg:grid-cols-2">
@@ -155,7 +153,7 @@ export function Evaluation() {
             <div className="max-h-[28rem] overflow-auto">
               <table className="tabular w-full min-w-[820px] text-xs">
                 <thead className="sticky top-0 bg-panel"><tr className="text-left text-[11px] text-ink-3 uppercase">
-                  {["Scene", "Variant", "Result", "Selected", "Kin. evals", "Rollouts", "Error", "Source strategy", "Note"].map((h) => <th key={h} className="pb-2 font-medium">{h}</th>)}
+                  {["Layout", "Approach", "Result", "Route chosen", "Routes planned", "Physics tries", "Endpoint error", "Panda's route", "Note"].map((h) => <th key={h} className="pb-2 font-medium">{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {res.rows.map((r) => (

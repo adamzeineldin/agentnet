@@ -1,5 +1,25 @@
+import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Provenance, RunStatus } from "@/lib/types";
+
+/** Page title block: eyebrow, title, a plain one-line intro, an optional link into How it works, and actions. */
+export function PageHeader({ eyebrow, title, guide, actions, children }: {
+  eyebrow: string; title: string; guide?: string; actions?: ReactNode; children: ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="min-w-0">
+        <p className="eyebrow mb-2">{eyebrow}</p>
+        <h1 className="text-[28px] font-normal tracking-[-0.02em]">{title}</h1>
+        <p className="mt-1 max-w-3xl text-sm text-ink-2">
+          {children}
+          {guide && <> <Link href={`/how-it-works#${guide}`} className="whitespace-nowrap text-accent hover:underline">How this works →</Link></>}
+        </p>
+      </div>
+      {actions}
+    </div>
+  );
+}
 
 export function Panel({ title, right, children, className = "" }: {
   title?: ReactNode; right?: ReactNode; children: ReactNode; className?: string;
@@ -55,7 +75,7 @@ export function StatusBadge({ status }: { status: RunStatus }) {
   return <Badge tone={tone}>{status}</Badge>;
 }
 
-export function Stat({ label, value, hint }: { label: string; value: ReactNode; hint?: string }) {
+export function Stat({ label, value, hint }: { label: ReactNode; value: ReactNode; hint?: string }) {
   return (
     <div className="min-w-0">
       <div className="text-xs text-ink-3">{label}</div>

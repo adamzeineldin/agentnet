@@ -2,6 +2,7 @@
 
 import type { ExperienceCapsule } from "@/lib/types";
 import type { RunStream } from "@/lib/useRunStream";
+import { Term } from "../Term";
 import { Badge, Panel } from "../ui";
 import { RunSummary, RunVideo } from "./RunMedia";
 
@@ -23,7 +24,7 @@ export function SourcePanel({ robotName, stream, skills, selectedSkillId, onSele
   return (
     <Panel title={`Source · ${robotName}`} right={
       <div className="flex items-center gap-2">
-        <label className="flex items-center gap-1.5 text-xs text-ink-3">seed
+        <label className="flex items-center gap-1.5 text-xs text-ink-3"><Term id="seed">seed</Term>
           <input type="number" min={0} value={seed} disabled={busy}
             onChange={(e) => onSeed(Math.max(0, Number.parseInt(e.target.value || "0", 10)))}
             className="tabular w-16 border border-line bg-panel-2 px-2 py-1 text-ink" />
