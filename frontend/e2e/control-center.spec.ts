@@ -61,9 +61,15 @@ test("real data page replays a recorded DROID episode on the Panda in MuJoCo", a
   await expect(page.getByText("✓ follows recorded path")).toBeVisible();
 });
 
-test("how it works explains the pipeline and labels every evidence source", async ({ page }) => {
+test("how it works explains the idea, the task, each step, seeds and every evidence source", async ({ page }) => {
   await page.goto("/how-it-works");
-  await expect(page.getByRole("list", { name: "Pipeline" }).getByRole("listitem")).toHaveCount(6);
+  await expect(page.getByRole("list", { name: "The idea" }).getByRole("listitem")).toHaveCount(4);
+  await expect(page.getByRole("img", { name: /Side view/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What is a seed?" })).toBeVisible();
+  await expect(page.getByRole("list", { name: "Pipeline" }).getByRole("listitem")).toHaveCount(5);
+  await page.locator("summary", { hasText: "Technical detail" }).first().click();
+  await expect(page.getByText(/inverse kinematics \(IK\), screened for collisions/)).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: "A number that picks the task layout" })).toBeVisible();
   await expect(page.getByText("8 DROID episodes imported")).toBeVisible();
   await expect(page.getByText("not configured on this server")).toBeVisible();
   for (const label of ["real robot recording", "MuJoCo simulation", "URSim controller software", "model-written"]) {

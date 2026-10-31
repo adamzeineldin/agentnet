@@ -259,3 +259,9 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   7860 public. URSim self-configured (ready, Remote, NORMAL). `run_20261031_182656_61b523` over the public link:
   DROID episode 22 on the UR5e, max deviation 7.3 mm (pass), then URSim: TCP 0.92 mm from target, 0.54 mm from
   MuJoCo, 1802 samples at 125 Hz, no protective stop. Wall clock 154 s.
+
+## How it works rewrite ✅ (2026-10-31)
+- Beginner-first How it works page (`frontend/components/how/`): the idea in four steps, the wall task with a side/top
+  sketch, a "What is a seed?" box, five steps each with a collapsible technical detail, the four evidence labels in
+  plain words, a 16-term glossary, a quick start and the live server status (plain wording; raw detail as tooltip).
+  Landing page and colour scheme unchanged. Tests: 14 Playwright.
