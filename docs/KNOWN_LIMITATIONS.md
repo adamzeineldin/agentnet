@@ -1,7 +1,7 @@
 # Known limitations (current)
 
 - Simulation only (MuJoCo 3.17.0). No claims about real-robot safety, payload, friction or calibration.
-- Panda TCP site is declared by AgentNet (model has none); UR5e uses a bare flange site.
+- Panda TCP site is declared by Nimbotics (model has none); UR5e uses a bare flange site.
 - IK is position-only; end-effector orientation is unconstrained.
 - Workspace estimates are Monte-Carlo samples (3000, seeded), not exact reachability.
 - Motion check is a single-robot capability test without obstacles; it is not a skill.
@@ -20,7 +20,7 @@
   them with xdotool at fixed pixel positions for URSim 5.26, which a different URSim version could break.
 - Real data: only DROID end-effector positions are used (no orientation, gripper or scene objects); episodes that
   go below the robot base plane are excluded because the simulated robots stand on the floor. The DROID end-effector
-  point and AgentNet's Panda TCP site may not be the identical point on the gripper.
+  point and Nimbotics' Panda TCP site may not be the identical point on the gripper.
 - UR5e replays of real Panda paths pass the 10 mm limit on 2 of 8 episodes; the rest stay within 10–14 mm.
 - The cloud copy's runs are lost when the Space restarts (no persistent disk on the free tier).
 - The model ranks a fixed set of 10 template hypotheses; it cannot invent new routes or parameters.

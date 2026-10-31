@@ -68,10 +68,9 @@ export function RunHistory() {
   return (
     <div className="space-y-6">
       <PageHeader eyebrow="Simulation records" title="Run History" actions={
-        <div className="flex gap-1 border border-line p-0.5 text-xs" role="tablist">
+        <div className="segmented" role="tablist" aria-label="Run type">
           {TYPES.map((t) => (
-            <button key={t} role="tab" aria-selected={filter === t} onClick={() => setFilter(t)}
-              className={` px-2.5 py-1 ${filter === t ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}>
+            <button key={t} role="tab" aria-selected={filter === t} onClick={() => setFilter(t)}>
               {t.replace("_", " ")}
             </button>
           ))}
@@ -92,14 +91,14 @@ export function RunHistory() {
       <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,270px),1fr))] gap-4">
         {visible?.map((r) => <button key={r.run_id} onClick={() => setOpenId(r.run_id)} aria-pressed={r.run_id === openId}
           aria-label={`Open ${r.run_type.replaceAll("_", " ")} ${r.run_id}`}
-          className={`min-w-0 overflow-hidden border bg-panel text-left hover:border-ink ${r.run_id === openId ? "border-ink" : "border-line"}`}>
+          className="soft-card min-w-0 overflow-hidden text-left">
           <div className="relative aspect-video bg-panel-2">
             {r.artifacts.poster ?
               /* eslint-disable-next-line @next/next/no-img-element -- recorded MuJoCo artifact */
               <img src={apiUrl(r.artifacts.poster)} alt="Recorded simulation" className="size-full object-cover" /> :
               <div className="grid size-full place-items-center px-4 text-center text-xs text-ink-3">{TERMINAL.has(r.status) ? "No recorded preview" : "Simulation in progress"}</div>}
-            <div className="absolute left-3 top-3 bg-panel px-2 py-1"><StatusBadge status={r.status} /></div>
-            <span className="absolute bottom-3 right-3 bg-panel px-2 py-1 font-mono text-[10px]">{r.run_id.slice(-6)}</span>
+            <div className="absolute left-3 top-3 rounded-full bg-panel px-2.5 py-1"><StatusBadge status={r.status} /></div>
+            <span className="absolute bottom-3 right-3 rounded-full bg-panel px-2.5 py-1 font-mono text-[10px]">{r.run_id.slice(-6)}</span>
           </div>
           <div className="space-y-3 p-4">
             <div><h2 className="text-base font-medium capitalize">{r.run_type.replaceAll("_", " ")}</h2>
@@ -109,11 +108,11 @@ export function RunHistory() {
               <div><span className="text-ink-3">Simulated time</span><p className="mt-1 font-mono">{fmtSec(r.simulated_seconds)}</p></div>
             </div>
             <p className="truncate font-mono text-[10px] text-ink-3">{r.planner}{r.model_used ? ` · ${r.model_used}` : ""} · seed {r.task_seed}</p>
-            <p className="text-[11px] text-ink-3">{fmtDateTime(r.created_at)}</p>
+            <p className="text-[11px] text-ink-3">{fmtDateTime(r.created_at)}{r.started_by && ` · started by ${r.started_by}`}</p>
           </div>
         </button>)}
       </div>
-      {visible?.length === 0 && <p className="border border-line bg-panel p-8 text-center text-sm text-ink-3">No runs match these filters.</p>}
+      {visible?.length === 0 && <p className="soft-card p-8 text-center text-sm text-ink-3">No runs match these filters.</p>}
     </div>
   );
 }

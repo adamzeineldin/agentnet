@@ -24,23 +24,23 @@ smarter than replaying the source strategy needed?
   each variant's own order, stop at the first verified rollout):
   - `baseline_no_sharing` — fixed enumeration order (direct, over, near side, far side × clearances).
   - `retarget_only` — only the retrieved strategy, regenerated on the new scene.
-  - `agentnet_offline` — candidates ordered by the retrieved capsule (strategy, same class, source-verified
+  - `nimbotics_offline` — candidates ordered by the retrieved capsule (strategy, same class, source-verified
     alternatives, source failures last).
-  - `agentnet_meta` — **not run** (no `MODEL_API_KEY`).
+  - `nimbotics_meta` — **not run** (no `MODEL_API_KEY`).
 - **Success:** first rollout with endpoint error < 1 cm, zero robot contacts, no joint-limit violations, settled.
 - **Accounting:** source discovery cost is excluded from target variants; start-pose IK is shared and excluded
   from per-variant wall time.
 
 ## Results (benchmark run `run_20261027_004624_6244c9`, MuJoCo 3.17.0)
 
-| | baseline_no_sharing | retarget_only | agentnet_offline |
+| | baseline_no_sharing | retarget_only | nimbotics_offline |
 |---|---|---|---|
 | Success, 20 held-out scenes | 17/20 | 10/20 | 17/20 |
 | Median kinematic evaluations, wall_reach_v1 | 2 | 1 | 1 |
 | Median kinematic evaluations, wall_roof_v1 | 7 | 1 | **10** |
 | Median physics rollouts to first success | 1 | 1 | 1 |
 
-Paired per scene vs no sharing (17 scenes both solved): AgentNet needed fewer kinematic evaluations on 11,
+Paired per scene vs no sharing (17 scenes both solved): Nimbotics needed fewer kinematic evaluations on 11,
 more on 6, never the same; it solved no scene the baseline missed and missed none the baseline solved.
 Retargeting failed on 7 scenes the baseline solved. The 3 scenes nobody solved are roof scenes where the
 UR5e has no feasible candidate in this template set.
@@ -52,10 +52,10 @@ UR5e has no feasible candidate in this template set.
    so the physics budget never binds.
 2. **Sharing reduces search effort when the retrieved strategy suits the target's body.** On `wall_reach_v1`
    the Panda's `over` strategy also works for the UR5e (median 1 evaluation vs 2). On `wall_roof_v1` scene 102
-   the retrieved capsule was `near_side@0.12` and AgentNet needed 1 evaluation vs 7.
+   the retrieved capsule was `near_side@0.12` and Nimbotics needed 1 evaluation vs 7.
 3. **Negative transfer is real.** Most roof-family dev capsules are Panda `far_side` skills; the UR5e's forearm
    collides on far-side routes, and the prior also demotes `near_side` (a Panda failure) — the one route the
-   UR5e needs. AgentNet then evaluates all 10 candidates (median 10 vs 7).
+   UR5e needs. Nimbotics then evaluates all 10 candidates (median 10 vs 7).
 4. **Plain retargeting is not enough.** Replaying the source strategy on another body fails half the time.
    Ordering + verification on the target is what keeps success at the baseline level.
 

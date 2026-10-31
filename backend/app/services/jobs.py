@@ -29,7 +29,7 @@ T = TypeVar("T")
 
 class SimulationWorker:
     def __init__(self) -> None:
-        self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="agentnet-sim")
+        self._pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix="nimbotics-sim")
         self._adapters: dict[str, RobotAdapter] = {}
         self._pending = 0
         self._lock = threading.Lock()
@@ -106,6 +106,7 @@ def create_run(
     source_robot_id: str | None = None,
     target_robot_id: str | None = None,
     skill_id: str | None = None,
+    started_by: str | None = None,
 ) -> RunRecord:
     now = utcnow()
     return registry.save_run(
@@ -116,6 +117,7 @@ def create_run(
             source_robot_id=source_robot_id,
             target_robot_id=target_robot_id,
             skill_id=skill_id,
+            started_by=started_by,
             task_seed=task_seed,
             planner=planner,
             simulator=f"MuJoCo {mujoco.__version__}",

@@ -1,4 +1,4 @@
-"""AgentNet FastAPI application."""
+"""Nimbotics FastAPI application."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-from app.api import benchmarks, controller, demo, health, library, real_data, robots, runs, skills, transfers
+from app.api import auth, benchmarks, controller, demo, health, library, real_data, robots, runs, skills, transfers
 from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH, WEB_DIR
 from app.services.fleet import ensure_passports
 from app.services.jobs import SimulationWorker
@@ -32,11 +32,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 def create_app(web_dir: Path | None = WEB_DIR) -> FastAPI:
-    app = FastAPI(title="AgentNet", version="0.1.0", lifespan=lifespan)
+    app = FastAPI(title="Nimbotics", version="0.1.0", lifespan=lifespan)
     app.add_middleware(
-        CORSMiddleware, allow_origin_regex=CORS_ORIGIN_REGEX, allow_methods=["*"], allow_headers=["*"]
+        CORSMiddleware, allow_origin_regex=CORS_ORIGIN_REGEX, allow_methods=["*"], allow_headers=["*"],
+        allow_credentials=True,
     )
     app.include_router(health.router)
+    app.include_router(auth.router)
     app.include_router(robots.router)
     app.include_router(runs.router)
     app.include_router(skills.router)

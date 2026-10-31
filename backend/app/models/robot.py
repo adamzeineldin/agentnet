@@ -1,7 +1,7 @@
 """Robot Passport schema.
 
 Every section carries a provenance tag:
-  declared  - written in AgentNet's catalog (cannot be read from the model)
+  declared  - written in Nimbotics' catalog (cannot be read from the model)
   model     - read directly from the compiled MuJoCo model
   measured  - computed by sampling / simulating the model
 """
@@ -46,7 +46,7 @@ class ActuatorInfo(_Frozen):
 class EndEffectorInfo(_Frozen):
     site_name: str
     parent_body: str
-    source: Literal["model", "added_by_agentnet"]
+    source: Literal["model", "added_by_nimbotics"]
     offset_m: Vec3
     home_position: Vec3
     note: str
@@ -116,3 +116,19 @@ class RobotSummary(_Frozen):
     fallback_model: bool
     snapshot_url: str
     created_at: datetime
+    maker: str = ""
+    # Real controller stack this arm's paths can also be sent to (e.g. "ursim"); None = simulation only.
+    controller: str | None = None
+
+
+class CatalogEntry(_Frozen):
+    """A catalog arm. Declared fields only; reach and joints come from its passport once in the fleet."""
+
+    robot_id: str
+    display_name: str
+    short_name: str
+    maker: str
+    model_source: str
+    in_fleet: bool
+    default_fleet: bool
+    added_by: str | None = None

@@ -33,7 +33,7 @@ function View({ title, a, b, recorded, simulated, box }: PathPlotProps & { title
   return (
     <figure className="min-w-0">
       <svg viewBox={`0 0 ${SIZE} ${SIZE}`} role="img" aria-label={`${title} of the end-effector path`}
-        className="w-full max-w-[260px] border border-line bg-panel-2">
+        className="w-full max-w-[260px] rounded-xl border border-line bg-panel-2">
         <polyline points={project(recorded, a, b, box)} fill="none" stroke="var(--good)" strokeWidth="2" strokeLinejoin="round" />
         {simulated && simulated.length > 1 && (
           <polyline points={project(simulated, a, b, box)} fill="none" stroke="var(--accent)" strokeWidth="1.25"

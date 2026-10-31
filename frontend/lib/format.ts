@@ -7,3 +7,5 @@ export const fmtTime = (iso: string) =>
 export const fmtDateTime = (iso: string) =>
   new Date(iso).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit", second: "2-digit" });
 export const shortHash = (h: string) => h.slice(0, 12);
+/** Plain metres for long distances (robot reach), where millimetres read as noise. */
+export const fmtMetres = (m: number | null | undefined) => (m == null ? "—" : `${m.toFixed(2)} m`);

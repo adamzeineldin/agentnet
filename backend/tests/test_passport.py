@@ -46,7 +46,7 @@ def test_robots_are_distinct(passports):
 
 
 def test_end_effector_provenance(passports):
-    assert passports["panda_01"].end_effector.source == "added_by_agentnet"
+    assert passports["panda_01"].end_effector.source == "added_by_nimbotics"
     assert passports["panda_01"].field_provenance["end_effector"] == "declared"
     assert passports["ur5e_01"].end_effector.source == "model"
 
@@ -59,7 +59,7 @@ def test_workspace_accounting(passports, rid):
     pts = np.array(w.points)
     assert (pts[:, 2] >= 0).all()
     assert np.all(pts >= np.array(w.bounds_min) - 1e-9) and np.all(pts <= np.array(w.bounds_max) + 1e-9)
-    assert 0.5 < w.max_reach_m < 1.2
+    assert 0.4 < w.max_reach_m < 1.5
 
 
 def test_workspace_is_deterministic_for_seed(panda):

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_job_worker, get_registry
+from app.api.deps import get_job_worker, get_registry, require_fleet_robot, require_user, started_by
+from app.models.user import User
 from app.models.run import RunRecord, TransferRequest
 from app.services import controller
 from app.services.jobs import SimulationWorker, create_run, run_guarded
@@ -19,9 +20,9 @@ def start_transfer(
     body: TransferRequest,
     registry: Registry = Depends(get_registry),
     worker: SimulationWorker = Depends(get_job_worker),
+    user: User | None = Depends(require_user),
 ) -> RunRecord:
-    if body.target_robot_id not in ROBOTS:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown robot '{body.target_robot_id}'")
+    require_fleet_robot(registry, body.target_robot_id)
     capsule = registry.get_skill(body.source_skill_id)
     if capsule is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown skill '{body.source_skill_id}'")
@@ -40,7 +41,7 @@ def start_transfer(
     run = create_run(
         registry, "transfer", body.scene_seed if body.scene_seed is not None else capsule.task.seed,
         planner=f"{PLANNER_NAME}+{body.reasoning_mode}", source_robot_id=capsule.source_robot_id,
-        target_robot_id=body.target_robot_id, skill_id=capsule.skill_id,
+        target_robot_id=body.target_robot_id, skill_id=capsule.skill_id, started_by=started_by(user),
     )
     worker.submit(
         run_guarded, registry, run.run_id,

@@ -7,9 +7,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-_TMP = Path(tempfile.mkdtemp(prefix="agentnet-test-"))
-os.environ["AGENTNET_DB_PATH"] = str(_TMP / "test.db")
-os.environ["AGENTNET_ARTIFACT_DIR"] = str(_TMP / "artifacts")
+_TMP = Path(tempfile.mkdtemp(prefix="nimbotics-test-"))
+os.environ["NIMBOTICS_DB_PATH"] = str(_TMP / "test.db")
+os.environ["NIMBOTICS_ARTIFACT_DIR"] = str(_TMP / "artifacts")
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest  # noqa: E402

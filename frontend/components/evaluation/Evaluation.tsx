@@ -1,36 +1,38 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import { fmtDateTime, fmtM, fmtSec } from "@/lib/format";
 import { useRunStream } from "@/lib/useRunStream";
 import type { BenchmarkResults, RunRecord, Variant } from "@/lib/types";
+import { ActButton } from "../auth/SignIn";
 import { EventLog } from "../RunEvidence";
 import { Term } from "../Term";
-import { Badge, ErrorNote, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
+import { Badge, Disclosure, ErrorNote, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
 import { EvalStrip } from "./EvalStrip";
 import { subsetName, VARIANT_NAME } from "./names";
 
-const VARIANTS: Variant[] = ["baseline_no_sharing", "retarget_only", "agentnet_offline"];
+const VARIANTS: Variant[] = ["baseline_no_sharing", "retarget_only", "nimbotics_offline"];
 /** Sentences generated from the stored numbers only. */
 function findings(res: BenchmarkResults): string[] {
   const all = res.summary;
   const out: string[] = [];
   const s = (v: Variant) => all[v].common;
-  out.push(`Solved on the ${s("agentnet_offline").applicable} comparable new layouts: ` +
+  out.push(`Solved on the ${s("nimbotics_offline").applicable} comparable new layouts: ` +
     VARIANTS.map((v) => `${VARIANT_NAME[v]} ${s(v).successes}/${s(v).applicable}`).join(", ") + ".");
-  const p = res.paired?.agentnet_offline;
+  const p = res.paired?.nimbotics_offline;
   if (p) {
-    out.push(`Layout by layout against no sharing, AgentNet planned fewer routes on ${p.fewer_kinematic_evals}, ` +
+    out.push(`Layout by layout against no sharing, Nimbotics planned fewer routes on ${p.fewer_kinematic_evals}, ` +
       `the same number on ${p.same_kinematic_evals}, and more on ${p.more_kinematic_evals} of the ${p.both_succeeded} layouts ` +
       `both solved. It solved ${p.only_variant} layout(s) that no sharing missed, and missed ${p.only_baseline} that no sharing solved.`);
   }
-  const families = Object.keys(all.agentnet_offline).filter((k) => k !== "all" && k !== "common");
+  const families = Object.keys(all.nimbotics_offline).filter((k) => k !== "all" && k !== "common");
   for (const f of families) {
-    const a = all.agentnet_offline[f].median_kinematic_evaluations;
+    const a = all.nimbotics_offline[f].median_kinematic_evaluations;
     const b = all.baseline_no_sharing[f].median_kinematic_evaluations;
     if (a != null && b != null) {
-      out.push(`${subsetName(f)} layouts: median routes planned ${a} with AgentNet vs ${b} with no sharing` +
+      out.push(`${subsetName(f)} layouts: median routes planned ${a} with Nimbotics vs ${b} with no sharing` +
         (a > b ? " — sharing hurt here." : a < b ? " — sharing helped here." : " — no difference."));
     }
   }
@@ -60,12 +62,15 @@ export function Evaluation() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Measured performance" title="Evaluation" actions={
-        <button onClick={() => void stream.start(() => apiFetch<RunRecord>("/api/benchmarks", { method: "POST", body: "{}" }))}
-          disabled={stream.busy}
-          className="button-primary disabled:opacity-50">
-          {stream.busy ? "Running benchmark…" : "Run benchmark"}
-        </button>
+      <PageHeader eyebrow="Measured performance" title="Results" actions={
+        <div className="flex flex-wrap items-center gap-3">
+          <Link href="/history" className="button-secondary">Every run →</Link>
+          <ActButton onClick={() => void stream.start(() => apiFetch<RunRecord>("/api/benchmarks", { method: "POST", body: "{}" }))}
+            disabled={stream.busy}
+            className="button-primary disabled:opacity-50">
+            {stream.busy ? "Running benchmark…" : "Run benchmark"}
+          </ActButton>
+        </div>
       }>
         Does sharing experience actually help? The <Term id="benchmark">benchmark</Term> tests the UR5e on 20 layouts
         it has never seen, without the Panda&apos;s experience and with it, using the same effort budget. Every row is a
@@ -85,10 +90,10 @@ export function Evaluation() {
             <Badge>{res.protocol.source_robot_id as string} library → {res.protocol.target_robot_id as string} evaluated</Badge>
           </div>
           <div className="metric-grid grid grid-cols-2 lg:grid-cols-4">
-            <Stat label="AgentNet success" value={res.summary.agentnet_offline.common.success_rate == null ? "—" : `${Math.round(res.summary.agentnet_offline.common.success_rate * 100)}%`} hint="comparable held-out scenes" />
-            <Stat label="Held-out scenes" value={res.summary.agentnet_offline.common.applicable} hint="comparable across variants" />
+            <Stat label="Nimbotics success" value={res.summary.nimbotics_offline.common.success_rate == null ? "—" : `${Math.round(res.summary.nimbotics_offline.common.success_rate * 100)}%`} hint="comparable held-out scenes" />
+            <Stat label="Held-out scenes" value={res.summary.nimbotics_offline.common.applicable} hint="comparable across variants" />
             <Stat label="Benchmark wall clock" value={fmtSec(run.wall_clock_seconds)} hint="recorded duration" />
-            <Stat label="Simulation steps" value={res.summary.agentnet_offline.common.total_sim_steps.toLocaleString()} hint="AgentNet · comparable subset" />
+            <Stat label="Simulation steps" value={res.summary.nimbotics_offline.common.total_sim_steps.toLocaleString()} hint="Nimbotics · comparable subset" />
           </div>
           <Panel title="Findings (generated from this run)">
             <ul className="list-disc space-y-1 pl-5 text-sm text-ink-2">
@@ -96,10 +101,9 @@ export function Evaluation() {
             </ul>
           </Panel>
           <Panel title="Summary" right={
-            <div className="flex gap-1 text-xs" role="tablist">
+            <div className="segmented" role="tablist">
               {subsets.map((s) => (
-                <button key={s} role="tab" aria-selected={subset === s} onClick={() => setSubset(s)}
-                  className={` px-2 py-1 ${subset === s ? "bg-ink text-bg" : "text-ink-3 hover:text-ink"}`}>{subsetName(s)}</button>
+                <button key={s} role="tab" aria-selected={subset === s} onClick={() => setSubset(s)}>{subsetName(s)}</button>
               ))}
             </div>
           }>
@@ -129,46 +133,50 @@ export function Evaluation() {
             <p className="mt-2 text-[11px] text-ink-3">Routes planned, physics tries, endpoint error and time are medians across layouts.</p>
             <div className="mt-5"><EvalStrip rows={subset === "common" ? rows.filter((r) => common.has(r.scene_id)) : rows} variants={VARIANTS} /></div>
           </Panel>
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Panel title="Protocol">
-              <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1.5 text-xs">
-                {Object.entries(res.protocol).filter(([k]) => k !== "variants").map(([k, v]) => (
-                  <div key={k} className="contents"><dt className="text-ink-3">{k.replaceAll("_", " ")}</dt>
-                    <dd className="text-ink-2">{Array.isArray(v) ? (v.length > 6 ? `${v[0]}…${v.at(-1)} (${v.length})` : v.join(", ")) : String(v)}</dd></div>
-                ))}
-              </dl>
-            </Panel>
-            <Panel title={`Dev library (${res.dev_library.filter((d) => d.success).length}/${res.dev_library.length} verified)`}>
-              <ul className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono text-[11px]">
-                {res.dev_library.map((d) => (
-                  <li key={d.scene_id} className="flex justify-between gap-2">
-                    <span className="text-ink-3">{d.scene_id}</span>
-                    <span className={d.success ? "text-good" : "text-bad"}>{d.strategy ?? "✕ none"}</span>
-                  </li>
-                ))}
-              </ul>
-            </Panel>
-          </div>
-          <Panel title={`Raw rows (${res.rows.length})`}>
-            <div className="max-h-[28rem] overflow-auto">
-              <table className="tabular w-full min-w-[820px] text-xs">
-                <thead className="sticky top-0 bg-panel"><tr className="text-left text-[11px] text-ink-3 uppercase">
-                  {["Layout", "Approach", "Result", "Route chosen", "Routes planned", "Physics tries", "Endpoint error", "Panda's route", "Note"].map((h) => <th key={h} className="pb-2 font-medium">{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {res.rows.map((r) => (
-                    <tr key={`${r.scene_id}-${r.variant}`} className="border-t border-line">
-                      <td className="py-1 font-mono">{r.scene_id}</td><td className="font-mono">{r.variant}</td>
-                      <td>{!r.applicable ? <Badge>n/a</Badge> : r.success ? <Badge tone="good">✓</Badge> : <Badge tone="bad">✕</Badge>}</td>
-                      <td className="font-mono">{r.selected ?? "—"}</td><td>{r.kinematic_evaluations}</td><td>{r.physics_rollouts}</td>
-                      <td>{fmtM(r.endpoint_error_m, 2)}</td><td className="font-mono">{r.source_strategy ?? "—"}</td>
-                      <td className="text-ink-3">{r.note}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <Disclosure summary={`Raw data · ${res.rows.length} rows`} hint="how the test was set up, the practice library and every single run">
+            <div className="space-y-6">
+              <div className="grid gap-6 lg:grid-cols-2">
+                <Panel title="Protocol">
+                  <dl className="grid grid-cols-[9rem_1fr] gap-x-3 gap-y-1.5 text-xs">
+                    {Object.entries(res.protocol).filter(([k]) => k !== "variants").map(([k, v]) => (
+                      <div key={k} className="contents"><dt className="text-ink-3">{k.replaceAll("_", " ")}</dt>
+                        <dd className="text-ink-2">{Array.isArray(v) ? (v.length > 6 ? `${v[0]}…${v.at(-1)} (${v.length})` : v.join(", ")) : String(v)}</dd></div>
+                    ))}
+                  </dl>
+                </Panel>
+                <Panel title={`Dev library (${res.dev_library.filter((d) => d.success).length}/${res.dev_library.length} verified)`}>
+                  <ul className="grid grid-cols-2 gap-x-4 gap-y-0.5 font-mono text-[11px]">
+                    {res.dev_library.map((d) => (
+                      <li key={d.scene_id} className="flex justify-between gap-2">
+                        <span className="text-ink-3">{d.scene_id}</span>
+                        <span className={d.success ? "text-good" : "text-bad"}>{d.strategy ?? "✕ none"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </Panel>
+              </div>
+              <Panel title={`Raw rows (${res.rows.length})`}>
+                <div className="max-h-[28rem] overflow-auto">
+                  <table className="tabular w-full min-w-[820px] text-xs">
+                    <thead className="sticky top-0 bg-panel"><tr className="text-left text-[11px] text-ink-3 uppercase">
+                      {["Layout", "Approach", "Result", "Route chosen", "Routes planned", "Physics tries", "Endpoint error", "Panda's route", "Note"].map((h) => <th key={h} className="pb-2 font-medium">{h}</th>)}
+                    </tr></thead>
+                    <tbody>
+                      {res.rows.map((r) => (
+                        <tr key={`${r.scene_id}-${r.variant}`} className="border-t border-line">
+                          <td className="py-1 font-mono">{r.scene_id}</td><td className="font-mono">{r.variant}</td>
+                          <td>{!r.applicable ? <Badge>n/a</Badge> : r.success ? <Badge tone="good">✓</Badge> : <Badge tone="bad">✕</Badge>}</td>
+                          <td className="font-mono">{r.selected ?? "—"}</td><td>{r.kinematic_evaluations}</td><td>{r.physics_rollouts}</td>
+                          <td>{fmtM(r.endpoint_error_m, 2)}</td><td className="font-mono">{r.source_strategy ?? "—"}</td>
+                          <td className="text-ink-3">{r.note}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Panel>
             </div>
-          </Panel>
+          </Disclosure>
         </>
       )}
     </div>

@@ -25,7 +25,7 @@ def protocol(families, dev_seeds, eval_seeds, source_id, target_id) -> dict:
                    "no target-robot result enters the library; capsules not published",
         "success": "first candidate whose physics rollout has endpoint error < 1 cm, zero robot contacts, "
                    "no joint-limit violations and settles",
-        "meta": "agentnet_meta not run (no MODEL_API_KEY)",
+        "meta": "nimbotics_meta not run (no MODEL_API_KEY)",
     }
 
 

@@ -10,7 +10,7 @@ export function IdeaFlow() {
   return (
     <ol aria-label="The idea" className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
       {IDEA.map((s, i) => (
-        <li key={s.label} className="relative border border-line bg-panel p-4">
+        <li key={s.label} className="soft-card relative p-5">
           <div className="flex items-baseline gap-2">
             <span className="font-mono text-xs text-accent">{i + 1}</span>
             <h3 className="text-base font-medium">{s.label}</h3>

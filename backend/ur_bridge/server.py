@@ -1,4 +1,4 @@
-"""Minimal HTTP bridge between the AgentNet backend and a UR controller (URSim or a physical arm).
+"""Minimal HTTP bridge between the Nimbotics backend and a UR controller (URSim or a physical arm).
 
 Runs where ur_rtde has wheels (the Linux container in this folder). One execution at a time; the control
 script is released after every request. Endpoints:

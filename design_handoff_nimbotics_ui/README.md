@@ -1,14 +1,14 @@
-# Handoff: AgentNet UI
+# Handoff: Nimbotics UI
 
-> **For the agentnet repo (Next.js 16 + Tailwind v4 + FastAPI):** start with `IMPLEMENTATION.md`. It maps every screen to your existing routes, components and APIs.
+> **For the nimbotics repo (Next.js 16 + Tailwind v4 + FastAPI):** start with `IMPLEMENTATION.md`. It maps every screen to your existing routes, components and APIs.
 
 ## Overview
-AgentNet is a simulation environment where robots learn skills, store them in a shared cloud memory, and retarget those skills onto other robots' joints. This package covers a public landing page plus a six-screen internal console: Fleet, Simulations, Sim viewer, Skills (with joint mapping), Cloud memory graph, and Logistics.
+Nimbotics is a simulation environment where robots learn skills, store them in a shared cloud memory, and retarget those skills onto other robots' joints. This package covers a public landing page plus a six-screen internal console: Fleet, Simulations, Sim viewer, Skills (with joint mapping), Cloud memory graph, and Logistics.
 
 ## About the Design Files
 The files in this bundle are **design references created in HTML**: prototypes that show the intended look and behavior. They are not production code to copy directly. Recreate them in the target codebase's existing environment (React, Vue, Electron, SwiftUI, etc.) using its established patterns. If no environment exists yet, choose the most appropriate framework and implement there.
 
-- `AgentNet.dc.html` is the full clickable prototype. Open it in a browser (it needs `support.js` next to it). Markup is the template between `<x-dc>` tags. Logic, mock data and state are in the `<script data-dc-script>` class at the bottom.
+- `Nimbotics.dc.html` is the full clickable prototype. Open it in a browser (it needs `support.js` next to it). Markup is the template between `<x-dc>` tags. Logic, mock data and state are in the `<script data-dc-script>` class at the bottom.
 - `particle-arm.reference.js` is the landing-page particle arm, extracted as standalone methods. It is plain Canvas 2D with no dependencies and can be ported nearly verbatim.
 
 ## Fidelity
@@ -50,8 +50,8 @@ Implemented as CSS custom properties on `:root`. Dark mode sets `html[data-theme
 
 ### 01 Landing
 - Full-viewport, `--bg`. A particle canvas fills the right 62% (absolute, full height).
-- Nav row: logo (12px `--ink` square + "agentnet", 16px/600) and links Simulations, Skills, Memory, Logistics, plus "Sign in" (ink, 500).
-- Copy column (max-width 540px, vertically centered): eyebrow "SIMULATE · REMEMBER · RETARGET", H1 "One robot learns it.<br>Every robot remembers.", and a paragraph reading "AgentNet trains robots in simulation, stores what they learn in a shared cloud memory, and maps each skill onto the joints of any other robot." Below that are the buttons "Open console" (primary → Fleet) and "Browse skills" (secondary → Skills).
+- Nav row: logo (12px `--ink` square + "nimbotics", 16px/600) and links Simulations, Skills, Memory, Logistics, plus "Sign in" (ink, 500).
+- Copy column (max-width 540px, vertically centered): eyebrow "SIMULATE · REMEMBER · RETARGET", H1 "One robot learns it.<br>Every robot remembers.", and a paragraph reading "Nimbotics trains robots in simulation, stores what they learn in a shared cloud memory, and maps each skill onto the joints of any other robot." Below that are the buttons "Open console" (primary → Fleet) and "Browse skills" (secondary → Skills).
 - Step row (3 columns, max-width 540px, each with a top border in `--line2`): "01 SIMULATE / Thousands of parallel environments per skill.", "02 REMEMBER / Converged policies land in shared memory.", "03 RETARGET / Skills map to new joint layouts and re-verify in sim."
 
 ### App shell
@@ -121,7 +121,7 @@ Implemented as CSS custom properties on `:root`. Dark mode sets `html[data-theme
 None. All imagery is placeholder stripes. You'll need: robot renders (4:3), sim thumbnails (16:9), a live sim viewport stream, and a pose-overlay preview.
 
 ## Files
-- `AgentNet.dc.html`: full prototype, all screens
+- `Nimbotics.dc.html`: full prototype, all screens
 - `support.js`: runtime needed only to open the prototype in a browser (not for production)
 - `particle-arm.reference.js`: landing arm canvas code
-- `IMPLEMENTATION.md`: step-by-step plan for the agentnet Next.js frontend
+- `IMPLEMENTATION.md`: step-by-step plan for the nimbotics Next.js frontend

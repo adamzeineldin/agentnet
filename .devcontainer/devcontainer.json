@@ -1,7 +1,7 @@
 {
   // Free hosting: a GitHub Codespace (4-core, 16 GB, amd64) builds and runs the same one-container cloud image as
   // the Hugging Face Space (deploy/Dockerfile). See deploy/README.md.
-  "name": "AgentNet cloud demo",
+  "name": "Nimbotics cloud demo",
   "image": "mcr.microsoft.com/devcontainers/base:1-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker:2": {},
@@ -10,7 +10,7 @@
   },
   "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
   "forwardPorts": [7860],
-  "portsAttributes": { "7860": { "label": "AgentNet", "onAutoForward": "silent" } },
+  "portsAttributes": { "7860": { "label": "Nimbotics", "onAutoForward": "silent" } },
   "postCreateCommand": "bash deploy/codespace.sh build",
   "postStartCommand": "bash deploy/codespace.sh start"
 }

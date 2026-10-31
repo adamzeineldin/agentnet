@@ -12,6 +12,7 @@ import math
 import numpy as np
 
 from app.models.skill import BoxSpec, Placement, TaskSpec, Vec3
+from app.services.robot_catalog import ROBOTS
 from app.services.scene import BoxObstacle, SceneSpec
 
 SCENE_FAMILY = "wall_reach_v1"
@@ -23,14 +24,11 @@ FRAME_CONVENTION = (
     "robot base, +y lateral, +z up; metres"
 )
 
-# Default placement per robot: task origin this far in front of the base along +x.
+# Default placement per robot: task origin task_distance_m in front of the base along +x (robot_catalog).
 DEFAULT_PLACEMENTS: dict[str, Placement] = {
-    "panda_01": Placement(
-        translation=(0.50, 0.0, 0.0), rationale="0.50 m in front of the Panda base"
-    ),
-    "ur5e_01": Placement(
-        translation=(0.50, 0.0, 0.0), rationale="0.50 m in front of the UR5e base"
-    ),
+    rid: Placement(translation=(d.task_distance_m, 0.0, 0.0),
+                   rationale=f"{d.task_distance_m:.2f} m in front of the {d.short_name} base")
+    for rid, d in ROBOTS.items()
 }
 
 

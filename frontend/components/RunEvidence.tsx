@@ -34,13 +34,14 @@ export function RunEvidence({ run, split = false }: { run: RunRecord; split?: bo
         <Badge>{run.simulator}</Badge>
         <Badge>seed {run.task_seed}</Badge>
         <Badge>planner: {run.planner}</Badge>
+        {run.started_by && <Badge>started by {run.started_by}</Badge>}
         <span className="font-mono text-[11px] text-ink-3">{run.run_id}</span>
       </div>
       <div className={split ? "grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_340px]" : "space-y-4"}>
       {run.artifacts.video ? (
         <video key={run.artifacts.video} src={apiUrl(run.artifacts.video)} poster={run.artifacts.poster ? apiUrl(run.artifacts.poster) : undefined}
           controls autoPlay muted playsInline className="aspect-video w-full border border-line bg-black" />
-      ) : split ? <div className="grid aspect-video place-items-center border border-line bg-panel-2 text-sm text-ink-3">No execution video for this run.</div> : null}
+      ) : split ? <div className="grid aspect-video place-items-center rounded-xl border border-line bg-panel-2 text-sm text-ink-3">No execution video for this run.</div> : null}
       <div className="min-w-0 space-y-4">
       <div className={`metric-grid grid grid-cols-2 ${split ? "" : "sm:grid-cols-4"}`}>
         <Stat label={<Term id="endpointError">Endpoint error</Term>} value={fmtM(run.endpoint_error_m, 2)} />

@@ -32,7 +32,7 @@ from app.services.reasoning.meta_client import (  # noqa: F401 (re-exported for 
 MAX_TOOL_ROUNDS = 2  # live runs used every round on inspection; fewer rounds = fewer paid calls
 
 SYSTEM_PROMPT = (
-    "You are the strategy reasoner for AgentNet, a robot experience-sharing system. A source robot "
+    "You are the strategy reasoner for Nimbotics, a robot experience-sharing system. A source robot "
     "published a simulation-verified obstacle-avoiding reach skill. A target robot with a different body "
     "must reuse it. You rank candidate route hypotheses (by candidate_id) for the target robot. You do NOT "
     "compute motion: the backend solves inverse kinematics and runs MuJoCo physics on your top-ranked "

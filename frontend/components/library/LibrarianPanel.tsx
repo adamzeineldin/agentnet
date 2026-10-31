@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { createLibraryReport } from "@/lib/api";
 import { fmtDateTime } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import type { Health, LibrarianMode, LibraryReport } from "@/lib/types";
+import { ActButton } from "../auth/SignIn";
 import { Badge, ErrorNote, Loading, Panel, Stat } from "../ui";
 import { Collections, Duplicates, Gaps, ModelText, Suggestions } from "./ReportSections";
 
@@ -92,22 +94,27 @@ export function LibrarianPanel({ onOpenSkill }: LibrarianPanelProps) {
               Meta Muse Spark{metaAvailable ? " (~$0.001, adds summary & priorities)" : " (MODEL_API_KEY not configured)"}
             </option>
           </select>
-          <button onClick={organize} disabled={busy}
-            className="border border-accent-dim bg-accent/10 px-3 py-1.5 text-accent hover:bg-accent/20 disabled:opacity-50">
+          <ActButton onClick={organize} disabled={busy} className="button-primary disabled:opacity-50">
             {busy ? "Organizing…" : "Organize library"}
-          </button>
+          </ActButton>
         </div>
       }>
-        <p className="text-xs text-ink-3">
-          Groups published skills, finds duplicates and coverage gaps, and suggests transfers. Read-only: skills are
-          never edited or deleted and suggestions are not run. All skills are simulation-verified in MuJoCo.
-        </p>
+        <div className="grid gap-4 text-sm text-ink-2 md:grid-cols-3">
+          <p><span className="font-medium text-ink">What it does.</span> Sorts the saved skills into groups, spots
+            near-duplicates, notices which arm has never learned a kind of route, and suggests which skill to teach to
+            which arm next.</p>
+          <p><span className="font-medium text-ink">What it never does.</span> It does not move any robot, run any
+            test, or change or delete a skill. It only writes a report; you decide what to run.</p>
+          <p><span className="font-medium text-ink">Where Muse fits.</span> The groups and suggestions always come
+            from fixed rules. With Meta Muse Spark switched on, the model adds a written summary and reorders the
+            suggestions. <Link href="/under-the-hood#muse" className="text-accent hover:underline">More →</Link></p>
+        </div>
       </Panel>
       {error && <ErrorNote message={error} />}
       {latest.loading && !created && <Loading />}
       {latest.error && !noReport && !created && <ErrorNote message={latest.error} />}
       {noReport && !created && (
-        <p className="border border-line bg-panel p-8 text-sm text-ink-3">No library report yet. Press “Organize library”.</p>
+        <p className="soft-card p-8 text-sm text-ink-3">No library report yet. Press “Organize library”.</p>
       )}
       {report && <ReportView report={report} onOpenSkill={onOpenSkill} />}
     </div>

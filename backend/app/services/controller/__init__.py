@@ -12,11 +12,11 @@ def unavailable_reason(decl: RobotDecl) -> str | None:
     if decl.controller is None or decl.controller.kind != "ursim":
         return f"{decl.short_name} has no URSim controller declaration"
     if not URSIM_BRIDGE_URL:
-        return "URSim execution requested but AGENTNET_URSIM_BRIDGE_URL is not configured (see backend/ur_bridge)"
+        return "URSim execution requested but NIMBOTICS_URSIM_BRIDGE_URL is not configured (see backend/ur_bridge)"
     return None
 
 
 def make_client() -> BridgeClient:
     if not URSIM_BRIDGE_URL:
-        raise RuntimeError("AGENTNET_URSIM_BRIDGE_URL is not configured")
+        raise RuntimeError("NIMBOTICS_URSIM_BRIDGE_URL is not configured")
     return BridgeClient(URSIM_BRIDGE_URL)

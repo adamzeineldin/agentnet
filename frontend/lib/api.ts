@@ -1,5 +1,5 @@
 import type {
-  ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RunEvent, RunRecord,
+  ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RobotSummary, RunEvent, RunRecord,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
@@ -21,6 +21,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
       ...init,
       headers: { "content-type": "application/json", ...(init?.headers ?? {}) },
       cache: "no-store",
+      credentials: "include",
     });
   } catch {
     throw new ApiError(0, `Backend unreachable at ${API_BASE}`);
@@ -30,7 +31,13 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     const detail = typeof body?.detail === "string" ? body.detail : res.statusText;
     throw new ApiError(res.status, `${res.status}: ${detail}`);
   }
+  if (res.status === 204) return null as T;
   return res.json() as Promise<T>;
+}
+
+/** Add a catalog arm to the fleet (its passport is computed from the model first). */
+export function enableRobot(robotId: string): Promise<RobotSummary> {
+  return apiFetch<RobotSummary>(`/api/robots/${robotId}/enable`, { method: "POST" });
 }
 
 export function startMotionCheck(robotId: string, seed = 7): Promise<RunRecord> {

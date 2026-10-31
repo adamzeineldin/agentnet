@@ -3,7 +3,8 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 
-from app.api.deps import get_registry
+from app.api.deps import get_registry, require_user
+from app.models.user import User
 from app.models.skill import ExperienceCapsule
 from app.services.registry import Registry
 from app.services.skill_registry import PublishError, lineage, publish_from_run
@@ -39,7 +40,9 @@ def get_skill(skill_id: str, registry: Registry = Depends(get_registry)) -> Skil
 
 
 @router.post("", response_model=ExperienceCapsule, status_code=201)
-def publish(body: PublishRequest, registry: Registry = Depends(get_registry)) -> ExperienceCapsule:
+def publish(
+    body: PublishRequest, registry: Registry = Depends(get_registry), _: User | None = Depends(require_user),
+) -> ExperienceCapsule:
     try:
         return publish_from_run(registry, body.run_id)
     except KeyError as exc:

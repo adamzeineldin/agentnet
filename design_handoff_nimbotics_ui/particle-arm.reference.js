@@ -1,4 +1,4 @@
-// Particle robot arm — reference implementation extracted from AgentNet.dc.html.
+// Particle robot arm — reference implementation extracted from Nimbotics.dc.html.
 // These are methods of a React class component. Port to a hook/class in the target codebase.
 // Dependencies on the host component:
 //   this.props.particles (number, default 14000), this.props.armMotion (bool), this.props.cursorMemory (bool)

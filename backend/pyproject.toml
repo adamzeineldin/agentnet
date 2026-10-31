@@ -1,7 +1,7 @@
 [project]
-name = "agentnet-backend"
+name = "nimbotics-backend"
 version = "0.1.0"
-description = "AgentNet: simulation-verified robot experience sharing (MuJoCo + FastAPI)"
+description = "Nimbotics: simulation-verified robot experience sharing (MuJoCo + FastAPI)"
 requires-python = ">=3.11"
 dependencies = [
   "mujoco==3.17.0",

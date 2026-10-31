@@ -59,6 +59,8 @@ class RunRecord(BaseModel):
     artifacts: dict[str, str] = Field(default_factory=dict)
     events: list[RunEvent] = Field(default_factory=list)
     error: str | None = None
+    # Display name of the signed-in user who started the run; None when sign-in is off.
+    started_by: str | None = None
 
 
 class MotionCheckRequest(BaseModel):

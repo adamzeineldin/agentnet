@@ -200,7 +200,7 @@ def _transfer(client, skill_id, **extra):
 def test_ursim_request_without_a_bridge_is_refused(client, source_skill, monkeypatch):
     monkeypatch.setattr(controller, "URSIM_BRIDGE_URL", None)
     r = _transfer(client, source_skill["skill_id"], execute_on="ursim")
-    assert r.status_code == 409 and "AGENTNET_URSIM_BRIDGE_URL" in r.json()["detail"]
+    assert r.status_code == 409 and "NIMBOTICS_URSIM_BRIDGE_URL" in r.json()["detail"]
 
 
 def test_controller_status_endpoint_reports_not_configured(client, monkeypatch):

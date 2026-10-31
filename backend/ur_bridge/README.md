@@ -1,7 +1,7 @@
 # ur_bridge: URSim controller execution
 
 This step is optional. After a transfer is verified in MuJoCo, the UR5e's solved joint path can also be streamed to
-**URSim**. URSim is Universal Robots' controller software (PolyScope 5, e-Series) running in Docker. AgentNet
+**URSim**. URSim is Universal Robots' controller software (PolyScope 5, e-Series) running in Docker. Nimbotics
 then records what the controller reports back.
 
 **What this is not:** it is not a physical arm. URSim runs the real controller software on an idealized arm: no
@@ -12,7 +12,7 @@ Results are labelled "URSim controller, not physical". The same bridge talks to 
 ## How it works
 
 ```
-AgentNet backend ──HTTP──▶ ur_bridge (Linux container, ur_rtde 1.6.5) ──RTDE──▶ URSim 5.26 (UR5e)
+Nimbotics backend ──HTTP──▶ ur_bridge (Linux container, ur_rtde 1.6.5) ──RTDE──▶ URSim 5.26 (UR5e)
 ```
 
 1. **Retime.** The backend retimes the verified joint path with the same speed rule MuJoCo executed it with
@@ -50,7 +50,7 @@ Do the one-time setup in the pendant. A physical e-Series arm needs the same ste
 Then add the bridge URL to `.env` and restart the backend:
 
 ```bash
-AGENTNET_URSIM_BRIDGE_URL=http://127.0.0.1:8765
+NIMBOTICS_URSIM_BRIDGE_URL=http://127.0.0.1:8765
 ```
 
 In the Transfer Lab, tick **also run on the URSim controller (not physical)** before **Transfer Skill**. The option

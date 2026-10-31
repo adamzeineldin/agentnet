@@ -4,10 +4,10 @@
 set -u
 
 # Fresh writable registry from the baked demo registry (Spaces disks are not persistent).
-if [ ! -f "$AGENTNET_DB_PATH" ]; then
-  mkdir -p "$(dirname "$AGENTNET_DB_PATH")"
-  cp /app/seed/demo/agentnet.db "$AGENTNET_DB_PATH"
-  cp -r /app/seed/demo/artifacts "$AGENTNET_ARTIFACT_DIR"
+if [ ! -f "$NIMBOTICS_DB_PATH" ]; then
+  mkdir -p "$(dirname "$NIMBOTICS_DB_PATH")"
+  cp /app/seed/demo/nimbotics.db "$NIMBOTICS_DB_PATH"
+  cp -r /app/seed/demo/artifacts "$NIMBOTICS_ARTIFACT_DIR"
 fi
 
 echo "[start] URSim (UR controller software)"

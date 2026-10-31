@@ -7,7 +7,7 @@ const plexSans = IBM_Plex_Sans({ variable: "--font-plex-sans", weight: ["300", "
 const plexMono = IBM_Plex_Mono({ variable: "--font-plex-mono", weight: ["400", "500"], subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "AgentNet Control Center",
+  title: "Nimbotics Control Center",
   description: "Simulation-verified robot experience sharing across embodiments",
 };
 
@@ -15,7 +15,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: `try { document.documentElement.dataset.theme = localStorage.getItem('agentnet-theme') === 'dark' ? 'dark' : 'light'; } catch {}` }} />
+        <script dangerouslySetInnerHTML={{ __html: `try { document.documentElement.dataset.theme = localStorage.getItem('nimbotics-theme') === 'dark' ? 'dark' : 'light'; } catch {}` }} />
       </head>
       <body className="min-h-full font-sans">
         <AppShell>{children}</AppShell>

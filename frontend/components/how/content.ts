@@ -27,10 +27,10 @@ export const STEPS: Step[] = [
     title: "It saves a skill card",
     what: "Publishing stores what was learned: where the start, target and wall were, which route worked, and the " +
       "measurements that prove it. It does not store the Panda's joint angles, because those only fit the Panda's body.",
-    see: "Press Publish Experience. The card appears in the Skill Library with its evidence.",
+    see: "Press Publish Experience. The card appears on the Skills page with its evidence.",
     detail: "The card (an \"Experience Capsule\") stores the task in a robot-neutral task frame: origin on the floor " +
       "in front of the robot, x away from it, z up, in metres.",
-    evidence: ["sim"], href: "/skills", cta: "Open Skill Library",
+    evidence: ["sim"], href: "/skills", cta: "Open Skills",
   },
   {
     title: "A different robot adapts it",
@@ -46,10 +46,10 @@ export const STEPS: Step[] = [
     title: "Physics decides pass or fail",
     what: "The chosen motion runs in the simulator. It passes only if the hand ends within 1 cm of the target, " +
       "nothing touches the wall, no joint goes past its limit, and the arm comes to rest.",
-    see: "A green or red result with the reason. Every run is kept in Run History, failures included.",
+    see: "A green or red result with the reason. Every run is kept in the run log, failures included.",
     detail: "A passing transfer can be published as a new skill that records which skill it was adapted from, so " +
-      "you can follow a skill's family tree in the Skill Library.",
-    evidence: ["sim"], href: "/history", cta: "Open Run History",
+      "you can follow a skill's family tree on the Skills page.",
+    evidence: ["sim"], href: "/history", cta: "Open the run log",
   },
   {
     title: "Optional: check on the robot's controller software",
@@ -64,7 +64,7 @@ export const STEPS: Step[] = [
 
 export const EVIDENCE: { kind: EvidenceKind; plain: string }[] = [
   { kind: "real", plain: "Recorded on a real, physical Panda arm by researchers (the public DROID dataset). We only replay it." },
-  { kind: "sim", plain: "Measured by AgentNet in the MuJoCo physics simulator. Most numbers on the site are this." },
+  { kind: "sim", plain: "Measured by Nimbotics in the MuJoCo physics simulator. Most numbers on the site are this." },
   { kind: "controller", plain: "Reported by Universal Robots' controller software after we sent it the motion. No physical arm." },
   { kind: "model", plain: "Text or rankings written by an AI model. Never a measurement." },
 ];

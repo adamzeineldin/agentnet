@@ -14,8 +14,8 @@ import mujoco
 from app.services.robot_catalog import RobotDecl
 
 OBSTACLE_PREFIX = "obstacle_"
-TARGET_SITE = "agentnet_target"
-WAYPOINT_SITE_PREFIX = "agentnet_wp_"
+TARGET_SITE = "nimbotics_target"
+WAYPOINT_SITE_PREFIX = "nimbotics_wp_"
 FLOOR_GEOM = "floor"
 
 

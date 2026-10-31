@@ -16,7 +16,7 @@ export function CandidateCards({ candidates, selectedId, hoverId, onHover }: {
         const selected = c.candidate_id === selectedId;
         return (
           <li key={c.candidate_id} onMouseEnter={() => onHover?.(c.candidate_id)} onMouseLeave={() => onHover?.(null)}
-            className={` border p-3 text-xs transition-colors ${selected ? "border-good/60 bg-good/5" : hoverId === c.candidate_id ? "border-line-strong bg-panel-2" : "border-line"}`}>
+            className={`rounded-xl border p-3 text-xs transition-colors ${selected ? "border-good/60 bg-good/5" : hoverId === c.candidate_id ? "border-line-strong bg-panel-2" : "border-line"}`}>
             <div className="mb-1 flex items-center justify-between gap-2">
               <span className="font-mono text-ink">{c.candidate_id}</span>
               <span className="flex gap-1">

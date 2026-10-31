@@ -13,11 +13,15 @@ test("overview renders both robots from backend passports and live health", asyn
   await expect(page.getByText("No runs recorded yet")).toBeVisible();
 });
 
-test("robot fleet shows model-derived passport fields", async ({ page }) => {
+test("robots page shows the fleet plainly and keeps model-derived passport fields one click away", async ({ page }) => {
   await page.goto("/robots?robot=ur5e_01");
-  await expect(page.getByText("Side-by-side capability comparison")).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Where this page fits" }).getByText("you are here")).toBeVisible();
+  await expect(page.getByText("6 that can move")).toBeVisible();
+  await expect(page.getByText("shoulder_pan_joint").first()).toBeHidden();
+  await page.locator("summary", { hasText: "Full passport" }).click();
   await expect(page.getByText("shoulder_pan_joint").first()).toBeVisible();
   await expect(page.getByText("attachment_site").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add iiwa 14 to the fleet" })).toBeVisible();
 });
 
 test("transfer lab: discover, publish, transfer, publish adaptation — real jobs", async ({ page }) => {
@@ -32,6 +36,7 @@ test("transfer lab: discover, publish, transfer, publish adaptation — real job
 
   await page.getByRole("button", { name: "Transfer Skill" }).click();
   await expect(page.getByText("strategy adapted").first()).toBeVisible({ timeout: 60_000 });
+  await page.locator("summary", { hasText: "How the learner decided" }).click();
   await expect(page.getByText("Collective Imagination · predicted futures")).toBeVisible();
   await expect(page.getByText("Offline deterministic planner").first()).toBeVisible();
   await page.getByRole("button", { name: "Publish Adaptation" }).click();
@@ -45,6 +50,7 @@ test("URSim option is disabled and labelled when no controller bridge is configu
   const status = await (await request.get(`${API}/api/controller/status`)).json();
   expect(status.configured).toBe(false);
   await page.goto("/transfer");
+  await page.locator("summary", { hasText: "More options" }).click();
   await expect(page.getByRole("checkbox", { name: "Also run on the URSim controller (not physical)" })).toBeDisabled();
   await expect(page.getByText("· not configured")).toBeVisible();
 });
@@ -101,7 +107,7 @@ test("librarian organizes the registry offline without changing skills", async (
   expect(report.usage).toBeNull();
   expect(report.skill_count).toBe(before.length);
   await page.getByRole("button", { name: `Open skill ${before[0].skill_id}`, exact: true }).first().click();
-  await expect(page.getByRole("heading", { name: before[0].skill_id, exact: true })).toBeVisible();
+  await expect(page.locator("summary", { hasText: before[0].skill_id })).toBeVisible();
   expect(await (await request.get(`${API}/api/skills`)).json()).toEqual(before);
 });
 
@@ -132,7 +138,31 @@ test("evaluation page runs a benchmark and shows generated findings and raw rows
   await page.getByRole("button", { name: "Run benchmark" }).click();
   await expect(page.getByText("Findings (generated from this run)")).toBeVisible({ timeout: 90_000 });
   await expect(page.getByText(/Solved on the \d+ comparable new layouts/)).toBeVisible();
-  await expect(page.getByText(/Raw rows \(\d+\)/)).toBeVisible();
+  await expect(page.locator("summary", { hasText: /Raw data · \d+ rows/ })).toBeVisible();
+});
+
+test("under the hood walks through a recorded transfer from stored data", async ({ page, request }) => {
+  const [transfer] = (await (await request.get(`${API}/api/runs?run_type=transfer&limit=50`)).json())
+    .filter((r: { status: string }) => r.status === "succeeded");
+  expect(transfer).toBeTruthy();
+  await page.goto("/under-the-hood");
+  for (const heading of [/learned the task and saved a skill card/, /placed in front of the/, /ranks which routes to try/,
+    "Physics decides whether it worked", "Where Meta Muse Spark fits"]) {
+    await expect(page.getByRole("heading", { name: heading })).toBeVisible();
+  }
+  await expect(page.getByRole("list", { name: "Learner's route order" }).getByText("chosen ·")).toBeVisible();
+  await expect(page.getByText("This run used the offline planner; no model was called.")).toBeVisible();
+  await expect(page.getByText(`${(transfer.endpoint_error_m * 1000).toFixed(1)} mm`).first()).toBeVisible();
+});
+
+test("a catalog arm can be added to the fleet and picked as the learner", async ({ page }) => {
+  await page.goto("/robots");
+  await page.getByRole("button", { name: "Add xArm 7 to the fleet" }).click();
+  await expect(page).toHaveURL(/robot=xarm7_01/, { timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "UFACTORY xArm 7" })).toBeVisible();
+  await page.goto("/transfer");
+  await page.getByRole("combobox", { name: "Learner (adapts it)" }).selectOption("xarm7_01");
+  await expect(page.getByText("xArm 7 adapts it")).toBeVisible();
 });
 
 test("backend outage shows the offline banner", async ({ page }) => {
@@ -147,7 +177,7 @@ test("theme choice survives navigation and reload", async ({ page }) => {
   await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
   await page.getByRole("button", { name: "Switch to dark theme" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Robot Fleet" }).click();
+  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Robots" }).click();
   await page.reload();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.getByRole("button", { name: "Switch to light theme" }).click();
@@ -169,14 +199,14 @@ test("history filters and searchable skill memory use the recorded registry", as
   await page.getByRole("tab", { name: "Memory graph" }).click();
   await page.getByRole("button", { name: `Select ${skills[0].skill_id}`, exact: true }).press("Enter");
   await page.getByRole("button", { name: "Open skill evidence" }).click();
-  await expect(page.getByRole("heading", { name: skills[0].skill_id, exact: true })).toBeVisible();
+  await expect(page.locator("summary", { hasText: skills[0].skill_id })).toBeVisible();
 });
 
 
 test("redesigned routes fit a narrow screen with reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const route of ["/", "/how-it-works", "/robots", "/real", "/history", "/skills", "/transfer", "/evaluation"]) {
+  for (const route of ["/", "/how-it-works", "/under-the-hood", "/robots", "/real", "/history", "/skills", "/transfer", "/evaluation"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), { message: `${route} should fit the viewport` }).toBe(true);

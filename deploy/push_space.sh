@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Publish the committed repo to a Hugging Face Docker Space (free CPU hardware).
 #   hf auth login                      # once, yourself, with a write token
-#   deploy/push_space.sh <user>/agentnet
+#   deploy/push_space.sh <user>/nimbotics
 # Only committed files are uploaded (git archive), so .env and local data never leave this machine.
 set -euo pipefail
 SPACE="${1:?usage: deploy/push_space.sh <user>/<space-name>}"
@@ -13,12 +13,12 @@ hf auth whoami >/dev/null || { echo "Not logged in: run 'hf auth login' first.";
 git -C "$ROOT" diff --quiet HEAD || echo "note: uncommitted changes are NOT uploaded"
 
 git -C "$ROOT" archive HEAD | tar -x -C "$STAGE"
-rm -rf "$STAGE/design_handoff_agentnet_ui" "$STAGE/assets"
+rm -rf "$STAGE/design_handoff_nimbotics_ui" "$STAGE/assets"
 cp "$STAGE/deploy/Dockerfile" "$STAGE/Dockerfile"
 {
   cat <<'YAML'
 ---
-title: AgentNet
+title: Nimbotics
 emoji: 🤖
 colorFrom: gray
 colorTo: red

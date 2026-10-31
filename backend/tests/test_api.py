@@ -32,7 +32,7 @@ def test_health(client):
 
 def test_robots_list_and_passport(client):
     robots = client.get("/api/robots").json()
-    assert {r["robot_id"] for r in robots} == {"panda_01", "ur5e_01"}
+    assert {"panda_01", "ur5e_01"} <= {r["robot_id"] for r in robots}
     snap = client.get(robots[0]["snapshot_url"])
     assert snap.status_code == 200 and snap.headers["content-type"] == "image/png"
     passport = client.get("/api/robots/ur5e_01").json()

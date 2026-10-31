@@ -1,4 +1,4 @@
-"""RobotAdapter: everything AgentNet knows about an arm, read from the compiled model.
+"""RobotAdapter: everything Nimbotics knows about an arm, read from the compiled model.
 
 Arm joints are discovered by walking the kinematic chain from the end-effector
 site to the world body. Actuators are mapped by joint transmission and must be

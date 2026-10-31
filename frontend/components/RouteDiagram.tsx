@@ -48,7 +48,7 @@ function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHo
   return (
     <figure>
       <figcaption className="mb-1 text-[11px] text-ink-3">{title}</figcaption>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full border border-line bg-panel-2/40" role="img"
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full rounded-xl border border-line bg-panel-2/40" role="img"
         aria-label={`${title}: ${candidates.length} candidate routes around the obstacle`}>
         {axes[1] === 2 && <line x1={PAD} x2={W - PAD} y1={sy(0)} y2={sy(0)} stroke="var(--line-strong)" />}
         {task.obstacles.map((o) => (

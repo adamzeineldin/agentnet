@@ -5,29 +5,32 @@ import { usePathname } from "next/navigation";
 import { useSyncExternalStore, type ReactNode } from "react";
 import { API_BASE } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
+import { AuthProvider } from "@/lib/auth";
 import type { Health } from "@/lib/types";
+import { SignInDialog, UserMenu } from "./auth/SignIn";
 
-const NAV = [
-  { href: "/", label: "Overview" },
-  { href: "/how-it-works", label: "How it works" },
-  { href: "/robots", label: "Robot Fleet" },
-  { href: "/transfer", label: "Transfer Lab" },
-  { href: "/real", label: "Real Data" },
-  { href: "/skills", label: "Skill Library" },
-  { href: "/history", label: "Run History" },
-  { href: "/evaluation", label: "Evaluation" },
+/** Each page in one line, so the nav itself says how the pages differ (also shown as the link's tooltip). */
+export const NAV = [
+  { href: "/", label: "Overview", what: "The project at a glance" },
+  { href: "/how-it-works", label: "How it works", what: "The idea in plain words" },
+  { href: "/under-the-hood", label: "Under the hood", what: "How a skill moves from one arm to another, step by step" },
+  { href: "/robots", label: "Robots", what: "The arms in the fleet, and adding more" },
+  { href: "/transfer", label: "Transfer Lab", what: "Teach one arm a task, then let another arm learn it" },
+  { href: "/skills", label: "Skills", what: "Everything the arms have learned so far" },
+  { href: "/real", label: "Real Data", what: "Motions recorded on a real robot, replayed in simulation" },
+  { href: "/evaluation", label: "Results", what: "Does sharing help? Measured, with every run" },
 ];
 
 function subscribeTheme(onChange: () => void) {
   const sync = (event: StorageEvent) => {
-    if (event.key !== "agentnet-theme" && event.key !== null) return;
+    if (event.key !== "nimbotics-theme" && event.key !== null) return;
     document.documentElement.dataset.theme = event.newValue === "dark" ? "dark" : "light";
     onChange();
   };
-  window.addEventListener("agentnet-theme", onChange);
+  window.addEventListener("nimbotics-theme", onChange);
   window.addEventListener("storage", sync);
   return () => {
-    window.removeEventListener("agentnet-theme", onChange);
+    window.removeEventListener("nimbotics-theme", onChange);
     window.removeEventListener("storage", sync);
   };
 }
@@ -40,8 +43,8 @@ function ThemeToggle() {
     onClick={() => {
       const next = theme === "light" ? "dark" : "light";
       document.documentElement.dataset.theme = next;
-      try { localStorage.setItem("agentnet-theme", next); } catch { /* Theme still works without storage. */ }
-      window.dispatchEvent(new Event("agentnet-theme"));
+      try { localStorage.setItem("nimbotics-theme", next); } catch { /* Theme still works without storage. */ }
+      window.dispatchEvent(new Event("nimbotics-theme"));
     }}>{theme === "light" ? "Dark" : "Light"}</button>;
 }
 
@@ -70,29 +73,34 @@ function OfflineBanner() {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (pathname.startsWith("/present")) return <>{children}</>;
+  return <AuthProvider><Shell pathname={pathname}>{children}</Shell><SignInDialog /></AuthProvider>;
+}
+
+function Shell({ pathname, children }: { pathname: string; children: ReactNode }) {
   return <div className="flex min-h-screen flex-col">
     <header className="sticky top-0 z-20 border-b border-line bg-panel">
       <div className="flex min-h-14 flex-wrap items-center gap-x-6 px-4 lg:px-8">
-        <Link href="/" aria-label="agentnet home" className="flex h-14 shrink-0 items-center gap-2.5 text-base font-semibold">
-          <span className="size-[11px] bg-ink" aria-hidden="true" />agentnet
+        <Link href="/" aria-label="nimbotics home" className="flex h-14 shrink-0 items-center gap-2.5 text-base font-semibold">
+          <span className="size-[11px] bg-ink" aria-hidden="true" />nimbotics
         </Link>
         <nav aria-label="Main navigation" className="order-3 flex w-full overflow-x-auto text-[13px] lg:order-none lg:w-auto">
           {NAV.map((item) => {
             const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined}
-              className={`flex h-12 shrink-0 items-center px-3 transition-colors lg:h-14 ${active ? "text-ink shadow-[inset_0_-2px_0_var(--ink)]" : "text-ink-3 hover:text-ink"}`}>
+            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} title={item.what}
+              className={`nav-link flex h-12 shrink-0 items-center px-3 lg:h-14 ${active ? "text-ink shadow-[inset_0_-2px_0_var(--ink)]" : "text-ink-3 hover:text-ink"}`}>
               {item.label}
             </Link>;
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <HealthIndicator /><ThemeToggle />
+          <HealthIndicator /><UserMenu /><ThemeToggle />
           <Link href="/present" className="hidden border border-line-strong px-3 py-1.5 text-xs hover:border-ink sm:block">▶ Present</Link>
         </div>
       </div>
     </header>
     <OfflineBanner />
-    <main className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
+    <main key={pathname} data-soft={pathname === "/" ? undefined : ""}
+      className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
     <footer className="border-t border-line px-6 py-4 text-center font-mono text-[11px] text-ink-3">
       Results are MuJoCo simulation; real-robot paths are recorded by the DROID dataset; controller checks run on
       URSim software. Nothing here ran on a physical arm. <Link href="/how-it-works" className="underline">How it works</Link>

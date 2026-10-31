@@ -16,5 +16,5 @@ backend/app/data/menagerie
 backend/app/data/artifacts
 backend/app/data/demo
 backend/app/data/*.db
-design_handoff_agentnet_ui
+design_handoff_nimbotics_ui
 assets

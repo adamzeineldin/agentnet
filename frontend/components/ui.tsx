@@ -1,23 +1,39 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Provenance, RunStatus } from "@/lib/types";
+import { PageMap } from "./PageMap";
 
-/** Page title block: eyebrow, title, a plain one-line intro, an optional link into How it works, and actions. */
-export function PageHeader({ eyebrow, title, guide, actions, children }: {
-  eyebrow: string; title: string; guide?: string; actions?: ReactNode; children: ReactNode;
+/** Page title block: eyebrow, title, a plain intro, an optional How-it-works link, actions, and (with `here`) the page map. */
+export function PageHeader({ eyebrow, title, guide, actions, here, children }: {
+  eyebrow: string; title: string; guide?: string; actions?: ReactNode; here?: string; children: ReactNode;
 }) {
   return (
-    <div className="flex flex-wrap items-end justify-between gap-4">
-      <div className="min-w-0">
-        <p className="eyebrow mb-2">{eyebrow}</p>
-        <h1 className="text-[28px] font-normal tracking-[-0.02em]">{title}</h1>
-        <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          {children}
-          {guide && <> <Link href={`/how-it-works#${guide}`} className="whitespace-nowrap text-accent hover:underline">How this works →</Link></>}
-        </p>
+    <div className="space-y-5">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <p className="eyebrow mb-2">{eyebrow}</p>
+          <h1 className="text-[28px] font-normal tracking-[-0.02em]">{title}</h1>
+          <p className="mt-1 max-w-3xl text-sm text-ink-2">
+            {children}
+            {guide && <> <Link href={`/how-it-works#${guide}`} className="whitespace-nowrap text-accent hover:underline">How this works →</Link></>}
+          </p>
+        </div>
+        {actions}
       </div>
-      {actions}
+      {here && <PageMap here={here} />}
     </div>
+  );
+}
+
+/** A section that starts closed and opens smoothly; for detail most visitors can skip. */
+export function Disclosure({ summary, hint, open, children }: {
+  summary: ReactNode; hint?: ReactNode; open?: boolean; children: ReactNode;
+}) {
+  return (
+    <details className="disclosure" open={open}>
+      <summary><span className="min-w-0">{summary}{hint && <span className="ml-2 text-xs text-ink-3">{hint}</span>}</span></summary>
+      <div className="disclosure-body min-w-0">{children}</div>
+    </details>
   );
 }
 
@@ -25,7 +41,7 @@ export function Panel({ title, right, children, className = "" }: {
   title?: ReactNode; right?: ReactNode; children: ReactNode; className?: string;
 }) {
   return (
-    <section className={`min-w-0 border border-line bg-panel ${className}`}>
+    <section className={`panel min-w-0 border border-line bg-panel ${className}`}>
       {(title || right) && (
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-4 py-2.5">
           <h2 className="min-w-0 break-words text-sm font-medium text-ink">{title}</h2>
@@ -62,7 +78,7 @@ const PROV_LABEL: Record<Provenance, string> = {
 const PROV_TITLE: Record<Provenance, string> = {
   model: "Read directly from the compiled MuJoCo model",
   measured: "Computed by sampling or simulating the model",
-  declared: "Written in AgentNet's catalog; not derivable from the model",
+  declared: "Written in Nimbotics' catalog; not derivable from the model",
 };
 
 export function ProvenanceTag({ p }: { p: Provenance }) {
@@ -100,9 +116,9 @@ export function Loading({ label = "Loading…" }: { label?: string }) {
 export type EvidenceKind = "real" | "sim" | "controller" | "model";
 
 const EVIDENCE: Record<EvidenceKind, { label: string; title: string; className: string }> = {
-  real: { label: "real robot recording", title: "Recorded on physical robot hardware by a public dataset (not by AgentNet)",
+  real: { label: "real robot recording", title: "Recorded on physical robot hardware by a public dataset (not by Nimbotics)",
     className: "border-good/50 text-good" },
-  sim: { label: "MuJoCo simulation", title: "Computed by AgentNet in the MuJoCo physics simulator",
+  sim: { label: "MuJoCo simulation", title: "Computed by Nimbotics in the MuJoCo physics simulator",
     className: "border-accent/50 text-accent" },
   controller: { label: "URSim controller software", title: "Universal Robots controller software on an idealized arm; not a physical robot",
     className: "border-warn/50 text-warn" },
@@ -113,5 +129,5 @@ const EVIDENCE: Record<EvidenceKind, { label: string; title: string; className: 
 /** Says where a piece of evidence came from. Used everywhere real data, simulation and controller results meet. */
 export function EvidenceTag({ kind }: { kind: EvidenceKind }) {
   const e = EVIDENCE[kind];
-  return <span title={e.title} className={`inline-flex shrink-0 items-center border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${e.className}`}>{e.label}</span>;
+  return <span title={e.title} className={`inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 font-mono text-[10px] uppercase tracking-wide ${e.className}`}>{e.label}</span>;
 }

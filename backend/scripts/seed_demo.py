@@ -2,7 +2,7 @@
 
 Seeds: passports, one motion check per robot, the seed-7 Panda → UR5e chain (published both ways),
 and one held-out benchmark. Usage (from repo root): make demo-seed
-Paths come from AGENTNET_DB_PATH / AGENTNET_ARTIFACT_DIR (the Makefile points them at app/data/demo/).
+Paths come from NIMBOTICS_DB_PATH / NIMBOTICS_ARTIFACT_DIR (the Makefile points them at app/data/demo/).
 """
 
 from __future__ import annotations

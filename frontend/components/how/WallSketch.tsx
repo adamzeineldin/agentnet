@@ -8,7 +8,7 @@ function Label({ x, y, children, anchor = "middle" }: { x: number; y: number; ch
 
 const START_X = 70;
 const TARGET_X = 290;
-const SVG = "w-full border border-line bg-panel-2";
+const SVG = "w-full rounded-[18px] border border-line bg-panel-2";
 
 /** Start and target dots; labels go below them (side view) or beside them (top view), clear of the routes. */
 function Points({ y, beside }: { y: number; beside?: boolean }) {

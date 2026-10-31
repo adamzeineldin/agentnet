@@ -31,7 +31,7 @@ NOTES = (
     "URSim runs the UR controller software on an idealized arm (no payload, no real dynamics): "
     "not physical-world evidence.",
     "The obstacle exists only in the MuJoCo scene; URSim does not check it. The approach move to the path "
-    "start is unchecked by AgentNet.",
+    "start is unchecked by Nimbotics.",
 )
 
 

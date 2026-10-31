@@ -15,6 +15,7 @@ const SECTIONS = [
   ["steps", "Step by step"],
   ["trust", "What's real?"],
   ["glossary", "Glossary"],
+  ["deeper", "Go deeper"],
   ["try", "Try it"],
 ] as const;
 
@@ -32,7 +33,7 @@ function StepList() {
   return (
     <ol aria-label="Pipeline" className="space-y-3">
       {STEPS.map((s, i) => (
-        <li key={s.title} className="grid gap-3 border border-line bg-panel p-4 md:grid-cols-[2.5rem_1fr]">
+        <li key={s.title} className="soft-card grid gap-3 p-5 md:grid-cols-[2.5rem_1fr]">
           <span className="font-mono text-2xl font-light text-accent">{i + 1}</span>
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -63,7 +64,7 @@ export function HowItWorks() {
         <p className="eyebrow">How it works</p>
         <h1 className="text-[28px] font-normal tracking-[-0.02em]">Teach one robot arm a task. Let a different arm do it too.</h1>
         <p className="max-w-3xl text-sm text-ink-2">
-          AgentNet is a shared memory for robot arms. When one arm figures out a task, it saves what it learned.
+          Nimbotics is a shared memory for robot arms. When one arm figures out a task, it saves what it learned.
           A different arm, with a different body, loads that memory, works out its own way to do the task, and has to
           pass a physics test before the result is trusted. Everything happens in simulation.
         </p>
@@ -82,7 +83,7 @@ export function HowItWorks() {
         intro="Every robot on this site solves the same kind of puzzle. Move the hand from a start point to a target point. A small wall stands in between, so the straight line hits it. The arm has to go over the wall or around one of its sides.">
         <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
           <WallSketch />
-          <aside className="border border-accent/40 bg-panel p-4">
+          <aside className="soft-card border-accent/40 p-5">
             <h3 className="text-sm font-medium">What is a seed?</h3>
             <p className="mt-2 text-sm text-ink-2">
               The wall&apos;s size and the start and target positions are picked at random. The seed is the number
@@ -110,7 +111,7 @@ export function HowItWorks() {
         intro="Every result on the site carries one of these four labels, so you always know where a number came from.">
         <ul className="grid gap-3 sm:grid-cols-2">
           {EVIDENCE.map((e) => (
-            <li key={e.kind} className="space-y-2 border border-line bg-panel p-4">
+            <li key={e.kind} className="soft-card space-y-2 p-5">
               <EvidenceTag kind={e.kind} />
               <p className="text-sm text-ink-2">{e.plain}</p>
             </li>
@@ -122,8 +123,13 @@ export function HowItWorks() {
         </p>
       </Section>
 
+      <Section id="deeper" title="Want to see a real transfer taken apart?"
+        intro="Under the hood replays one recorded transfer step by step: what the teacher saved, how the task is placed in front of a different arm, how that arm ranks its routes, and exactly where the Muse model is (and isn't) used.">
+        <Link href="/under-the-hood" className="button-primary">Open Under the hood →</Link>
+      </Section>
+
       <Section id="glossary" title="Glossary" intro="Words you will see around the site.">
-        <dl className="grid gap-px border border-line bg-line sm:grid-cols-2">
+        <dl className="grid gap-px overflow-hidden rounded-[18px] border border-line bg-line sm:grid-cols-2">
           {Object.values(GLOSSARY).map((g) => (
             <div key={g.term} className="bg-panel p-3">
               <dt className="text-sm font-medium">{g.term}</dt>
@@ -139,7 +145,7 @@ export function HowItWorks() {
             <li>Open <Link className="text-accent hover:underline" href="/transfer">Transfer Lab</Link>. Press <b>Discover Skill</b>, then <b>Publish Experience</b>.</li>
             <li>Press <b>Transfer Skill</b> and watch the UR5e solve the Panda&apos;s task its own way.</li>
             <li>Open <Link className="text-accent hover:underline" href="/real">Real Data</Link>, pick a recording and press <b>Replay in simulation</b>.</li>
-            <li>Curious whether sharing helps? <Link className="text-accent hover:underline" href="/evaluation">Evaluation</Link> runs the benchmark, including where it did not.</li>
+            <li>Curious whether sharing helps? <Link className="text-accent hover:underline" href="/evaluation">Results</Link> runs the benchmark, including where it did not.</li>
           </ol>
         </Panel>
         <LiveStatus />

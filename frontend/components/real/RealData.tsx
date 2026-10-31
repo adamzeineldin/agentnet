@@ -6,24 +6,23 @@ import { fmtM, fmtSec, shortHash } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import { useRunStream } from "@/lib/useRunStream";
 import type {
-  ControllerStatusInfo, ExecuteOn, RealDatasetSummary, RealEpisode, RealReplayResults, RunRecord,
+  ControllerStatusInfo, ExecuteOn, RealDatasetSummary, RealEpisode, RealReplayResults, RobotSummary, RunRecord,
 } from "@/lib/types";
+import { ActButton } from "../auth/SignIn";
 import { EventLog } from "../RunEvidence";
 import { ControllerPanel } from "../transfer/ControllerPanel";
 import { RunVideo } from "../transfer/RunMedia";
 import { Term } from "../Term";
-import { Badge, ErrorNote, EvidenceTag, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
+import { Badge, Disclosure, ErrorNote, EvidenceTag, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
 import { PathPlot } from "./PathPlot";
 
-const ROBOTS = [
-  { id: "panda_01", label: "Panda", note: "same robot model as recorded" },
-  { id: "ur5e_01", label: "UR5e", note: "different robot: retarget the recorded path" },
-] as const;
+// DROID was recorded on a Franka Panda; the fleet arm with that model replays it on the same body.
+const RECORDED_ON = "panda_01";
 
 function SourceCard({ ds }: { ds: RealDatasetSummary }) {
   const s = ds.source;
   return (
-    <Panel title={s.title} right={<EvidenceTag kind="real" />}>
+    <Disclosure summary={<>About the recordings · <span className="text-ink-3">{s.title}</span></>}>
       <dl className="grid gap-x-6 gap-y-2 text-xs sm:grid-cols-2 lg:grid-cols-4">
         <div><dt className="text-ink-3">Recorded on</dt><dd>{s.recorded_robot}</dd></div>
         <div><dt className="text-ink-3">Data</dt><dd>end-effector position at {s.fps} Hz, {s.frame}</dd></div>
@@ -31,7 +30,7 @@ function SourceCard({ ds }: { ds: RealDatasetSummary }) {
         <div><dt className="text-ink-3">Revision</dt><dd className="font-mono">{shortHash(s.revision)}</dd></div>
       </dl>
       <p className="mt-3 text-[11px] text-ink-3">Imported episodes: {ds.selection}. {s.notes.join(" ")} {s.citation}.</p>
-    </Panel>
+    </Disclosure>
   );
 }
 
@@ -53,28 +52,28 @@ function ReplayResult({ run, live }: { run: RunRecord; live: boolean }) {
         <Stat label="Simulated time" value={fmtSec(run.simulated_seconds)} hint={`recorded ${fmtSec(r.real_data.recorded_duration_s)}`} />
       </div>
       {r.checks && (
-        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]">
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px]" aria-label="Checks">
           {Object.entries(r.checks).map(([k, v]) => (
             <li key={k}><Badge tone={v ? "good" : "bad"}>{v ? "✓" : "✕"} {k.replaceAll("_", " ")}</Badge></li>
           ))}
         </ul>
       )}
       {r.controller_execution && <ControllerPanel execution={r.controller_execution} />}
-      <details open={live} className="text-xs">
-        <summary className="cursor-pointer text-ink-3">What happened, step by step ({run.events.length} events)</summary>
-        <div className="mt-2"><EventLog events={run.events} /></div>
-      </details>
+      <Disclosure summary="What happened, step by step" hint={`${run.events.length} events`} open={live}>
+        <EventLog events={run.events} />
+      </Disclosure>
     </div>
   );
 }
 
-function EpisodeView({ datasetId, index }: { datasetId: string; index: number }) {
+function EpisodeView({ datasetId, index, robots }: { datasetId: string; index: number; robots: RobotSummary[] }) {
   const ep = useApi<RealEpisode>(`/api/real-data/${datasetId}/${index}`);
   const ursim = useApi<ControllerStatusInfo>("/api/controller/status");
   const stream = useRunStream();
-  const [robot, setRobot] = useState<string>("ur5e_01");
+  const [robot, setRobot] = useState<string>(robots.find((r) => r.robot_id !== RECORDED_ON)?.robot_id ?? RECORDED_ON);
   const [onUrsim, setOnUrsim] = useState(false);
-  const ursimReady = ursim.data?.ready === true && robot === "ur5e_01";
+  const hasUrsim = robots.find((r) => r.robot_id === robot)?.controller === "ursim";
+  const ursimReady = ursim.data?.ready === true && hasUrsim;
   const run = stream.run?.results.real_data &&
     (stream.run.results as unknown as RealReplayResults).real_data.episode_index === index ? stream.run : null;
   const simulated = run ? (run.results as unknown as RealReplayResults).simulated_path : undefined;
@@ -99,11 +98,12 @@ function EpisodeView({ datasetId, index }: { datasetId: string; index: number })
           </div>
           <div className="space-y-4 text-xs">
             <fieldset className="space-y-2">
-              <legend className="mb-1 text-ink-3">Replay the recorded path in MuJoCo on</legend>
-              {ROBOTS.map((r) => (
-                <label key={r.id} className="flex items-center gap-2">
-                  <input type="radio" name="robot" checked={robot === r.id} disabled={stream.busy} onChange={() => setRobot(r.id)} />
-                  <span className="font-medium">{r.label}</span><span className="text-ink-3">· {r.note}</span>
+              <legend className="mb-1 text-ink-3">Replay the recorded path in the simulator on</legend>
+              {robots.map((r) => (
+                <label key={r.robot_id} className="flex items-center gap-2">
+                  <input type="radio" name="robot" checked={robot === r.robot_id} disabled={stream.busy} onChange={() => setRobot(r.robot_id)} />
+                  <span className="font-medium">{r.short_name}</span>
+                  <span className="text-ink-3">· {r.robot_id === RECORDED_ON ? "same robot model as recorded" : "a different arm finds its own joints"}</span>
                 </label>
               ))}
             </fieldset>
@@ -111,17 +111,19 @@ function EpisodeView({ datasetId, index }: { datasetId: string; index: number })
               <input type="checkbox" aria-label="Also run on the URSim controller (not physical)"
                 checked={onUrsim && ursimReady} disabled={stream.busy || !ursimReady} onChange={(ev) => setOnUrsim(ev.target.checked)} />
               also run on the URSim controller (not physical)
-              {!ursimReady && <span>· {robot !== "ur5e_01" ? "UR5e only" : ursim.data?.configured ? "not ready" : "not configured"}</span>}
+              {!ursimReady && <span>· {!hasUrsim ? "UR5e only" : ursim.data?.configured ? "not ready" : "not configured"}</span>}
             </label>
-            <button onClick={replay} disabled={stream.busy} className="button-primary disabled:opacity-50">
+            <ActButton onClick={replay} disabled={stream.busy} className="button-primary disabled:opacity-50">
               {stream.busy ? "Replaying…" : "Replay in simulation"}
-            </button>
+            </ActButton>
+            <Disclosure summary="What a replay does">
             <ol className="list-decimal space-y-1 pl-4 text-[11px] text-ink-3">
               <li>Resample the recorded path every 2 cm (pauses dropped).</li>
               <li>The robot stands where the recording robot stood and solves its own IK along the path.</li>
               <li>Screen for contacts, then execute through its own servos in MuJoCo, paced to the recorded duration.</li>
               <li>Measure how far the simulated end effector strays from the real path (limit 10 mm).</li>
             </ol>
+            </Disclosure>
           </div>
         </div>
       </Panel>
@@ -134,18 +136,18 @@ function EpisodeView({ datasetId, index }: { datasetId: string; index: number })
 /** Real robot data: recorded episodes from a public dataset, replayed and retargeted in simulation. */
 export function RealData() {
   const datasets = useApi<RealDatasetSummary[]>("/api/real-data");
+  const robots = useApi<RobotSummary[]>("/api/robots");
   const [selected, setSelected] = useState<number | null>(null);
   const ds = datasets.data?.[0];
   const index = selected ?? ds?.episodes[0]?.episode_index ?? null;
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <PageHeader eyebrow="Real robot data" title="Real Data" guide="trust">
-          Motions recorded on a real Panda arm, from the public <Term id="droid">DROID</Term> dataset. Pick one and
-          replay it in the simulator on either robot to see how closely it can follow the real path. Each robot works
-          out its own joint angles; only the hand&apos;s path is reused.
+        <PageHeader eyebrow="Real robot data" title="Real Data" guide="trust" here="/real">
+          The same idea as Transfer Lab, but the teacher is a real robot. These hand paths were recorded on a physical
+          Panda arm (the public <Term id="droid">DROID</Term> dataset). Pick one and replay it on any arm in the fleet to
+          see how closely that arm can follow it. Each arm works out its own joint angles.
         </PageHeader>
-        <div className="flex flex-wrap gap-2"><EvidenceTag kind="real" /><EvidenceTag kind="sim" /><EvidenceTag kind="controller" /></div>
       </div>
       {datasets.error && <ErrorNote message={datasets.error} />}
       {!ds && !datasets.error && <Loading />}
@@ -153,7 +155,7 @@ export function RealData() {
         <>
           <SourceCard ds={ds} />
           <div className="grid items-start gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-            <nav aria-label="Recorded episodes" className="border border-line bg-panel">
+            <nav aria-label="Recorded episodes" className="soft-card overflow-hidden">
               {ds.episodes.map((e) => (
                 <button key={e.episode_index} onClick={() => setSelected(e.episode_index)}
                   aria-current={index === e.episode_index ? "true" : undefined}
@@ -163,7 +165,7 @@ export function RealData() {
                 </button>
               ))}
             </nav>
-            {index !== null && <EpisodeView key={index} datasetId={ds.source.dataset_id} index={index} />}
+            {index !== null && robots.data && <EpisodeView key={index} datasetId={ds.source.dataset_id} index={index} robots={robots.data} />}
           </div>
         </>
       )}

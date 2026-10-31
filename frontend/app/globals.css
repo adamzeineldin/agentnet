@@ -109,3 +109,50 @@ input, select { accent-color: var(--accent); }
   .hero-description { font-size: 16px; }
   .metric-grid > * { padding: 10px; }
 }
+
+/* ---- Soft surfaces and motion for the console pages (main[data-soft]); the landing page keeps its own look. */
+:root { interpolate-size: allow-keywords; --ease-out: cubic-bezier(.2, .8, .2, 1); --radius: 18px; --radius-sm: 12px;
+  --shadow-soft: 0 1px 2px rgba(0,0,0,.04), 0 12px 32px -18px rgba(0,0,0,.16); }
+html[data-theme="dark"] { --shadow-soft: 0 1px 2px rgba(0,0,0,.3), 0 14px 36px -18px rgba(0,0,0,.6); }
+
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+[data-soft] > * > * { animation: rise .55s var(--ease-out) both; }
+[data-soft] > * > :nth-child(2) { animation-delay: .05s; }
+[data-soft] > * > :nth-child(3) { animation-delay: .1s; }
+[data-soft] > * > :nth-child(4) { animation-delay: .15s; }
+[data-soft] > * > :nth-child(n+5) { animation-delay: .2s; }
+
+[data-soft] .panel { border-radius: var(--radius); box-shadow: var(--shadow-soft); overflow: hidden; }
+[data-soft] .panel > header { border-bottom-color: transparent; padding-top: 14px; padding-bottom: 4px; }
+[data-soft] .metric-grid { border-radius: var(--radius-sm); overflow: hidden; }
+[data-soft] .button-primary, [data-soft] .button-secondary { border-radius: 999px; padding: 10px 20px;
+  transition: background .2s, border-color .2s, transform .2s var(--ease-out), box-shadow .2s; }
+[data-soft] .button-primary:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 6px 18px -8px var(--accent); }
+[data-soft] .button-primary:active:not(:disabled) { transform: translateY(0) scale(.98); }
+[data-soft] input:not([type="radio"]):not([type="checkbox"]), [data-soft] select, [data-soft] textarea { border-radius: 10px; }
+[data-soft] .segmented { border-radius: 999px; padding: 3px; gap: 2px; background: var(--panel); }
+[data-soft] .segmented button { border-radius: 999px; transition: background .2s, color .2s; }
+[data-soft] [role="tab"] { border-radius: 999px; transition: background .2s, color .2s; }
+
+.soft-card { border: 1px solid var(--line); background: var(--panel); border-radius: var(--radius);
+  box-shadow: var(--shadow-soft); transition: transform .25s var(--ease-out), box-shadow .25s, border-color .25s; }
+button.soft-card:hover, a.soft-card:hover { transform: translateY(-2px); border-color: var(--line-strong); }
+.soft-card[aria-pressed="true"], .soft-card[aria-current="true"] { border-color: var(--accent); }
+.pill { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 6px 14px; font-size: 13px;
+  border: 1px solid var(--line-strong); transition: background .2s, border-color .2s, color .2s; }
+.pill:hover:not(:disabled) { border-color: var(--ink); }
+
+details.disclosure { border-radius: var(--radius-sm); border: 1px solid var(--line); background: var(--panel); }
+details.disclosure > summary { list-style: none; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 12px 16px; font-size: 14px; }
+details.disclosure > summary::-webkit-details-marker { display: none; }
+details.disclosure > summary::after { content: "+"; font-family: var(--font-plex-mono), monospace; color: var(--ink-3);
+  transition: transform .3s var(--ease-out); }
+details.disclosure[open] > summary::after { transform: rotate(45deg); }
+details.disclosure::details-content { block-size: 0; overflow: clip;
+  transition: block-size .35s var(--ease-out), content-visibility .35s allow-discrete; }
+details.disclosure[open]::details-content { block-size: auto; }
+details.disclosure > .disclosure-body { padding: 0 16px 16px; animation: fade .35s var(--ease-out); }
+.nav-link { transition: color .2s, box-shadow .3s var(--ease-out); }
+.menu-pop { animation: rise .2s var(--ease-out) both; }

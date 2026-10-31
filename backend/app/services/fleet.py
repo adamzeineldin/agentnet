@@ -46,10 +46,17 @@ def compute_passport(
     return registry.save_passport(passport)
 
 
+def fleet_ids(registry: Registry) -> list[str]:
+    """Arms in the fleet, in catalog order: the default fleet plus any added since."""
+    added = registry.added_robot_ids()
+    return [rid for rid, d in ROBOTS.items() if d.default_fleet or rid in added]
+
+
 def ensure_passports(worker: SimulationWorker, registry: Registry) -> list[RobotPassport]:
-    """Recompute any passport that is missing, stale (model hash) or on an old schema."""
+    """Recompute any fleet passport that is missing, stale (model hash) or on an old schema."""
     result = []
-    for robot_id, decl in ROBOTS.items():
+    for robot_id in fleet_ids(registry):
+        decl = ROBOTS[robot_id]
         cached = registry.get_passport(robot_id)
         fresh = (
             cached is not None
@@ -61,8 +68,22 @@ def ensure_passports(worker: SimulationWorker, registry: Registry) -> list[Robot
     return result
 
 
+def add_robot(worker: SimulationWorker, registry: Registry, robot_id: str, added_by: str | None) -> RobotPassport:
+    """Compute the arm's passport from its model, then list it in the fleet. Worker thread only."""
+    passport = registry.get_passport(robot_id)
+    decl = get_robot_decl(robot_id)
+    if passport is None or passport.model_hash != model_dir_hash(decl.model_path) \
+            or passport.schema_version != PASSPORT_SCHEMA_VERSION:
+        passport = compute_passport(worker, registry, robot_id)
+    registry.add_to_fleet(robot_id, added_by)
+    return passport
+
+
 def summarize(passport: RobotPassport) -> RobotSummary:
+    decl = ROBOTS.get(passport.robot_id)
     return RobotSummary(
+        maker=decl.maker if decl else "",
+        controller=decl.controller.kind if decl and decl.controller else None,
         robot_id=passport.robot_id,
         display_name=passport.display_name,
         short_name=passport.short_name,

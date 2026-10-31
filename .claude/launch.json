@@ -46,8 +46,8 @@
       "name": "backend-demo",
       "runtimeExecutable": "env",
       "runtimeArgs": [
-        "AGENTNET_DB_PATH=backend/app/data/demo/agentnet.db",
-        "AGENTNET_ARTIFACT_DIR=backend/app/data/demo/artifacts",
+        "NIMBOTICS_DB_PATH=backend/app/data/demo/nimbotics.db",
+        "NIMBOTICS_ARTIFACT_DIR=backend/app/data/demo/artifacts",
         "backend/.venv/bin/uvicorn",
         "app.main:app",
         "--app-dir",

@@ -1,6 +1,6 @@
-# AgentNet cloud image: one container with the website, the API + MuJoCo worker, the ur_rtde bridge and URSim
+# Nimbotics cloud image: one container with the website, the API + MuJoCo worker, the ur_rtde bridge and URSim
 # (Universal Robots' controller software, from UR's official image). Built from the repo root:
-#   docker build -f deploy/Dockerfile -t agentnet-cloud .
+#   docker build -f deploy/Dockerfile -t nimbotics-cloud .
 # Runs as uid 1000 (Hugging Face Spaces) and listens on 7860.
 
 # ---- website: static export (platform-independent output, so build natively)
@@ -36,7 +36,7 @@ RUN uv venv --python 3.12 /app/venv \
 # Pinned MuJoCo Menagerie models, then a demo registry built from real runs (nothing fabricated).
 ENV MUJOCO_GL=osmesa PYOPENGL_PLATFORM=osmesa
 RUN backend/scripts/fetch_models.sh
-RUN cd backend && AGENTNET_DB_PATH=/app/seed/demo/agentnet.db AGENTNET_ARTIFACT_DIR=/app/seed/demo/artifacts \
+RUN cd backend && NIMBOTICS_DB_PATH=/app/seed/demo/nimbotics.db NIMBOTICS_ARTIFACT_DIR=/app/seed/demo/artifacts \
     /app/venv/bin/python scripts/seed_demo.py --reset
 
 # tini as PID 1 reaps orphaned processes: URSim restarts its controller with `killall -w`, which waits forever
@@ -55,8 +55,8 @@ RUN mkdir -p /ursim/.polyscope /home/root /urcaps /app/runtime \
 
 USER 1000
 ENV HOME=/home/root ROBOT_MODEL=UR5 DISPLAY=:1 \
-    AGENTNET_WEB_DIR=/app/web AGENTNET_URSIM_BRIDGE_URL=http://127.0.0.1:8765 AGENTNET_MAX_PENDING_JOBS=3 \
-    AGENTNET_DB_PATH=/app/runtime/agentnet.db AGENTNET_ARTIFACT_DIR=/app/runtime/artifacts \
+    NIMBOTICS_WEB_DIR=/app/web NIMBOTICS_URSIM_BRIDGE_URL=http://127.0.0.1:8765 NIMBOTICS_MAX_PENDING_JOBS=3 \
+    NIMBOTICS_DB_PATH=/app/runtime/nimbotics.db NIMBOTICS_ARTIFACT_DIR=/app/runtime/artifacts \
     UR_HOST=127.0.0.1 BRIDGE_PORT=8765 PORT=7860
 EXPOSE 7860
 ENTRYPOINT ["/usr/bin/tini", "--"]

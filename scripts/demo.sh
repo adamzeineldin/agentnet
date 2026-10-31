@@ -5,9 +5,9 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 API_PORT="${DEMO_API_PORT:-8000}"
 WEB_PORT="${DEMO_WEB_PORT:-3000}"
-export AGENTNET_DB_PATH="$ROOT/backend/app/data/demo/agentnet.db"
-export AGENTNET_ARTIFACT_DIR="$ROOT/backend/app/data/demo/artifacts"
-if [ ! -f "$AGENTNET_DB_PATH" ]; then
+export NIMBOTICS_DB_PATH="$ROOT/backend/app/data/demo/nimbotics.db"
+export NIMBOTICS_ARTIFACT_DIR="$ROOT/backend/app/data/demo/artifacts"
+if [ ! -f "$NIMBOTICS_DB_PATH" ]; then
   echo "No demo registry yet; run: make demo-seed" >&2
   exit 1
 fi
@@ -15,5 +15,5 @@ fi
 trap 'kill 0' EXIT INT TERM
 (cd "$ROOT/backend" && .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port "$API_PORT") &
 (cd "$ROOT/frontend" && NEXT_DIST_DIR=.next-demo npx next start -p "$WEB_PORT" -H 127.0.0.1) &
-echo "Demo: http://127.0.0.1:$WEB_PORT/present  (API :$API_PORT, registry $AGENTNET_DB_PATH)"
+echo "Demo: http://127.0.0.1:$WEB_PORT/present  (API :$API_PORT, registry $NIMBOTICS_DB_PATH)"
 wait

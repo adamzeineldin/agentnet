@@ -21,6 +21,8 @@ export interface RobotSummary {
   fallback_model: boolean;
   snapshot_url: string;
   created_at: string;
+  maker: string;
+  controller: string | null;
 }
 
 export interface JointInfo {
@@ -85,7 +87,7 @@ export interface RobotPassport {
   end_effector: {
     site_name: string;
     parent_body: string;
-    source: "model" | "added_by_agentnet";
+    source: "model" | "added_by_nimbotics";
     offset_m: Vec3;
     home_position: Vec3;
     note: string;
@@ -137,6 +139,7 @@ export interface RunRecord {
   artifacts: Record<string, string>;
   events: RunEvent[];
   error: string | null;
+  started_by: string | null;
 }
 
 export const TERMINAL: ReadonlySet<RunStatus> = new Set(["succeeded", "failed"]);
@@ -277,7 +280,7 @@ export interface StoryStep { run: RunRecord; capsule: ExperienceCapsule | null }
 export interface DemoStory { source: StoryStep | null; target: StoryStep | null; complete: boolean; note: string }
 
 // ---- Evaluation (backend/app/services/evaluation.py)
-export type Variant = "baseline_no_sharing" | "retarget_only" | "agentnet_offline";
+export type Variant = "baseline_no_sharing" | "retarget_only" | "nimbotics_offline";
 export interface EvalRow {
   variant: Variant; family: string; seed: number; scene_id: string; applicable: boolean; success: boolean;
   selected: string | null; kinematic_evaluations: number; physics_rollouts: number;
@@ -378,3 +381,12 @@ export interface RealReplayResults {
   checks?: Record<string, boolean>;
   controller_execution?: ControllerExecution;
 }
+
+// ---- Fleet catalog and sign-in (backend/app/api/robots.py, auth.py)
+export interface CatalogEntry {
+  robot_id: string; display_name: string; short_name: string; maker: string; model_source: string;
+  in_fleet: boolean; default_fleet: boolean;
+}
+export type AuthProvider = "google" | "github";
+export interface AuthConfig { providers: AuthProvider[]; required: boolean }
+export interface PublicUser { user_id: string; provider: AuthProvider; name: string; avatar_url: string | null }

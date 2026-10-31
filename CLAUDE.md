@@ -1,4 +1,4 @@
-# AgentNet engineering rules (condensed)
+# Nimbotics engineering rules (condensed)
 
 - Never fake simulation results, hardcode success, or fabricate run histories. Every number in the UI
   must come from a stored backend run or a passport computed from the loaded model.

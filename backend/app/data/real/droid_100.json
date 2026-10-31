@@ -21,7 +21,7 @@
    "gripper"
   ],
   "notes": [
-   "Only end-effector positions and gripper are imported; orientation is not used (AgentNet IK is position-only).",
+   "Only end-effector positions and gripper are imported; orientation is not used (Nimbotics IK is position-only).",
    "Objects in the real scene are not modelled in simulation."
   ]
  },

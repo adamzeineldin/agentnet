@@ -1,4 +1,4 @@
-# Implementing this redesign in the agentnet repo
+# Implementing this redesign in the nimbotics repo
 
 Read this first, then use README.md for the visual spec.
 
@@ -31,7 +31,7 @@ Replace the dark graphite/cyan palette with the tokens in README "Design Tokens"
 - The prototype uses square corners everywhere. Remove `rounded-md`/`rounded-*` from `ui.tsx` (Panel, Badge), from AppShell nav items and from cards.
 
 ## Step 2: Shell (`components/AppShell.tsx`)
-- Header: 56px, `bg-panel`, bottom border. On the left, the logo is an 11px ink square plus "agentnet" in lowercase at 600 weight.
+- Header: 56px, `bg-panel`, bottom border. On the left, the logo is an 11px ink square plus "nimbotics" in lowercase at 600 weight.
 - Nav items: no pill background. The active item gets `text-ink` and a 2px inset bottom bar (`shadow-[inset_0_-2px_0_var(--ink)]`); inactive items use `text-ink-3`.
 - Right side: keep `HealthIndicator`, restyled as mono 12px text with a 6px status dot instead of a pill Badge. Add the theme toggle and keep the Present link.
 - Keep `OfflineBanner` and the "simulation only" footer; restyle them with the new tokens.
@@ -65,4 +65,4 @@ Keep the existing route names and nav labels unless you choose to rename them. T
 - Update the screenshots with `node scripts/screenshots.mjs`, and update PROGRESS.md and DECISIONS.md as the repo rules require.
 
 ## Prompt to give Claude Code
-> Read design_handoff_agentnet_ui/IMPLEMENTATION.md and README.md. Open AgentNet.dc.html in a browser to see the target UI. Implement the redesign in frontend/ step by step (tokens → shell → landing + ParticleArm → each route), wiring all data to the existing backend APIs. Never use the prototype's placeholder numbers. Run the tests after each step.
+> Read design_handoff_nimbotics_ui/IMPLEMENTATION.md and README.md. Open Nimbotics.dc.html in a browser to see the target UI. Implement the redesign in frontend/ step by step (tokens → shell → landing + ParticleArm → each route), wiring all data to the existing backend APIs. Never use the prototype's placeholder numbers. Run the tests after each step.

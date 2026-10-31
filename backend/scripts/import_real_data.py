@@ -81,7 +81,7 @@ def main() -> None:
             recorded_robot="Franka Emika Panda (real hardware, teleoperated)", recorded_robot_id="panda_01",
             fps=fps, frame="Panda robot base frame (m)",
             state_fields=["x", "y", "z", "roll", "pitch", "yaw", "gripper"],
-            notes=["Only end-effector positions and gripper are imported; orientation is not used (AgentNet IK is "
+            notes=["Only end-effector positions and gripper are imported; orientation is not used (Nimbotics IK is "
                    "position-only).", "Objects in the real scene are not modelled in simulation."],
         ),
         selection=SELECTION, imported_at=datetime.now(UTC).isoformat(timespec="seconds"), episodes=chosen,

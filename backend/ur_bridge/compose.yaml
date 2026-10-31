@@ -1,7 +1,7 @@
 # URSim (UR controller software, e-series, UR5e) + the ur_rtde bridge. Ports bind to localhost only.
 #   make ursim-up    then enable Remote Control once in the pendant (http://localhost:6080/vnc.html)
-#   AGENTNET_URSIM_BRIDGE_URL=http://127.0.0.1:8765 in .env
-name: agentnet-ursim
+#   NIMBOTICS_URSIM_BRIDGE_URL=http://127.0.0.1:8765 in .env
+name: nimbotics-ursim
 services:
   ursim:
     image: universalrobots/ursim_e-series:5.26

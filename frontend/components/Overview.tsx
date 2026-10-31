@@ -25,7 +25,7 @@ export function Overview() {
           <p className="eyebrow">Simulate · Remember · Retarget</p>
           <h1>One robot learns it.<br />Every robot remembers.</h1>
           <p className="hero-description">
-            AgentNet discovers robot motion in simulation, stores verified experience in shared memory,
+            Nimbotics discovers robot motion in simulation, stores verified experience in shared memory,
             and retargets each skill through another robot’s own kinematics.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
@@ -54,7 +54,7 @@ export function Overview() {
             <Stat label="Transfers" value={runs.data ? all.filter((r) => r.run_type === "transfer").length : "—"} />
           </div>
           {runs.error && <ErrorNote message={runs.error} />}
-          {runs.data && all.length === 0 && <p className="text-xs text-ink-3">No runs recorded yet. Run a motion check from Robot Fleet.</p>}
+          {runs.data && all.length === 0 && <p className="text-xs text-ink-3">No runs recorded yet. Start one in Transfer Lab.</p>}
           <ol className="space-y-2">
             {all.slice(0, 9).map((r) => (
               <li key={r.run_id} className="flex items-center justify-between gap-2 text-xs">

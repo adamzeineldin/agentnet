@@ -34,7 +34,7 @@ MAX_SUMMARY_CHARS = 500
 MAX_NOTE_CHARS = 200
 
 SYSTEM_PROMPT = (
-    "You are the librarian for AgentNet, a shared registry of simulation-verified robot reach skills. "
+    "You are the librarian for Nimbotics, a shared registry of simulation-verified robot reach skills. "
     "The backend has already grouped the skills into collections, found duplicates and coverage gaps, and "
     "listed transfer suggestions; those facts are final. Your job: write a short plain-language summary of "
     "the library, an optional one-line note per collection, and order the transfer suggestions from most to "
@@ -170,7 +170,7 @@ def _user_message(base: LibraryReport, skills: Sequence[ExperienceCapsule], sugg
 def _model_text(value: object, limit: int, label: str, ignored: list[str]) -> str | None:
     text = str(value or "")[:limit]
     if PHYSICAL_CLAIM.search(text):
-        ignored.append(f"Model {label} dropped: it implied physical hardware; AgentNet results are simulation-only.")
+        ignored.append(f"Model {label} dropped: it implied physical hardware; Nimbotics results are simulation-only.")
         return None
     return text or None
 

@@ -7,10 +7,10 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_job_worker, get_registry
+from app.api.deps import get_job_worker, get_registry, require_fleet_robot, require_user, started_by
+from app.models.user import User
 from app.models.run import TERMINAL_STATUSES, DiscoverRequest, RunRecord
 from app.services.jobs import SimulationWorker, create_run, run_guarded
-from app.services.robot_catalog import ROBOTS
 from app.services.skill_discovery import PLANNER_NAME, discover_skill
 from app.services.registry import Registry
 
@@ -40,14 +40,15 @@ def start_discover(
     body: DiscoverRequest,
     registry: Registry = Depends(get_registry),
     worker: SimulationWorker = Depends(get_job_worker),
+    user: User | None = Depends(require_user),
 ) -> RunRecord:
-    if body.robot_id not in ROBOTS:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown robot '{body.robot_id}'")
+    require_fleet_robot(registry, body.robot_id)
     passport = registry.get_passport(body.robot_id)
     if passport is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Passport not computed yet")
     run = create_run(
-        registry, "discover", body.scene_seed, planner=PLANNER_NAME, source_robot_id=body.robot_id
+        registry, "discover", body.scene_seed, planner=PLANNER_NAME, source_robot_id=body.robot_id,
+        started_by=started_by(user),
     )
     worker.submit(
         run_guarded, registry, run.run_id,

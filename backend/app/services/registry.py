@@ -1,4 +1,4 @@
-"""SQLite registry (SQLAlchemy 2.x) for passports, runs, skills and library reports.
+"""SQLite registry (SQLAlchemy 2.x) for passports, runs, skills, library reports, fleet and users.
 
 Rows store validated Pydantic JSON; the repository functions return Pydantic
 objects so callers never touch ORM state.
@@ -17,6 +17,7 @@ from app.models.library import LibraryReport
 from app.models.robot import RobotPassport
 from app.models.run import RunEvent, RunRecord
 from app.models.skill import ExperienceCapsule
+from app.models.user import User
 
 
 class Base(DeclarativeBase):
@@ -55,6 +56,22 @@ class LibraryReportRow(Base):
     report_id: Mapped[str] = mapped_column(String, primary_key=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class FleetRow(Base):
+    """A catalog arm added to the fleet after startup (default-fleet arms need no row)."""
+
+    __tablename__ = "fleet"
+    robot_id: Mapped[str] = mapped_column(String, primary_key=True)
+    added_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class UserRow(Base):
+    __tablename__ = "users"
+    user_id: Mapped[str] = mapped_column(String, primary_key=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class Registry:
@@ -170,6 +187,27 @@ class Registry:
         with self._session() as s:
             row = s.scalars(stmt).first()
             return LibraryReport.model_validate(row.payload) if row else None
+
+    # ---------------------------------------------------------------- fleet
+    def added_robot_ids(self) -> set[str]:
+        with self._session() as s:
+            return set(s.scalars(select(FleetRow.robot_id)))
+
+    def add_to_fleet(self, robot_id: str, added_by: str | None) -> None:
+        with self._tx() as s:
+            if s.get(FleetRow, robot_id) is None:
+                s.add(FleetRow(robot_id=robot_id, added_by=added_by, added_at=utcnow()))
+
+    # ---------------------------------------------------------------- users
+    def save_user(self, user: User) -> User:
+        with self._tx() as s:
+            s.merge(UserRow(user_id=user.user_id, payload=user.model_dump(mode="json"), created_at=user.created_at))
+        return user
+
+    def get_user(self, user_id: str) -> User | None:
+        with self._session() as s:
+            row = s.get(UserRow, user_id)
+            return User.model_validate(row.payload) if row else None
 
     def append_event(self, run_id: str, event: RunEvent, **changes: object) -> RunRecord:
         """Return a new RunRecord with the event appended (and fields changed), persisted."""

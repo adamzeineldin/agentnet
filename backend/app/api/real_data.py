@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from app.api.deps import get_job_worker, get_registry
+from app.api.deps import get_job_worker, get_registry, require_fleet_robot, require_user, started_by
+from app.models.user import User
 from app.models.real_data import RealReplayRequest
 from app.models.run import RunRecord
 from app.services import controller
@@ -39,16 +40,17 @@ def start_replay(
     body: RealReplayRequest,
     registry: Registry = Depends(get_registry),
     worker: SimulationWorker = Depends(get_job_worker),
+    user: User | None = Depends(require_user),
 ) -> RunRecord:
     found = get_episode(body.dataset_id, body.episode_index)
     if found is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"No episode {body.episode_index} in '{body.dataset_id}'")
-    if body.robot_id not in ROBOTS:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown robot '{body.robot_id}'")
+    require_fleet_robot(registry, body.robot_id)
     if body.execute_on == "ursim" and (reason := controller.unavailable_reason(ROBOTS[body.robot_id])):
         raise HTTPException(status.HTTP_409_CONFLICT, reason)
     ds, ep = found
-    run = create_run(registry, "real_replay", ep.episode_index, PLANNER_NAME, target_robot_id=body.robot_id)
+    run = create_run(registry, "real_replay", ep.episode_index, PLANNER_NAME, target_robot_id=body.robot_id,
+                     started_by=started_by(user))
     worker.submit(run_guarded, registry, run.run_id,
                   lambda ctx: replay_episode(ctx, ds, ep, body.robot_id, body.execute_on))
     return run

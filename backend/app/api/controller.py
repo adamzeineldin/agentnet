@@ -15,7 +15,7 @@ def controller_status() -> dict:
     base = {"label": CONTROLLER_LABEL}
     if not controller.URSIM_BRIDGE_URL:
         return {**base, "configured": False, "reachable": False,
-                "detail": "AGENTNET_URSIM_BRIDGE_URL is not set; see backend/ur_bridge/README.md"}
+                "detail": "NIMBOTICS_URSIM_BRIDGE_URL is not set; see backend/ur_bridge/README.md"}
     try:
         info = controller.make_client().status()
     except BridgeError as exc:

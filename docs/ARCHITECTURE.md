@@ -7,7 +7,7 @@ Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Sim
                                        └──── Registry (SQLite: passports, runs) ◀──┘   artifacts/ (MP4, PNG)
 ```
 
-- **scene.py** builds the MJCF with `MjSpec`: Menagerie scene + AgentNet TCP site (if needed) +
+- **scene.py** builds the MJCF with `MjSpec`: Menagerie scene + Nimbotics TCP site (if needed) +
   obstacle boxes (collidable) + target/waypoint marker sites (visual only).
 - **robot_adapter.py** discovers joints/actuators/EE from the compiled model; FK, Jacobian, servo
   commands, contact classification, kinematic collision screening.
@@ -67,7 +67,7 @@ evaluate_all (target kinematics) ─▶ ReasoningContext (task, capsule, both pa
 benchmark.run_benchmark
   dev library: discover_headless(panda, dev seeds × families)   (in memory, never published)
   for each held-out scene: prepare(ur5e) once → retrieve nearest same-family capsule
-     run_variant(order) for baseline_no_sharing | retarget_only | agentnet_offline
+     run_variant(order) for baseline_no_sharing | retarget_only | nimbotics_offline
         lazy: kinematic stages → physics rollout if feasible → stop at first verified (≤3 rollouts)
   summarize (per family / all / common) + paired_vs_baseline → run.results
 scripts/benchmark.py → docs/EVALUATION_RESULTS.md (generated)     /evaluation page (same run)

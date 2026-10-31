@@ -14,7 +14,7 @@ pre-existing code and third-party assets. Check these in the participant portal 
 ## Before submitting
 - [ ] Read the Official Rules in the participant portal; update this file with video length and required fields.
 - [ ] Choose track and theme.
-- [ ] Decide on Meta usage: with a `MODEL_API_KEY`, run `agentnet_meta` (estimated cost is recorded per run).
+- [ ] Decide on Meta usage: with a `MODEL_API_KEY`, run `nimbotics_meta` (estimated cost is recorded per run).
       Without it, the video and README must keep saying “offline deterministic planner”.
 - [ ] Add a LICENSE for this repo; keep Menagerie model licenses (fetched, not redistributed) credited in README.
 - [ ] `make demo-check` → PASS; `make test`; `make e2e`; fresh-clone check (see PROGRESS.md M7).

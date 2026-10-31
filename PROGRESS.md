@@ -107,11 +107,11 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   infeasible for both robots; widened the gap once for solvability (documented).
 - ✅ Evaluation harness (`evaluation.py`, `benchmark.py`): dev library from Panda on seeds 0–9 (not published),
   UR5e on held-out seeds 100–109 × 2 families; nearest-capsule retrieval; variants `baseline_no_sharing`,
-  `retarget_only`, `agentnet_offline` with matched budgets (≤3 rollouts, same start, same candidate set,
-  lazy evaluation); raw rows, per-family/all/common summaries, paired per-scene comparison. `agentnet_meta` not run.
+  `retarget_only`, `nimbotics_offline` with matched budgets (≤3 rollouts, same start, same candidate set,
+  lazy evaluation); raw rows, per-family/all/common summaries, paired per-scene comparison. `nimbotics_meta` not run.
 - ✅ `POST/GET /api/benchmarks`; `make benchmark` writes `docs/EVALUATION_RESULTS.md` from the stored run.
 - ✅ Measured (run `run_20261027_004624_6244c9`, deterministic on re-run): success 17/20 baseline, 10/20 retarget,
-  17/20 AgentNet. AgentNet fewer kinematic evaluations on 11 scenes, more on 6 (negative transfer on the roof
+  17/20 Nimbotics. Nimbotics fewer kinematic evaluations on 11 scenes, more on 6 (negative transfer on the roof
   family, median 10 vs 7). See `docs/EVALUATION.md`.
 - ✅ Evaluation page: generated findings (including losses), summary by subset, per-scene strip chart, protocol,
   dev library, raw rows, “Run benchmark”.
@@ -149,7 +149,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ⬜ Record the 2–3 min video and submit.
 
 ## UI design handoff ✅ (2026-10-28)
-- ✅ Read `design_handoff_agentnet_ui/IMPLEMENTATION.md` and `README.md`; opened the clickable HTML prototype in a browser.
+- ✅ Read `design_handoff_nimbotics_ui/IMPLEMENTATION.md` and `README.md`; opened the clickable HTML prototype in a browser.
 - ✅ Implemented in the requested order: theme/fonts → shell → landing/ParticleArm → routes → shared UI.
   - IBM Plex Sans / Mono, light-default handoff palette, persisted light/dark toggle, square panels and cards,
     underlined navigation, live backend health and existing offline/simulation-only notices.
@@ -244,7 +244,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Website: Real Data page (recorded vs simulated path plots, replay, step log), How it works page (pipeline,
   evidence legend, live server status), evidence tags, new nav, footer no longer says "simulation only" for
   everything.
-- ✅ Cloud mode: static export served by the API (`AGENTNET_WEB_DIR`), queued-job cap (429), one-container image
+- ✅ Cloud mode: static export served by the API (`NIMBOTICS_WEB_DIR`), queued-job cap (429), one-container image
   `deploy/Dockerfile` (URSim + bridge + API + site, uid 1000, :7860), `deploy/push_space.sh` for Hugging Face.
 - ✅ Cloud image built and run locally (amd64 emulated, 6.5 GB): site + API on :7860 as uid 1000; demo registry
   seeded at build (motion checks, seed-7 chain, benchmark all succeeded). URSim self-configures in ~25 s after its
@@ -255,7 +255,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Tests: 171 backend, 14 Playwright.
 - ⬜ Hugging Face Spaces refused the Space (HTTP 402: Docker Spaces need PRO since 2026). Free host instead: GitHub
   Codespaces (`.devcontainer/`, `deploy/codespace.sh`, D68); `deploy/push_space.sh` stays for a later switch.
-- ✅ Live on GitHub Codespaces (2026-10-31): codespace `agentnet-demo` (4-core, 16 GB), image built in ~8 min, port
+- ✅ Live on GitHub Codespaces (2026-10-31): codespace `agentnet-demo` (created before the rename) (4-core, 16 GB), image built in ~8 min, port
   7860 public. URSim self-configured (ready, Remote, NORMAL). `run_20261031_182656_61b523` over the public link:
   DROID episode 22 on the UR5e, max deviation 7.3 mm (pass), then URSim: TCP 0.92 mm from target, 0.54 mm from
   MuJoCo, 1802 samples at 125 Hz, no protective stop. Wall clock 154 s.
@@ -269,3 +269,18 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   (seed, route ranking, URSim, imagination, endpoint error, path deviation, passport, skill, benchmark, DROID). Shared
   `PageHeader` with a plain one-line intro on every page. Evaluation uses plain approach names and column headers
   (raw ids kept beside them). Fleet cards side by side. Tests: 15 Playwright.
+
+## Bigger fleet, sign-in, simpler pages ✅ (2026-10-31)
+- ✅ Fleet catalog: UR10e, KUKA iiwa 14, xArm 7, Lite 6, FR3 from the pinned Menagerie commit (`fetch_models.sh`).
+  Probe runs before inclusion: UR10e/iiwa 14/xArm 7/FR3 passed discover (seeds 42, 7) and transfer from a Panda skill
+  (same and new layout), endpoint error 0.5–1.2 mm; Lite 6 failed 3 of 4 (kept); Gen3 and Sawyer dropped (D70).
+  `GET /api/robots/catalog`, `POST /api/robots/{id}/enable`; only fleet arms can run (409 otherwise).
+- ✅ Any two fleet arms can be teacher and learner in Transfer Lab and Real Data. Live check: Panda → iiwa 14, layout 7:
+  the iiwa could not use the Panda's far-side route (collisions), went over the wall instead, 0.81 mm, 0 contacts.
+- ✅ Sign-in with Google and GitHub (D72): `/api/auth/{config,me,login,callback,logout}`, gated POST endpoints,
+  `started_by` on runs; header button, sign-in dialog, buttons ask to sign in when needed. Not live until the OAuth
+  apps exist (deploy/README.md).
+- ✅ UI (D73): soft surfaces and motion off the landing page; page map; Robots (cards, at a glance, full passport
+  behind a disclosure, Add a robot); Transfer Lab (robot pickers, two plain steps, decision detail in one section);
+  Skills (plain skill names, librarian explained); Real Data and Results trimmed; new Under the hood page.
+- ✅ Tests: 244 backend (new: auth, fleet), Playwright suite updated (Under the hood, add-a-robot).

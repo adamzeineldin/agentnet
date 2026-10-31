@@ -1,4 +1,4 @@
-# AgentNet — Collective Intelligence for Physical AI
+# Nimbotics — Collective Intelligence for Physical AI
 
 An interoperable, simulation-verified system for exchanging and adapting robot motion-planning
 experience across different simulated embodiments. Robot A (Franka Emika Panda) discovers and

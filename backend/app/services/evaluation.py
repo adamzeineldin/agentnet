@@ -29,11 +29,11 @@ from app.services.task_scene import DEFAULT_PLACEMENTS, generate_task
 from app.services.transfer import prior_order
 
 PHYSICS_BUDGET = 3
-VARIANTS = ("baseline_no_sharing", "retarget_only", "agentnet_offline")
+VARIANTS = ("baseline_no_sharing", "retarget_only", "nimbotics_offline")
 VARIANT_TEXT = {
     "baseline_no_sharing": "No shared experience: fixed enumeration order (direct, over, near_side, far_side × clearances).",
     "retarget_only": "Simple geometric retargeting: only the retrieved capsule's strategy, regenerated on the new scene.",
-    "agentnet_offline": "AgentNet: candidates ordered by the retrieved capsule (offline deterministic prior).",
+    "nimbotics_offline": "Nimbotics: candidates ordered by the retrieved capsule (offline deterministic prior).",
 }
 
 
@@ -137,11 +137,11 @@ def run_variant(setup: SearchSetup, order: list[RouteCandidate], budget: int = P
 def variant_orders(task: TaskSpec, capsule: ExperienceCapsule | None) -> dict[str, list[RouteCandidate] | None]:
     cands = generate_candidates(task)
     if capsule is None:
-        return {"baseline_no_sharing": cands, "retarget_only": None, "agentnet_offline": None}
+        return {"baseline_no_sharing": cands, "retarget_only": None, "nimbotics_offline": None}
     strat = [c for c in cands if c.route_class == capsule.strategy.route_class
              and abs(c.clearance_m - capsule.strategy.clearance_m) < 1e-9]
     return {"baseline_no_sharing": cands, "retarget_only": strat,
-            "agentnet_offline": [c for c, _, _ in prior_order(cands, capsule)]}
+            "nimbotics_offline": [c for c, _, _ in prior_order(cands, capsule)]}
 
 
 def evaluate_scene(task: TaskSpec, target_id: str, library: list[ExperienceCapsule]) -> list[Row]:
