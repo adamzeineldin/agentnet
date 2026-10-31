@@ -1,5 +1,11 @@
-import { HowItWorks } from "@/components/how/HowItWorks";
+"use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
+/** How it works moved onto the home page; keep old links working. */
 export default function Page() {
-  return <HowItWorks />;
+  const router = useRouter();
+  useEffect(() => router.replace("/#how-it-works"), [router]);
+  return null;
 }

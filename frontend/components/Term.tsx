@@ -21,17 +21,22 @@ export function Term({ id, children }: { id: TermId; children?: ReactNode }) {
   };
   const hide = () => setPos(null);
 
-  // The tip is fixed-positioned (so panels never clip it); close it when the page moves under it.
+  // The tip is fixed-positioned (so panels never clip it); it follows its button when the page scrolls or resizes
+  // (smooth scrolling keeps firing scroll events just after a click, so closing on scroll would hide it at once).
+  const open = pos !== null;
   useEffect(() => {
-    if (!pos) return;
-    const close = () => setPos(null);
-    window.addEventListener("scroll", close, true);
-    window.addEventListener("resize", close);
-    return () => {
-      window.removeEventListener("scroll", close, true);
-      window.removeEventListener("resize", close);
+    if (!open) return;
+    const follow = () => {
+      const r = ref.current?.getBoundingClientRect();
+      if (r) setPos({ top: r.bottom + 6, left: Math.min(Math.max(EDGE, r.left - 8), window.innerWidth - TIP_WIDTH - EDGE) });
     };
-  }, [pos]);
+    window.addEventListener("scroll", follow, true);
+    window.addEventListener("resize", follow);
+    return () => {
+      window.removeEventListener("scroll", follow, true);
+      window.removeEventListener("resize", follow);
+    };
+  }, [open]);
 
   return (
     <span className="inline-flex items-center gap-1" onMouseLeave={hide}>

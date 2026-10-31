@@ -7,10 +7,11 @@ import { fmtDateTime, fmtM, fmtSec } from "@/lib/format";
 import { useRunStream } from "@/lib/useRunStream";
 import type { BenchmarkResults, RunRecord, Variant } from "@/lib/types";
 import { ActButton } from "../auth/SignIn";
-import { EventLog } from "../RunEvidence";
+import { RunProgress } from "../transfer/RunProgress";
 import { Term } from "../Term";
-import { Badge, Disclosure, ErrorNote, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
+import { Badge, Disclosure, ErrorNote, Loading, PageHeader, Panel, StatusBadge } from "../ui";
 import { EvalStrip } from "./EvalStrip";
+import { Verdict } from "./Verdict";
 import { subsetName, VARIANT_NAME } from "./names";
 
 const VARIANTS: Variant[] = ["baseline_no_sharing", "retarget_only", "nimbotics_offline"];
@@ -62,7 +63,7 @@ export function Evaluation() {
 
   return (
     <div className="space-y-6">
-      <PageHeader eyebrow="Measured performance" title="Results" actions={
+      <PageHeader eyebrow="Does sharing help?" title="Results" actions={
         <div className="flex flex-wrap items-center gap-3">
           <Link href="/history" className="button-secondary">Every run →</Link>
           <ActButton onClick={() => void stream.start(() => apiFetch<RunRecord>("/api/benchmarks", { method: "POST", body: "{}" }))}
@@ -72,12 +73,11 @@ export function Evaluation() {
           </ActButton>
         </div>
       }>
-        Does sharing experience actually help? The <Term id="benchmark">benchmark</Term> tests the UR5e on 20 layouts
-        it has never seen, without the Panda&apos;s experience and with it, using the same effort budget. Every row is a
-        real simulation run, and losses are shown too.
+        A <Term id="benchmark">test</Term> on 20 layouts the UR5e has never seen: once on its own, and once using what
+        the Panda learned. Every number is a real simulation run, and losses are shown too.
       </PageHeader>
       {(loadError || stream.error) && <ErrorNote message={(loadError || stream.error)!} />}
-      {stream.busy && <Panel title="Progress"><EventLog events={stream.events} /></Panel>}
+      {stream.busy && <RunProgress events={stream.events} />}
       {!run && !stream.busy && <Loading label="No benchmark recorded yet — run one." />}
       {run && run.status === "failed" && <ErrorNote message={`Benchmark ${run.run_id} failed: ${run.error ?? run.events.at(-1)?.message}`} />}
 
@@ -85,21 +85,18 @@ export function Evaluation() {
         <>
           <div className="flex flex-wrap items-center gap-2 text-xs">
             <StatusBadge status={run.status} />
+            <Badge>{fmtSec(run.wall_clock_seconds)} to run</Badge>
             <Badge>{stream.live ? "● live run" : "recorded run"} {run.run_id}</Badge>
             <Badge>{fmtDateTime(run.created_at)}</Badge><Badge>{run.simulator}</Badge>
             <Badge>{res.protocol.source_robot_id as string} library → {res.protocol.target_robot_id as string} evaluated</Badge>
           </div>
-          <div className="metric-grid grid grid-cols-2 lg:grid-cols-4">
-            <Stat label="Nimbotics success" value={res.summary.nimbotics_offline.common.success_rate == null ? "—" : `${Math.round(res.summary.nimbotics_offline.common.success_rate * 100)}%`} hint="comparable held-out scenes" />
-            <Stat label="Held-out scenes" value={res.summary.nimbotics_offline.common.applicable} hint="comparable across variants" />
-            <Stat label="Benchmark wall clock" value={fmtSec(run.wall_clock_seconds)} hint="recorded duration" />
-            <Stat label="Simulation steps" value={res.summary.nimbotics_offline.common.total_sim_steps.toLocaleString()} hint="Nimbotics · comparable subset" />
-          </div>
-          <Panel title="Findings (generated from this run)">
+          <Verdict res={res} />
+          <Panel title="What the numbers say (generated from this run)">
             <ul className="list-disc space-y-1 pl-5 text-sm text-ink-2">
               {findings(res).map((f) => <li key={f}>{f}</li>)}
             </ul>
           </Panel>
+          <Disclosure summary="The full comparison" hint="every measure, by kind of layout, and layout by layout">
           <Panel title="Summary" right={
             <div className="segmented" role="tablist">
               {subsets.map((s) => (
@@ -133,6 +130,7 @@ export function Evaluation() {
             <p className="mt-2 text-[11px] text-ink-3">Routes planned, physics tries, endpoint error and time are medians across layouts.</p>
             <div className="mt-5"><EvalStrip rows={subset === "common" ? rows.filter((r) => common.has(r.scene_id)) : rows} variants={VARIANTS} /></div>
           </Panel>
+          </Disclosure>
           <Disclosure summary={`Raw data · ${res.rows.length} rows`} hint="how the test was set up, the practice library and every single run">
             <div className="space-y-6">
               <div className="grid gap-6 lg:grid-cols-2">

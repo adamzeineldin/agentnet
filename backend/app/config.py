@@ -51,9 +51,11 @@ MAX_SETTLE_SECONDS = 2.5
 SETTLE_Q_TOL_RAD = 5e-4
 SETTLE_QVEL_TOL = 1e-2
 REACH_TOLERANCE_M = 0.01
-RENDER_WIDTH = 960
-RENDER_HEIGHT = 540
-VIDEO_FPS = 30
+# Video settings only change the clip, never the physics. The cloud copy renders smaller and sparser because
+# software (OSMesa) rendering dominated replay time there (~139 s of a 16 s replay at 960x540, 30 fps).
+RENDER_WIDTH = int(os.environ.get("NIMBOTICS_RENDER_WIDTH") or 960)
+RENDER_HEIGHT = int(os.environ.get("NIMBOTICS_RENDER_HEIGHT") or 540)
+VIDEO_FPS = int(os.environ.get("NIMBOTICS_VIDEO_FPS") or 30)
 CONTROLLER_STREAM_HZ = 125.0
 CONTROLLER_FINAL_TOL_RAD = 1e-3
 # Controller TCP vs MuJoCo FK at the same joints; nominal UR kinematics vs the Menagerie model differ by ~1 mm.

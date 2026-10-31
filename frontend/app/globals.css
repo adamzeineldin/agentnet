@@ -58,6 +58,8 @@ html[data-theme="dark"] {
   --font-mono: var(--font-plex-mono);
 }
 
+html { scroll-behavior: smooth; }
+
 body {
   background: var(--bg);
   color: var(--ink);

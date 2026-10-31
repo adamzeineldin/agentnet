@@ -57,7 +57,7 @@ export function TaskSketch({ task, traces }: { task: TaskSpec; traces: Trace[] }
     <div className="space-y-3">
       <div className="grid gap-4 sm:grid-cols-2">
         <View task={task} traces={traces} axes={[1, 2]} title="Side view" caption="Height above the floor; the grey block is the wall. A route that goes around the wall looks like it crosses it here; the top view shows it going around." />
-        <View task={task} traces={traces} axes={[1, 0]} title="Top view" caption="Seen from above; up the page is away from the robot." />
+        <View task={task} traces={traces} axes={[1, 0]} title="Top view" caption="Seen from above; up the page is away from the robot. A route over the wall looks like it crosses it here." />
       </div>
       <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-2">
         {traces.map((t) => (
@@ -109,5 +109,31 @@ export function PlacementSketch({ task, seats }: { task: TaskSpec; seats: Seat[]
         );
       })}
     </div>
+  );
+}
+
+/** A small top view for cards: the task and each robot's recorded hand path, without captions. */
+export function MiniTopView({ task, traces }: { task: TaskSpec; traces: Trace[] }) {
+  const corners = task.obstacles.flatMap((o) => [
+    [o.center[1] - o.half_size[1], o.center[0] - o.half_size[0]], [o.center[1] + o.half_size[1], o.center[0] + o.half_size[0]],
+  ] as [number, number][]);
+  const pts: [number, number][] = [[task.start[1], task.start[0]], [task.target[1], task.target[0]], ...corners,
+    ...traces.flatMap((t) => t.points.map((p) => [p[1], p[0]] as [number, number]))];
+  const { s, sx, sy } = fit(pts);
+  const poly = (ps: Vec3[]) => ps.map((p) => `${sx(p[1]).toFixed(1)},${sy(p[0]).toFixed(1)}`).join(" ");
+  return (
+    <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Top view of the task with each robot's hand path"
+      className="w-full rounded-xl bg-panel-2/60">
+      {task.obstacles.map((o) => (
+        <rect key={o.name} x={sx(o.center[1] - o.half_size[1])} y={sy(o.center[0] + o.half_size[0])}
+          width={2 * o.half_size[1] * s} height={2 * o.half_size[0] * s} rx={3} fill="var(--ink-3)" fillOpacity={0.3} />
+      ))}
+      {traces.map((t) => (
+        <polyline key={t.label} points={poly(t.points)} fill="none" stroke={t.color} strokeWidth={3}
+          strokeDasharray={t.dashed ? "6 5" : undefined} strokeLinecap="round" strokeLinejoin="round" />
+      ))}
+      <circle cx={sx(task.start[1])} cy={sy(task.start[0])} r={6} fill="var(--ink)" />
+      <circle cx={sx(task.target[1])} cy={sy(task.target[0])} r={7} fill="none" stroke="var(--accent)" strokeWidth={3} />
+    </svg>
   );
 }

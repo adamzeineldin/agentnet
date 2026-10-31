@@ -16,6 +16,8 @@ from app.services.registry import Registry
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 POLL_SECONDS = 0.3
+# Proxies (e.g. GitHub Codespaces port forwarding) cut a stream after ~100 s without bytes; a comment line keeps it open.
+KEEPALIVE_SECONDS = 15.0
 
 
 def _require_run(registry: Registry, run_id: str) -> RunRecord:
@@ -75,14 +77,20 @@ async def stream_events(run_id: str, registry: Registry = Depends(get_registry))
 
     async def gen() -> AsyncIterator[str]:
         sent = 0
+        quiet = 0.0
         while True:
             run = registry.get_run(run_id)
             for ev in run.events[sent:]:
                 yield f"event: progress\ndata: {ev.model_dump_json()}\n\n"
+                quiet = 0.0
             sent = len(run.events)
             if run.status in TERMINAL_STATUSES:
                 yield f"event: done\ndata: {json.dumps({'status': run.status})}\n\n"
                 return
+            if quiet >= KEEPALIVE_SECONDS:
+                yield ": keep-alive\n\n"
+                quiet = 0.0
             await asyncio.sleep(POLL_SECONDS)
+            quiet += POLL_SECONDS
 
     return StreamingResponse(gen(), media_type="text/event-stream")

@@ -5,45 +5,49 @@ const API = "http://127.0.0.1:8011";
 // One shared, fresh backend: the story builds up across tests in order.
 test.describe.configure({ mode: "serial" });
 
-test("overview renders both robots from backend passports and live health", async ({ page }) => {
+test("home shows the hero and, below it, how it works", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByText("backend live")).toBeVisible();
-  await expect(page.getByText("Robot A · Franka Emika Panda")).toBeVisible();
-  await expect(page.getByText("Robot B · Universal Robots UR5e")).toBeVisible();
-  await expect(page.getByText("No runs recorded yet")).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("One robot learns it.");
+  await expect(page.getByRole("heading", { name: "Teach one robot arm a task. Let a different arm do it too." })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link")).toHaveCount(6);
 });
 
-test("robots page shows the fleet plainly and keeps model-derived passport fields one click away", async ({ page }) => {
+test("robots page explains each robot plainly and keeps model-derived fields one click away", async ({ page }) => {
   await page.goto("/robots?robot=ur5e_01");
-  await expect(page.getByRole("navigation", { name: "Where this page fits" }).getByText("you are here")).toBeVisible();
-  await expect(page.getByText("6 that can move")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Universal Robots UR5e" })).toBeVisible();
+  await expect(page.getByText("Motors that can turn.")).toBeVisible();
   await expect(page.getByText("shoulder_pan_joint").first()).toBeHidden();
-  await page.locator("summary", { hasText: "Full passport" }).click();
+  await page.locator("summary", { hasText: "Technical sheet" }).click();
   await expect(page.getByText("shoulder_pan_joint").first()).toBeVisible();
   await expect(page.getByText("attachment_site").first()).toBeVisible();
   await expect(page.getByRole("button", { name: "Add iiwa 14 to the fleet" })).toBeVisible();
 });
 
-test("transfer lab: discover, publish, transfer, publish adaptation — real jobs", async ({ page }) => {
+test("try it: teach, save, learn, save — real jobs, explained in plain words", async ({ page }) => {
   await page.goto("/transfer");
-  await page.getByRole("spinbutton").first().fill("7");
-  await page.getByRole("button", { name: "Discover Skill" }).click();
-  const publish = page.getByRole("button", { name: "Publish Experience" });
-  await expect(publish).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText("First let the Panda learn the task and save it (step 2).")).toBeVisible();
+  await page.getByRole("spinbutton", { name: "Layout number" }).fill("7");
+  await page.getByRole("button", { name: "Teach the Panda" }).click();
+  const save = page.getByRole("button", { name: "Save this skill" });
+  await expect(save).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/The Panda found a way: /)).toBeVisible();
   await expect(page.locator("video").first()).toBeVisible();
-  await publish.click();
-  await expect(page.getByRole("button", { name: "✓ Published" })).toBeVisible();
+  await save.click();
+  await expect(page.getByText("✓ Saved as a skill. Other robots can now learn it.")).toBeVisible();
 
-  await page.getByRole("button", { name: "Transfer Skill" }).click();
-  await expect(page.getByText("strategy adapted").first()).toBeVisible({ timeout: 60_000 });
-  await page.locator("summary", { hasText: "How the learner decided" }).click();
+  await page.getByRole("button", { name: "Let the UR5e learn it" }).click();
+  await expect(page.getByRole("button", { name: "Save the UR5e's version" })).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByText(/The UR5e used the Panda's idea|didn't work for the UR5e/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What the UR5e was given" })).toBeVisible();
+  await page.locator("summary", { hasText: "Technical detail" }).click();
   await expect(page.getByText("Collective Imagination · predicted futures")).toBeVisible();
   await expect(page.getByText("Offline deterministic planner").first()).toBeVisible();
-  await page.getByRole("button", { name: "Publish Adaptation" }).click();
-  await expect(page.getByRole("button", { name: "✓ Adaptation published" })).toBeVisible();
+  await page.getByRole("button", { name: "Save the UR5e's version" }).click();
+  await expect(page.getByText(/✓ Saved\. It shows on the/)).toBeVisible();
 
   await page.goto("/skills");
-  await expect(page.getByText(/Adapted from skill_reach_far_side_/)).toBeVisible();
+  await expect(page.getByText("learned from the Panda").first()).toBeVisible();
 });
 
 test("URSim option is disabled and labelled when no controller bridge is configured", async ({ page, request }) => {
@@ -75,14 +79,17 @@ test("real data page replays a recorded DROID episode on the Panda in MuJoCo", a
   await expect(page.getByText("✓ follows recorded path")).toBeVisible();
 });
 
-test("how it works explains the idea, the task, each step, seeds and every evidence source", async ({ page }) => {
+test("how it works sits on the home page and explains the idea, the task, each step, layouts and every evidence source", async ({ page }) => {
   await page.goto("/how-it-works");
+  await expect(page).toHaveURL(/\/#how-it-works$/);
   await expect(page.getByRole("list", { name: "The idea" }).getByRole("listitem")).toHaveCount(4);
   await expect(page.getByRole("img", { name: /Side view/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "What is a seed?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "What is a layout number?" })).toBeVisible();
   await expect(page.getByRole("list", { name: "Pipeline" }).getByRole("listitem")).toHaveCount(5);
   await page.locator("summary", { hasText: "Technical detail" }).first().click();
   await expect(page.getByText(/inverse kinematics \(IK\), screened for collisions/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Where the AI model fits" })).toBeVisible();
+  await page.locator("summary", { hasText: "Glossary" }).click();
   await expect(page.getByRole("definition").filter({ hasText: "A number that picks the task layout" })).toBeVisible();
   await expect(page.getByText("8 DROID episodes imported")).toBeVisible();
   await expect(page.getByText("not configured on this server")).toBeVisible();
@@ -94,20 +101,19 @@ test("how it works explains the idea, the task, each step, seeds and every evide
 test("librarian organizes the registry offline without changing skills", async ({ page, request }) => {
   const before = await (await request.get(`${API}/api/skills`)).json();
   await page.goto("/skills");
-  await page.getByRole("tab", { name: "Librarian" }).click();
   await expect(page.getByText("No library report yet. Press “Organize library”.")).toBeVisible();
   // Offline is the default, and the e2e backend runs without MODEL_API_KEY, so Muse is not selectable.
   await expect(page.getByRole("combobox", { name: "Librarian" })).toHaveValue("offline");
   await expect(page.getByRole("option", { name: /MODEL_API_KEY not configured/ })).toBeDisabled();
   await page.getByRole("button", { name: "Organize library" }).click();
   await expect(page.getByText("Offline rules · no model")).toBeVisible();
-  await expect(page.getByText("Suggested next transfers")).toBeVisible();
+  await expect(page.getByText(/^Teach the |Nothing to suggest/).first()).toBeVisible();
   const report = await (await request.get(`${API}/api/library/reports/latest`)).json();
   expect(report.provider).toBe("offline_librarian");
   expect(report.usage).toBeNull();
   expect(report.skill_count).toBe(before.length);
-  await page.getByRole("button", { name: `Open skill ${before[0].skill_id}`, exact: true }).first().click();
-  await expect(page.locator("summary", { hasText: before[0].skill_id })).toBeVisible();
+  await page.getByRole("button", { name: "Watch the Panda do it" }).first().click();
+  await expect(page.locator("summary", { hasText: "The saved record" }).first()).toBeVisible();
   expect(await (await request.get(`${API}/api/skills`)).json()).toEqual(before);
 });
 
@@ -132,26 +138,27 @@ test("run history shows a failed run honestly with its reason", async ({ page, r
   await expect(page.getByText("IK found no collision-free solution").first()).toBeVisible();
 });
 
-test("evaluation page runs a benchmark and shows generated findings and raw rows", async ({ page }) => {
+test("results answers whether sharing helps, from a real benchmark run", async ({ page }) => {
   await page.goto("/evaluation");
   await expect(page.getByText("No benchmark recorded yet")).toBeVisible();
   await page.getByRole("button", { name: "Run benchmark" }).click();
-  await expect(page.getByText("Findings (generated from this run)")).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByRole("region", { name: "The answer" })).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByRole("region", { name: "Layouts solved" })).toContainText(/\d+ of \d+/);
+  await expect(page.getByText("What the numbers say (generated from this run)")).toBeVisible();
   await expect(page.getByText(/Solved on the \d+ comparable new layouts/)).toBeVisible();
   await expect(page.locator("summary", { hasText: /Raw data · \d+ rows/ })).toBeVisible();
 });
 
-test("under the hood walks through a recorded transfer from stored data", async ({ page, request }) => {
+test("try it tells the story of the latest transfer from stored data", async ({ page, request }) => {
   const [transfer] = (await (await request.get(`${API}/api/runs?run_type=transfer&limit=50`)).json())
     .filter((r: { status: string }) => r.status === "succeeded");
   expect(transfer).toBeTruthy();
-  await page.goto("/under-the-hood");
-  for (const heading of [/learned the task and saved a skill card/, /placed in front of the/, /ranks which routes to try/,
-    "Physics decides whether it worked", "Where Meta Muse Spark fits"]) {
+  await page.goto("/transfer");
+  for (const heading of ["What the UR5e was given", "The task is placed in front of the UR5e", "Which route to try first", "The physics test"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
   }
+  await expect(page.getByText("order chosen by a fixed rule, no AI")).toBeVisible();
   await expect(page.getByRole("list", { name: "Learner's route order" }).getByText("chosen ·")).toBeVisible();
-  await expect(page.getByText("This run used the offline planner; no model was called.")).toBeVisible();
   await expect(page.getByText(`${(transfer.endpoint_error_m * 1000).toFixed(1)} mm`).first()).toBeVisible();
 });
 
@@ -161,8 +168,8 @@ test("a catalog arm can be added to the fleet and picked as the learner", async 
   await expect(page).toHaveURL(/robot=xarm7_01/, { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "UFACTORY xArm 7" })).toBeVisible();
   await page.goto("/transfer");
-  await page.getByRole("combobox", { name: "Learner (adapts it)" }).selectOption("xarm7_01");
-  await expect(page.getByText("xArm 7 adapts it")).toBeVisible();
+  await page.getByRole("combobox", { name: "Learner" }).selectOption("xarm7_01");
+  await expect(page.getByRole("heading", { name: "The xArm 7 learns it from the Panda" })).toBeVisible();
 });
 
 test("backend outage shows the offline banner", async ({ page }) => {
@@ -185,28 +192,26 @@ test("theme choice survives navigation and reload", async ({ page }) => {
 });
 
 
-test("history filters and searchable skill memory use the recorded registry", async ({ page, request }) => {
+test("history filters and skills grouped by task use the recorded registry", async ({ page }) => {
   await page.goto("/history");
   await page.getByRole("tab", { name: "failed", exact: true }).click();
   await expect(page.getByRole("button", { name: /Open motion check/ }).first()).toBeVisible();
   await expect(page.getByRole("button", { name: /Open discover/ })).toHaveCount(0);
   await page.getByRole("tab", { name: "queued", exact: true }).click();
   await expect(page.getByText("No runs match these filters.")).toBeVisible();
-  const skills = await (await request.get(`${API}/api/skills`)).json();
   await page.goto("/skills");
-  await page.getByRole("textbox", { name: "Search shared memory" }).fill("no-matching-capsule");
-  await expect(page.getByText("No skills match your search.")).toBeVisible();
-  await page.getByRole("tab", { name: "Memory graph" }).click();
-  await page.getByRole("button", { name: `Select ${skills[0].skill_id}`, exact: true }).press("Enter");
-  await page.getByRole("button", { name: "Open skill evidence" }).click();
-  await expect(page.locator("summary", { hasText: skills[0].skill_id })).toBeVisible();
+  await expect(page.getByRole("article", { name: "Reach past a wall · layout 7" })).toBeVisible();
+  await page.getByRole("tab", { name: "xArm 7" }).click();
+  await expect(page.getByText("The xArm 7 hasn't learned anything yet.")).toBeVisible();
+  await page.getByRole("tab", { name: "UR5e" }).click();
+  await expect(page.getByRole("article", { name: "Reach past a wall · layout 7" })).toContainText("learned from the Panda");
 });
 
 
 test("redesigned routes fit a narrow screen with reduced motion", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.emulateMedia({ reducedMotion: "reduce" });
-  for (const route of ["/", "/how-it-works", "/under-the-hood", "/robots", "/real", "/history", "/skills", "/transfer", "/evaluation"]) {
+  for (const route of ["/", "/robots", "/real", "/history", "/skills", "/transfer", "/evaluation"]) {
     await page.goto(route, { waitUntil: "networkidle" });
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), { message: `${route} should fit the viewport` }).toBe(true);

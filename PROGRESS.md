@@ -284,3 +284,19 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   behind a disclosure, Add a robot); Transfer Lab (robot pickers, two plain steps, decision detail in one section);
   Skills (plain skill names, librarian explained); Real Data and Results trimmed; new Under the hood page.
 - ✅ Tests: 244 backend (new: auth, fleet), Playwright suite updated (Under the hood, add-a-robot).
+
+## Simpler site, reliable progress on the cloud ✅ (2026-10-31)
+- ✅ "Backend unreachable" on Real Data replays (live site): reproduced. The Codespaces proxy cut the progress stream
+  after 100 s of silence while replays queued and ran for ~2 min each (139 s executing, mostly OSMesa rendering).
+  Fixed with SSE keep-alives + polling fallback (D74) and lighter cloud video settings (D75); the page now says when a
+  run is waiting its turn on the shared simulator.
+- ✅ Navigation cut to six items; How it works moved under the home hero (with "Where the AI model fits").
+- ✅ Try it: a three-step guided flow (pick robots → teacher learns and saves → learner learns and saves), plain
+  result sentences built from the stored run, and "What just happened" telling that run's story; technical detail
+  (imagination, joint limits, log) behind a disclosure.
+- ✅ Robots: plain facts with one-line meanings, task counts (not saves), technical sheet behind a disclosure.
+- ✅ Skills rebuilt as task cards (who can do it, how, learned itself / from whom, who can't yet), robot filter,
+  librarian strip with plain suggestions.
+- ✅ Results: computed verdict with an honest caveat (wall + roof layouts needed more searching), two bar comparisons,
+  plain descriptions of the three approaches; full comparison and raw data behind disclosures.
+- ✅ Tests: 244 backend, 17 Playwright.

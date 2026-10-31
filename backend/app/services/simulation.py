@@ -19,6 +19,7 @@ from app.config import (
     MAX_SETTLE_SECONDS,
     SETTLE_Q_TOL_RAD,
     SETTLE_QVEL_TOL,
+    VIDEO_FPS,
 )
 from app.services.robot_adapter import Contact, RobotAdapter
 
@@ -92,7 +93,7 @@ def execute_path(
     data: mujoco.MjData,
     waypoints: list[np.ndarray],
     frame_hook: FrameHook | None = None,
-    frame_every: int = 17,
+    frame_every: int | None = None,
     trace_every: int = 10,
     max_settle_seconds: float = MAX_SETTLE_SECONDS,
     gravity_comp: bool = True,
@@ -105,6 +106,8 @@ def execute_path(
     """
     model = adapter.model
     dt = model.opt.timestep
+    # One frame per video frame interval (17 steps at 2 ms and 30 fps).
+    frame_every = frame_every or max(1, round(1.0 / (VIDEO_FPS * dt)))
     path = interpolate_path(waypoints, dt, max_speed)
     max_steps = len(path) + int(max_settle_seconds / dt)
     recorder = _StepRecorder(adapter, trace_every)

@@ -86,23 +86,54 @@ export function createLibraryReport(provider: LibrarianMode): Promise<LibraryRep
   return apiFetch<LibraryReport>("/api/library/reports", { method: "POST", body: JSON.stringify({ provider }) });
 }
 
-/** Subscribe to a run's server-sent events. Returns an unsubscribe function. */
+const TERMINAL = new Set(["succeeded", "failed"]);
+const POLL_MS = 2000;
+
+/** Subscribe to a run's server-sent events. Returns an unsubscribe function.
+ *
+ * If the stream drops before the run finishes (a proxy timeout, a flaky network), it falls back to polling the run
+ * record and replays any events it has not delivered yet, so a long run is never reported as unreachable. */
 export function subscribeRun(
   runId: string,
   onEvent: (ev: RunEvent) => void,
   onDone: () => void,
 ): () => void {
+  let delivered = 0;
+  let stopped = false;
+  let timer: ReturnType<typeof setTimeout> | null = null;
   const source = new EventSource(apiUrl(`/api/runs/${runId}/events`));
-  source.addEventListener("progress", (e) => onEvent(JSON.parse((e as MessageEvent).data)));
-  source.addEventListener("done", () => {
-    source.close();
-    onDone();
-  });
-  source.onerror = () => {
+  const finish = () => {
+    if (stopped) return;
+    stopped = true;
     source.close();
     onDone();
   };
-  return () => source.close();
+  const poll = async () => {
+    if (stopped) return;
+    try {
+      const run = await apiFetch<RunRecord>(`/api/runs/${runId}`);
+      run.events.slice(delivered).forEach(onEvent);
+      delivered = run.events.length;
+      if (TERMINAL.has(run.status)) return finish();
+    } catch {
+      // Keep trying: the run keeps going on the server even while this browser cannot reach it.
+    }
+    timer = setTimeout(() => void poll(), POLL_MS);
+  };
+  source.addEventListener("progress", (e) => {
+    delivered += 1;
+    onEvent(JSON.parse((e as MessageEvent).data));
+  });
+  source.addEventListener("done", finish);
+  source.onerror = () => {
+    source.close();
+    if (!stopped && timer === null) void poll();
+  };
+  return () => {
+    stopped = true;
+    source.close();
+    if (timer) clearTimeout(timer);
+  };
 }
 
 /** Start a run and resolve with its final record once the SSE stream reports completion. */

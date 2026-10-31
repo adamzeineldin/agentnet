@@ -1,11 +1,10 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import type { Provenance, RunStatus } from "@/lib/types";
-import { PageMap } from "./PageMap";
 
-/** Page title block: eyebrow, title, a plain intro, an optional How-it-works link, actions, and (with `here`) the page map. */
-export function PageHeader({ eyebrow, title, guide, actions, here, children }: {
-  eyebrow: string; title: string; guide?: string; actions?: ReactNode; here?: string; children: ReactNode;
+/** Page title block: eyebrow, title, a plain intro, an optional How-it-works link, and actions. */
+export function PageHeader({ eyebrow, title, guide, actions, children }: {
+  eyebrow: string; title: string; guide?: string; actions?: ReactNode; children: ReactNode;
 }) {
   return (
     <div className="space-y-5">
@@ -15,12 +14,11 @@ export function PageHeader({ eyebrow, title, guide, actions, here, children }: {
           <h1 className="text-[28px] font-normal tracking-[-0.02em]">{title}</h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-2">
             {children}
-            {guide && <> <Link href={`/how-it-works#${guide}`} className="whitespace-nowrap text-accent hover:underline">How this works →</Link></>}
+            {guide && <> <Link href={`/#${guide}`} className="whitespace-nowrap text-accent hover:underline">How this works →</Link></>}
           </p>
         </div>
         {actions}
       </div>
-      {here && <PageMap here={here} />}
     </div>
   );
 }

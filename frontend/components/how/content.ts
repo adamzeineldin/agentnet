@@ -17,17 +17,16 @@ export const STEPS: Step[] = [
     title: "The Panda learns the task",
     what: "Robot A, a Franka Panda arm, tries 10 possible routes in the simulator: straight through, over the wall, " +
       "and around either side, each at a few distances from the wall. It keeps the first route that passes the test.",
-    see: "Press Discover Skill in Transfer Lab. You get a video of the run and a card for every route, with why the " +
-      "failed ones failed.",
+    see: "In Try it, press Teach. You get a video of the run and a plain summary of the route it found.",
     detail: "Each route is turned into joint angles with inverse kinematics (IK), screened for collisions, then " +
       "executed in MuJoCo physics through the robot's own motors.",
-    evidence: ["sim"], href: "/transfer", cta: "Open Transfer Lab",
+    evidence: ["sim"], href: "/transfer", cta: "Try it",
   },
   {
     title: "It saves a skill card",
     what: "Publishing stores what was learned: where the start, target and wall were, which route worked, and the " +
       "measurements that prove it. It does not store the Panda's joint angles, because those only fit the Panda's body.",
-    see: "Press Publish Experience. The card appears on the Skills page with its evidence.",
+    see: "Press Save this skill. It appears on the Skills page, under its task, with its evidence.",
     detail: "The card (an \"Experience Capsule\") stores the task in a robot-neutral task frame: origin on the floor " +
       "in front of the robot, x away from it, z up, in metres.",
     evidence: ["sim"], href: "/skills", cta: "Open Skills",
@@ -36,11 +35,11 @@ export const STEPS: Step[] = [
     title: "A different robot adapts it",
     what: "Robot B, a UR5e arm with different joints and reach, places the same task in front of itself and works " +
       "out its own joint motion. It tries the route the Panda found first, then the others.",
-    see: "Press Transfer Skill. Before moving, it previews the most promising routes in simulation " +
-      "(\"imagination\") and shows which ones it predicts will work.",
+    see: "Press Let it learn. Before moving, it previews the most promising routes in simulation (\"imagination\"); " +
+      "afterwards, \"What just happened\" shows how it ranked them and why.",
     detail: "Route order comes from the Panda's experience: the offline planner by default, or Meta Muse Spark when " +
       "a key is configured. The model only ranks and explains; the simulator decides pass or fail.",
-    evidence: ["sim", "model"], href: "/transfer", cta: "Open Transfer Lab",
+    evidence: ["sim", "model"], href: "/transfer", cta: "Try it",
   },
   {
     title: "Physics decides pass or fail",
@@ -55,10 +54,10 @@ export const STEPS: Step[] = [
     title: "Optional: check on the robot's controller software",
     what: "The UR5e's motion can also be sent to URSim, the official controller software from Universal Robots. " +
       "It reports where it actually moved the arm, which we compare with the simulator.",
-    see: "Tick \"also run on the URSim controller\" before transferring. This is controller software, not a physical arm.",
+    see: "Tick \"also run on the URSim controller\" under More options before the learner tries. This is controller software, not a physical arm.",
     detail: "Joint targets are streamed at 125 Hz through ur_rtde. The check passes when the controller reaches the " +
       "final joints and its tool position agrees with the simulator within 5 mm.",
-    evidence: ["controller"], href: "/transfer", cta: "Open Transfer Lab",
+    evidence: ["controller"], href: "/transfer", cta: "Try it",
   },
 ];
 

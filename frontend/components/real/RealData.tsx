@@ -12,6 +12,7 @@ import { ActButton } from "../auth/SignIn";
 import { EventLog } from "../RunEvidence";
 import { ControllerPanel } from "../transfer/ControllerPanel";
 import { RunVideo } from "../transfer/RunMedia";
+import { RunProgress } from "../transfer/RunProgress";
 import { Term } from "../Term";
 import { Badge, Disclosure, ErrorNote, EvidenceTag, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
 import { PathPlot } from "./PathPlot";
@@ -128,6 +129,7 @@ function EpisodeView({ datasetId, index, robots }: { datasetId: string; index: n
         </div>
       </Panel>
       {stream.error && <ErrorNote message={stream.error} />}
+      {stream.busy && <RunProgress events={stream.events} />}
       {run && <Panel title="Replay result"><ReplayResult run={run} live={stream.live} /></Panel>}
     </div>
   );
@@ -143,7 +145,7 @@ export function RealData() {
   return (
     <div className="space-y-6">
       <div className="space-y-2">
-        <PageHeader eyebrow="Real robot data" title="Real Data" guide="trust" here="/real">
+        <PageHeader eyebrow="Real robot data" title="Real Data" guide="trust">
           The same idea as Transfer Lab, but the teacher is a real robot. These hand paths were recorded on a physical
           Panda arm (the public <Term id="droid">DROID</Term> dataset). Pick one and replay it on any arm in the fleet to
           see how closely that arm can follow it. Each arm works out its own joint angles.

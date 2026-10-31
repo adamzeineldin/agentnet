@@ -9,15 +9,13 @@ import { AuthProvider } from "@/lib/auth";
 import type { Health } from "@/lib/types";
 import { SignInDialog, UserMenu } from "./auth/SignIn";
 
-/** Each page in one line, so the nav itself says how the pages differ (also shown as the link's tooltip). */
+/** Five places. How it works lives on the home page, below the hero. */
 export const NAV = [
-  { href: "/", label: "Overview", what: "The project at a glance" },
-  { href: "/how-it-works", label: "How it works", what: "The idea in plain words" },
-  { href: "/under-the-hood", label: "Under the hood", what: "How a skill moves from one arm to another, step by step" },
-  { href: "/robots", label: "Robots", what: "The arms in the fleet, and adding more" },
-  { href: "/transfer", label: "Transfer Lab", what: "Teach one arm a task, then let another arm learn it" },
-  { href: "/skills", label: "Skills", what: "Everything the arms have learned so far" },
-  { href: "/real", label: "Real Data", what: "Motions recorded on a real robot, replayed in simulation" },
+  { href: "/", label: "Home", what: "What Nimbotics is, and how it works" },
+  { href: "/transfer", label: "Try it", what: "Teach one robot a task, then watch another robot learn it" },
+  { href: "/robots", label: "Robots", what: "The robot arms, and adding more" },
+  { href: "/skills", label: "Skills", what: "Every task the robots have learned, and which robot can do what" },
+  { href: "/real", label: "Real data", what: "Motions recorded on a real robot, replayed in simulation" },
   { href: "/evaluation", label: "Results", what: "Does sharing help? Measured, with every run" },
 ];
 
@@ -103,7 +101,7 @@ function Shell({ pathname, children }: { pathname: string; children: ReactNode }
       className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
     <footer className="border-t border-line px-6 py-4 text-center font-mono text-[11px] text-ink-3">
       Results are MuJoCo simulation; real-robot paths are recorded by the DROID dataset; controller checks run on
-      URSim software. Nothing here ran on a physical arm. <Link href="/how-it-works" className="underline">How it works</Link>
+      URSim software. Nothing here ran on a physical arm. <Link href="/#how-it-works" className="underline">How it works</Link>
     </footer>
   </div>;
 }

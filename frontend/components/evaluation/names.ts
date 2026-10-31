@@ -18,3 +18,10 @@ const SUBSET_NAME: Record<string, string> = {
 };
 
 export const subsetName = (k: string): string => SUBSET_NAME[k] ?? k;
+
+/** What each approach actually does, for people who don't read code. */
+export const VARIANT_PLAIN: Record<Variant, string> = {
+  baseline_no_sharing: "The UR5e starts from scratch on every new layout, trying routes in a fixed order.",
+  retarget_only: "The UR5e copies the Panda's route exactly and gives up if it doesn't fit its body.",
+  nimbotics_offline: "The UR5e uses what the Panda learned to decide what to try first, then searches as usual.",
+};
