@@ -4,7 +4,9 @@
   "name": "AgentNet cloud demo",
   "image": "mcr.microsoft.com/devcontainers/base:1-bookworm",
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {}
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    // lets `gh codespace ssh` read the container's logs from outside
+    "ghcr.io/devcontainers/features/sshd:1": {}
   },
   "hostRequirements": { "cpus": 4, "memory": "16gb", "storage": "32gb" },
   "forwardPorts": [7860],
