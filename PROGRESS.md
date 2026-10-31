@@ -253,4 +253,5 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   - `run_20261030_190913_786823` in the container: DROID episode 22 (“Use the duster to wipe the whiteboard”) on the
     UR5e, max deviation 7.3 mm (pass), then URSim: TCP 0.91 mm from target, 0.54 mm from MuJoCo, 14.8 s.
 - ✅ Tests: 171 backend, 14 Playwright.
-- ⬜ Push to Hugging Face Spaces (needs the owner's `hf auth login`): `deploy/push_space.sh <user>/agentnet`.
+- ⬜ Hugging Face Spaces refused the Space (HTTP 402: Docker Spaces need PRO since 2026). Free host instead: GitHub
+  Codespaces (`.devcontainer/`, `deploy/codespace.sh`, D68); `deploy/push_space.sh` stays for a later switch.

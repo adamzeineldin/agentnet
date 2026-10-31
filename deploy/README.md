@@ -18,7 +18,35 @@ When the image is built, the following happen:
 When the container starts, it copies the registry to a writable location. New runs last until the container
 restarts.
 
-## Hugging Face Spaces (free CPU: 2 vCPU, 16 GB)
+## GitHub Codespaces (free tier, the current host)
+
+`.devcontainer/devcontainer.json` asks for a 4-core, 16 GB machine with Docker. When the codespace is created,
+`deploy/codespace.sh build` builds the same image (about 15 minutes). Each time the codespace starts,
+`deploy/codespace.sh start` runs that image on port 7860.
+
+```bash
+gh codespace create -R adamzeineldin/agentnet -b feat/ursim-execution -m standardLinux32gb --idle-timeout 240m
+```
+
+```bash
+gh codespace ports visibility 7860:public -c <codespace-name>
+```
+
+The public link is `https://<codespace-name>-7860.app.github.dev`. Limits of the free tier:
+
+- About 30 hours a month on this machine (120 core-hours).
+- The codespace stops after 4 hours without activity in it; visitors to the link don't count as activity.
+  Restart it with this command (or from github.com/codespaces) before a demo:
+
+  ```bash
+  gh codespace start -c <codespace-name>
+  ```
+
+- Runs and the registry are kept across stops, because the container is reused.
+
+## Hugging Face Spaces (needs PRO)
+
+Since 2026, Docker Spaces on free CPU need a PRO subscription ($9/month); creating one without it returns HTTP 402.
 
 Log in once yourself:
 
