@@ -8,6 +8,7 @@ import { useApi } from "@/lib/useApi";
 import { AuthProvider } from "@/lib/auth";
 import type { Health } from "@/lib/types";
 import { SignInDialog, UserMenu } from "./auth/SignIn";
+import { Logo } from "./Logo";
 
 /** Five places. How it works lives on the home page, below the hero. */
 export const NAV = [
@@ -79,8 +80,8 @@ function Shell({ pathname, children }: { pathname: string; children: ReactNode }
   return <div className="flex min-h-screen flex-col">
     <header className="sticky top-0 z-20 border-b border-line bg-panel">
       <div className="flex min-h-14 flex-wrap items-center gap-x-6 px-4 lg:px-8">
-        <Link href="/" aria-label="nimbotics home" className="flex h-14 shrink-0 items-center gap-2.5 text-base font-semibold">
-          <span className="size-[11px] bg-ink" aria-hidden="true" />nimbotics
+        <Link href="/" aria-label="nimbotics home" className="flex h-14 shrink-0 items-center text-base font-semibold">
+          <Logo />
         </Link>
         <nav aria-label="Main navigation" className="order-3 flex w-full overflow-x-auto text-[13px] lg:order-none lg:w-auto">
           {NAV.map((item) => {

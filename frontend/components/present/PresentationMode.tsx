@@ -7,6 +7,7 @@ import { fmtDateTime } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import type { DemoStory, ExperienceCapsule, RobotPassport, RunEvent, RunRecord } from "@/lib/types";
 import { Badge, ErrorNote } from "../ui";
+import { Logo } from "../Logo";
 import {
   Pending, SceneAdaptation, SceneCapsule, SceneImagination, ScenePassports, SceneSearch, SceneShell,
 } from "./scenes";
@@ -129,7 +130,7 @@ export function PresentationMode() {
   return (
     <div className="mx-auto flex min-h-screen max-w-[1440px] flex-col px-6 py-5 md:px-10">
       <header className="flex flex-wrap items-center gap-4 border-b border-line pb-4">
-        <Link href="/" className="font-semibold tracking-tight" title="Exit presentation">Nimbotics</Link>
+        <Link href="/" className="font-semibold" title="Exit presentation"><Logo /></Link>
         <span className="hidden text-sm text-ink-3 md:inline">Simulation-verified experience sharing across robot bodies</span>
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {mode === "live" ? <Badge tone="accent">● LIVE · MuJoCo now</Badge>

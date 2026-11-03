@@ -313,3 +313,10 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Deployed 2026-11-03 (`020d64f`): the 9 runs already on the live site were copied onto the `nimbotics-runtime` volume;
   a discovery run on layout 77 showed live frames, recorded 3 try clips and finished in 9.4 s (was ~17 s with one clip).
 - ✅ Tests: 252 backend (live frames, try clips, route events, compact list, paging), smoke, Playwright.
+
+## Logo ✅ (2026-11-03)
+- ✅ New wordmark (`frontend/components/Logo.tsx`): the leading n is drawn as a robot arm with its gripper as a dot,
+  and the dot on the i is the accent color; drawn in em units so it matches IBM Plex Sans at any size. Used in the
+  header and presentation mode; screen readers hear "nimbotics".
+- ✅ App icon: the arm n on a dark rounded tile (`app/icon.svg`), rendered into `favicon.ico` (16/32/48) and
+  `apple-icon.png` (180).
