@@ -62,7 +62,7 @@ def _execute_and_verify(
     out_dir = ARTIFACT_DIR / "runs" / ctx.run_id
     data = adapter.new_data()
     ctx.event("executing", f"Jogging {adapter.joints[0].name} by {jog[0] - home[0]:+.3f} rad")
-    with FrameRecorder(adapter.model) as rec:
+    with FrameRecorder(adapter.model, on_frame=ctx.live("Jog, return home, then reach")) as rec:
         jog_res = execute_path(adapter, data, [home, jog], frame_hook=rec.capture)
         achieved = jog_res.final_q[0] - float(home[0])
         ctx.event("executing", "Returning home, then executing IK reach")

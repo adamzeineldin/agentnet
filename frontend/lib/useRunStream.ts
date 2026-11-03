@@ -6,6 +6,8 @@ import type { RunEvent, RunRecord } from "./types";
 
 export interface RunStream {
   run: RunRecord | null;
+  /** The run being watched, from the moment it is queued (run stays null until it finishes). */
+  runId: string | null;
   events: RunEvent[];
   busy: boolean;
   live: boolean;
@@ -20,6 +22,7 @@ export interface RunStream {
 /** One backend run: start it (live SSE) or load a recorded one (replay). */
 export function useRunStream(): RunStream {
   const [run, setRun] = useState<RunRecord | null>(null);
+  const [runId, setRunId] = useState<string | null>(null);
   const [events, setEvents] = useState<RunEvent[]>([]);
   const [busy, setBusy] = useState(false);
   const [live, setLive] = useState(false);
@@ -32,6 +35,7 @@ export function useRunStream(): RunStream {
     try {
       const r = await apiFetch<RunRecord>(`/api/runs/${runId}`);
       setRun(r);
+      setRunId(r.run_id);
       setEvents(r.events);
       setLive(false);
     } catch (e) {
@@ -48,6 +52,7 @@ export function useRunStream(): RunStream {
 
   const clear = useCallback(() => {
     setRun(null);
+    setRunId(null);
     setEvents([]);
     setLive(false);
   }, []);
@@ -58,9 +63,11 @@ export function useRunStream(): RunStream {
     setError(null);
     setLive(true);
     setRun(null);
+    setRunId(null);
     setEvents([]);
     try {
       const queued = await starter();
+      setRunId(queued.run_id);
       unsubscribe.current = subscribeRun(queued.run_id, (ev) => setEvents((p) => [...p, ev]), async () => {
         try {
           const r = await apiFetch<RunRecord>(`/api/runs/${queued.run_id}`);
@@ -78,5 +85,5 @@ export function useRunStream(): RunStream {
     }
   }, []);
 
-  return { run, events, busy, live, error, start, load, refresh, setError, clear };
+  return { run, runId, events, busy, live, error, start, load, refresh, setError, clear };
 }

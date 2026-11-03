@@ -18,7 +18,9 @@ from typing import Any, TypeVar
 import mujoco
 
 from app.models.run import RunEvent, RunRecord, RunStatus, RunType
+from app.services.live import LIVE
 from app.services.registry import Registry, utcnow
+from app.services.render import FrameSink
 from app.services.robot_adapter import RobotAdapter
 from app.services.robot_catalog import get_robot_decl
 from app.services.scene import build_model
@@ -77,6 +79,10 @@ class RunContext:
         return self.registry.append_event(
             self.run_id, RunEvent(at=utcnow(), status=status, message=message, data=data)
         )
+
+    def live(self, label: str) -> FrameSink:
+        """FrameRecorder callback that shows its frames in this run's live view under `label`."""
+        return LIVE.sink(self.run_id, label)
 
     def update(self, **changes: Any) -> RunRecord:
         """Persist field changes (new record) without adding an event."""
@@ -138,3 +144,5 @@ def run_guarded(
     except Exception as exc:  # noqa: BLE001 - recorded on the run, then surfaced via API
         log.exception("Run %s crashed", run_id)
         return ctx.finish(False, f"Run crashed: {type(exc).__name__}", error=str(exc))
+    finally:
+        LIVE.clear(run_id)

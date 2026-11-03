@@ -66,7 +66,8 @@ returns.
    ```
 
    Repeat for `GITHUB_CLIENT_SECRET`, `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
-4. Restart the codespace so it sees the secrets, then recreate the container (runs recorded so far are lost):
+4. Restart the codespace so it sees the secrets, then recreate the container (runs are kept on the
+   `nimbotics-runtime` volume):
 
    ```bash
    gh codespace ssh -c <codespace-name> -- 'bash -lc "docker rm -f nimbotics; cd /workspaces/agentnet && bash deploy/codespace.sh start"'

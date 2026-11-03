@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import type { RunEvent } from "@/lib/types";
 
-/** What a running job is doing right now, in one line, plus how long it has taken. */
-export function RunProgress({ events }: { events: RunEvent[] }) {
+/** What a running job is doing right now, in one line, plus how long it has taken. `message` replaces the raw log line. */
+export function RunProgress({ events, message }: { events: RunEvent[]; message?: string }) {
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     const id = setInterval(() => setNow(Date.now()), 1000);
@@ -18,7 +18,7 @@ export function RunProgress({ events }: { events: RunEvent[] }) {
     <div role="status" className="flex items-start gap-3 rounded-xl bg-panel-2 px-4 py-3 text-sm">
       <span aria-hidden="true" className="mt-1.5 size-2 shrink-0 animate-pulse rounded-full bg-accent" />
       <div className="min-w-0">
-        <p className="text-ink">{waiting ? "Waiting for its turn on the simulator…" : last.message}</p>
+        <p className="text-ink">{waiting ? "Waiting for its turn on the simulator…" : message ?? last.message}</p>
         <p className="mt-0.5 text-xs text-ink-3">
           {waiting
             ? "The shared server runs one simulation at a time, so other people's runs may go first. "

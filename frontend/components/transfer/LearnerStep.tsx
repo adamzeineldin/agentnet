@@ -15,9 +15,8 @@ import { ControllerPanel } from "./ControllerPanel";
 import { describeTransfer } from "./describe";
 import { ImaginationPanel } from "./ImaginationPanel";
 import { JointCorrespondence } from "./JointCorrespondence";
-import { RunProgress } from "./RunProgress";
+import { RunViewer } from "../run/RunViewer";
 import { RunStory } from "./RunStory";
-import { RunVideo } from "./RunMedia";
 
 interface LearnerStepProps {
   teacher: RobotSummary;
@@ -88,20 +87,22 @@ export function LearnerStep({ teacher, learner, robots, stream, teacherLayout, o
         disabled={busy} className="button-primary disabled:cursor-wait disabled:opacity-50">
         {busy ? "Learning…" : `Let the ${l} learn it`}
       </ActButton>
-      {busy && <RunProgress events={stream.events} />}
+      {run && !busy && (
+        <div className="soft-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <p className={`min-w-0 flex-1 text-base ${run.status === "succeeded" ? "text-ink" : "text-bad"}`}>{describeTransfer(run, t, l)}</p>
+          {run.status === "succeeded" && (saved
+            ? <p className="text-sm text-good">✓ Saved. It shows on the <Link href="/skills" className="underline">Skills</Link> page as learned from the {t}.</p>
+            : <ActButton onClick={onSave} className="button-primary">Save the {l}&apos;s version</ActButton>)}
+        </div>
+      )}
+      {(busy || run) && (
+        <RunViewer key={stream.runId ?? "none"} kind="transfer" runId={stream.runId} events={stream.events} run={run} busy={busy}
+          names={{ robot: l, teacher: t, robotDof: learner.dof, teacherDof: teacher.dof }} />
+      )}
       {run && !busy && (
         <div className="space-y-5">
-          <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <RunVideo run={run} busy={false} emptyLabel="" />
-            <div className="space-y-3">
-              <p className={`text-base ${run.status === "succeeded" ? "text-ink" : "text-bad"}`}>{describeTransfer(run, t, l)}</p>
-              {run.status === "succeeded" && (saved
-                ? <p className="text-sm text-good">✓ Saved. It shows on the <Link href="/skills" className="underline">Skills</Link> page as learned from the {t}.</p>
-                : <ActButton onClick={onSave} className="button-primary">Save the {l}&apos;s version</ActButton>)}
-              {controller && <ControllerPanel execution={controller} />}
-            </div>
-          </div>
-          <Disclosure summary="What just happened" hint="the four steps of this run, in plain words" open>
+          {controller && <ControllerPanel execution={controller} />}
+          <Disclosure summary={`How the skill was mapped onto the ${l}`} hint="sketches of the task in each robot's frame and the full route order">
             <RunStory run={run} robots={robots} />
           </Disclosure>
           <Disclosure summary="Technical detail" hint="predicted futures, joint limits and the full log">

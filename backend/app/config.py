@@ -56,6 +56,12 @@ REACH_TOLERANCE_M = 0.01
 RENDER_WIDTH = int(os.environ.get("NIMBOTICS_RENDER_WIDTH") or 960)
 RENDER_HEIGHT = int(os.environ.get("NIMBOTICS_RENDER_HEIGHT") or 540)
 VIDEO_FPS = int(os.environ.get("NIMBOTICS_VIDEO_FPS") or 30)
+# Shadows and reflections cost ~80% of an OSMesa frame (240 ms -> 48 ms at 640x360); the cloud copy turns them off.
+RENDER_EFFECTS = os.environ.get("NIMBOTICS_RENDER_EFFECTS", "1") != "0"
+# Clips of each physics try during the route search (the chosen route's clip uses RENDER_WIDTH/HEIGHT).
+CLIP_WIDTH, CLIP_HEIGHT = 448, 252  # 16:9, both multiples of 4 so the encoder never resizes
+# The live view keeps at most one JPEG per running run, refreshed at most this often (wall-clock seconds).
+LIVE_FRAME_INTERVAL_S = 0.1
 CONTROLLER_STREAM_HZ = 125.0
 CONTROLLER_FINAL_TOL_RAD = 1e-3
 # Controller TCP vs MuJoCo FK at the same joints; nominal UR kinematics vs the Menagerie model differ by ~1 mm.

@@ -76,7 +76,7 @@ def discover_headless(robot_id: str, task: TaskSpec, passport: RobotPassport) ->
         return None
     planned = [evaluate_candidate(setup.adapter, c, setup.placement, setup.q_start) for c in generate_candidates(task)]
     order = [p.summary.candidate_id for p in sorted((p for p in planned if p.joint_path), key=lambda p: p.summary.cost)]
-    summaries, _ = rollout(_Silent(), setup, planned, order, PHYSICS_BUDGET)
+    summaries, _ = rollout(_Silent(), setup, planned, order, PHYSICS_BUDGET, record=False)
     verified = [s for s in summaries if s.outcome == "verified"]
     if not verified:
         return None

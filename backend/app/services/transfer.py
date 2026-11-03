@@ -23,6 +23,7 @@ from app.services.candidate_search import (
     evaluate_all,
     execute_and_verify,
     prepare,
+    route_brief,
     search_metrics,
 )
 from app.services.capsules import build_capsule, compact_outcomes
@@ -120,6 +121,11 @@ def transfer_skill(
     capsule = registry.get_skill(source_skill_id)
     if capsule is None:
         return ctx.finish(False, f"Capsule {source_skill_id} not found in registry")
+    ctx.event("retrieving", f"Capsule from {capsule.source_robot_id}: {capsule.strategy.route_class}"
+              f"@{capsule.strategy.clearance_m:.2f} on {capsule.task.scene_id}; no joint angles",
+              source_robot_id=capsule.source_robot_id, strategy=capsule.strategy.model_dump(mode="json"),
+              source_task=capsule.task.model_dump(mode="json"), source_placement=capsule.placement.model_dump(mode="json"),
+              source_trace=capsule.executed_trace_task_frame)
     source_passport = registry.get_passport(capsule.source_robot_id)
     task = capsule.task if scene_seed is None or scene_seed == capsule.task.seed else generate_task(scene_seed)
     decl = get_robot_decl(target_robot_id)
@@ -150,7 +156,8 @@ def _search_and_execute(
     ordered = prior_order(generate_candidates(setup.task), capsule)
     notes = {c.candidate_id: (i + 1, n) for i, (c, _, n) in enumerate(ordered)}
     offline_order = [c.candidate_id for c, _, _ in ordered]
-    ctx.event("checking", f"Kinematic screening of {len(ordered)} hypotheses on {setup.decl.short_name}")
+    ctx.event("checking", f"Kinematic screening of {len(ordered)} hypotheses on {setup.decl.short_name}",
+              routes=[route_brief(c, prior_rank=i + 1, prior_note=n) for i, (c, _, n) in enumerate(ordered)])
     planned = evaluate_all(ctx, setup, [c for c, _, _ in ordered])
     context = build_context(setup, capsule, source_passport, passport, planned, offline_order, MAX_PHYSICS_ROLLOUTS)
     imagined = imagine(ctx, setup, planned, provider, context, MAX_PHYSICS_ROLLOUTS)

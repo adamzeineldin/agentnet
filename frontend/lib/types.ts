@@ -170,7 +170,7 @@ export interface CandidateSummary {
   contacts: Record<string, unknown>[];
   physics: {
     endpoint_error_m: number; simulated_seconds: number; collisions: unknown[]; checks: Record<string, boolean>;
-    trace_task?: Vec3[]; thumbnail?: string; future_index?: number;
+    trace_task?: Vec3[]; thumbnail?: string; video?: string; future_index?: number;
   } | null;
   cost: number | null;
   prior_rank?: number | null;

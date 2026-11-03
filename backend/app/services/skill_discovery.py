@@ -13,6 +13,7 @@ from app.services.candidate_search import (
     execute_and_verify,
     prepare,
     rollout,
+    route_brief,
     search_metrics,
 )
 from app.services.capsules import build_capsule, compact_outcomes
@@ -41,7 +42,7 @@ def discover_skill(ctx: RunContext, robot_id: str, seed: int, passport: RobotPas
 
     candidates = generate_candidates(task)
     ctx.event("proposing", f"Enumerated {len(candidates)} candidate routes",
-              candidates=[c.candidate_id for c in candidates])
+              candidates=[c.candidate_id for c in candidates], routes=[route_brief(c) for c in candidates])
     planned = evaluate_all(ctx, setup, candidates)
     feasible = sorted((p for p in planned if p.joint_path), key=lambda p: p.summary.cost)
     order = [p.summary.candidate_id for p in feasible]

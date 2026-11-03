@@ -12,6 +12,7 @@ import { ActButton } from "../auth/SignIn";
 import { EventLog } from "../RunEvidence";
 import { ControllerPanel } from "../transfer/ControllerPanel";
 import { RunVideo } from "../transfer/RunMedia";
+import { RunScreen } from "../run/RunScreen";
 import { RunProgress } from "../transfer/RunProgress";
 import { Term } from "../Term";
 import { Badge, Disclosure, ErrorNote, EvidenceTag, Loading, PageHeader, Panel, Stat, StatusBadge } from "../ui";
@@ -129,7 +130,13 @@ function EpisodeView({ datasetId, index, robots }: { datasetId: string; index: n
         </div>
       </Panel>
       {stream.error && <ErrorNote message={stream.error} />}
-      {stream.busy && <RunProgress events={stream.events} />}
+      {stream.busy && (
+        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,1fr)]">
+          <RunScreen runId={stream.runId} run={null} busy view={{ kind: "live" }}
+            lastStatus={stream.events.at(-1)?.status ?? null} hasTries={false} onBack={() => undefined} />
+          <RunProgress events={stream.events} />
+        </div>
+      )}
       {run && <Panel title="Replay result"><ReplayResult run={run} live={stream.live} /></Panel>}
     </div>
   );

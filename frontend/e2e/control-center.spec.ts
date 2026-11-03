@@ -10,7 +10,7 @@ test("home shows the hero and, below it, how it works", async ({ page }) => {
   await expect(page.getByText("backend live")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("One robot learns it.");
   await expect(page.getByRole("heading", { name: "Teach one robot arm a task. Let a different arm do it too." })).toBeVisible();
-  await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link")).toHaveCount(6);
+  await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link")).toHaveCount(7);
 });
 
 test("robots page explains each robot plainly and keeps model-derived fields one click away", async ({ page }) => {
@@ -33,12 +33,21 @@ test("try it: teach, save, learn, save — real jobs, explained in plain words",
   await expect(save).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/The Panda found a way: /)).toBeVisible();
   await expect(page.locator("video").first()).toBeVisible();
+  const steps = page.getByRole("list", { name: "What the simulator is doing" });
+  await expect(steps.getByText("Check each route against the Panda's joints")).toBeVisible();
+  await expect(steps.getByText(/10 of 10 checked/)).toBeVisible();
+  await steps.getByRole("button", { name: /Watch physics try 1:/ }).click();
+  await expect(page.getByText(/^Physics try 1: /)).toBeVisible();
+  await page.getByRole("button", { name: "← back to the final run" }).click();
   await save.click();
   await expect(page.getByText("✓ Saved as a skill. Other robots can now learn it.")).toBeVisible();
 
   await page.getByRole("button", { name: "Let the UR5e learn it" }).click();
   await expect(page.getByRole("button", { name: "Save the UR5e's version" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/The UR5e used the Panda's idea|didn't work for the UR5e/)).toBeVisible();
+  await expect(page.getByText("Read the Panda's saved skill")).toBeVisible();
+  await expect(page.getByText(/The Panda has 7 joints and the UR5e has 6/)).toBeVisible();
+  await page.locator("summary", { hasText: "How the skill was mapped onto the UR5e" }).click();
   await expect(page.getByRole("heading", { name: "What the UR5e was given" })).toBeVisible();
   await page.locator("summary", { hasText: "Technical detail" }).click();
   await expect(page.getByText("Collective Imagination · predicted futures")).toBeVisible();
@@ -131,11 +140,15 @@ test("run history shows a failed run honestly with its reason", async ({ page, r
   const res = await request.post(`${API}/api/robots/panda_01/motion-check`, { data: { target: [1.15, 0, 0.3] } });
   expect(res.status()).toBe(202);
   await page.goto("/history");
-  await page.getByRole("tab", { name: "motion check" }).click();
-  const failed = page.getByRole("button", { name: /Open motion check/ }).filter({ hasText: "failed" }).first();
+  await page.getByRole("tab", { name: "Motion checks" }).click();
+  const failed = page.getByRole("button", { name: /Open Motion check/ }).filter({ hasText: "failed" }).first();
   await expect(failed).toBeVisible();
   await failed.click();
-  await expect(page.getByText("IK found no collision-free solution").first()).toBeVisible();
+  const dialog = page.getByRole("dialog", { name: "Motion check" });
+  await expect(dialog).toBeInViewport();
+  await expect(dialog.getByText("IK found no collision-free solution").first()).toBeVisible();
+  await dialog.getByRole("button", { name: "Close run" }).click();
+  await expect(dialog).toBeHidden();
 });
 
 test("results answers whether sharing helps, from a real benchmark run", async ({ page }) => {
@@ -154,6 +167,7 @@ test("try it tells the story of the latest transfer from stored data", async ({ 
     .filter((r: { status: string }) => r.status === "succeeded");
   expect(transfer).toBeTruthy();
   await page.goto("/transfer");
+  await page.locator("summary", { hasText: "How the skill was mapped onto the UR5e" }).click();
   for (const heading of ["What the UR5e was given", "The task is placed in front of the UR5e", "Which route to try first", "The physics test"]) {
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();
   }
@@ -194,11 +208,17 @@ test("theme choice survives navigation and reload", async ({ page }) => {
 
 test("history filters and skills grouped by task use the recorded registry", async ({ page }) => {
   await page.goto("/history");
-  await page.getByRole("tab", { name: "failed", exact: true }).click();
-  await expect(page.getByRole("button", { name: /Open motion check/ }).first()).toBeVisible();
-  await expect(page.getByRole("button", { name: /Open discover/ })).toHaveCount(0);
-  await page.getByRole("tab", { name: "queued", exact: true }).click();
+  await page.getByRole("tab", { name: "Failed", exact: true }).click();
+  await expect(page.getByRole("button", { name: /Open Motion check/ }).first()).toBeVisible();
+  await expect(page.getByRole("button", { name: /Open Learned a task/ })).toHaveCount(0);
+  await page.getByRole("tab", { name: "Running", exact: true }).click();
   await expect(page.getByText("No runs match these filters.")).toBeVisible();
+  await page.getByRole("tab", { name: "Any result", exact: true }).click();
+  await page.getByRole("tab", { name: "Learned from another robot" }).click();
+  await page.getByRole("button", { name: /Open Learned from another robot/ }).first().click();
+  const dialog = page.getByRole("dialog", { name: "Learned from another robot" });
+  await expect(dialog).toBeInViewport();
+  await expect(dialog.getByRole("button", { name: /Watch physics try 1:/ })).toBeVisible();
   await page.goto("/skills");
   await expect(page.getByRole("article", { name: "Reach past a wall · layout 7" })).toBeVisible();
   await page.getByRole("tab", { name: "xArm 7" }).click();

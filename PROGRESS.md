@@ -300,3 +300,14 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Results: computed verdict with an honest caveat (wall + roof layouts needed more searching), two bar comparisons,
   plain descriptions of the three approaches; full comparison and raw data behind disclosures.
 - ✅ Tests: 244 backend, 17 Playwright.
+
+## Watch runs live, see every try ✅ (2026-11-01)
+- ✅ Try it, All runs and Real data show the simulation while it runs: a live MuJoCo picture (newest rendered frame)
+  next to the run's stages (set up, routes checked, route order from the teacher's skill, physics tries, final
+  recording), filled in as progress events arrive, plus a map of every route drawn as it is checked (D77).
+- ✅ Every physics try now has its own clip and hand path; any try can be replayed from the step list (D78).
+- ✅ "All runs" is in the nav. A run opens in a dialog in view (it used to open above the list, off screen), filters
+  cover every run type, results filter on the server, and the list pages instead of capping at 200 (D79).
+- ✅ Cloud: rendering without shadows (5× faster frames on OSMesa); registry and clips on a Docker volume so redeploys
+  keep runs.
+- ✅ Tests: 252 backend (live frames, try clips, route events, compact list, paging), smoke, Playwright.

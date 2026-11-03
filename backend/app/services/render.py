@@ -6,6 +6,7 @@ simulation worker) and close it when done.
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,7 +15,9 @@ import mujoco
 import numpy as np
 from PIL import Image
 
-from app.config import RENDER_HEIGHT, RENDER_WIDTH, VIDEO_FPS
+from app.config import RENDER_EFFECTS, RENDER_HEIGHT, RENDER_WIDTH, VIDEO_FPS
+
+FrameSink = Callable[[np.ndarray], None]
 
 
 @dataclass(frozen=True)
@@ -29,12 +32,15 @@ DEFAULT_VIEW = CameraView()
 
 
 class FrameRecorder:
+    """Captures frames for a clip; `on_frame` also sees each frame (e.g. the live view)."""
+
     def __init__(
         self,
         model: mujoco.MjModel,
         view: CameraView = DEFAULT_VIEW,
         width: int = RENDER_WIDTH,
         height: int = RENDER_HEIGHT,
+        on_frame: FrameSink | None = None,
     ) -> None:
         self.model = model
         self.renderer = mujoco.Renderer(model, height, width)
@@ -45,13 +51,23 @@ class FrameRecorder:
         self.camera.elevation = view.elevation
         self.option = mujoco.MjvOption()
         self.option.sitegroup[:] = [1, 1, 1, 0, 0, 0]
+        self.on_frame = on_frame
         self.frames: list[np.ndarray] = []
 
     def capture(self, data: mujoco.MjData) -> np.ndarray:
         self.renderer.update_scene(data, self.camera, self.option)
+        if not RENDER_EFFECTS:
+            self.renderer.scene.flags[mujoco.mjtRndFlag.mjRND_SHADOW] = 0
+            self.renderer.scene.flags[mujoco.mjtRndFlag.mjRND_REFLECTION] = 0
         frame = self.renderer.render().copy()
         self.frames.append(frame)
+        if self.on_frame is not None:
+            self.on_frame(frame)
         return frame
+
+    def new_clip(self) -> None:
+        """Start a new clip with the same renderer (one GL context for several clips)."""
+        self.frames = []
 
     def save_png(self, frame: np.ndarray, path: Path) -> Path:
         path.parent.mkdir(parents=True, exist_ok=True)

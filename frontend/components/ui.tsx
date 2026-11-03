@@ -59,6 +59,8 @@ const TONES = {
   bad: "text-bad",
 } as const;
 
+export type BadgeTone = keyof typeof TONES;
+
 export function Badge({ tone = "neutral", children, title }: {
   tone?: keyof typeof TONES; children: ReactNode; title?: string;
 }) {

@@ -17,6 +17,7 @@ export const NAV = [
   { href: "/skills", label: "Skills", what: "Every task the robots have learned, and which robot can do what" },
   { href: "/real", label: "Real data", what: "Motions recorded on a real robot, replayed in simulation" },
   { href: "/evaluation", label: "Results", what: "Does sharing help? Measured, with every run" },
+  { href: "/history", label: "All runs", what: "Every simulation, running or finished: watch it step by step" },
 ];
 
 function subscribeTheme(onChange: () => void) {

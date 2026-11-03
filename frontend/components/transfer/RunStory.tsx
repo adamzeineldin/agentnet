@@ -7,29 +7,10 @@ import type {
   CandidateSummary, Placement, ReasoningTrace, RobotSummary, RunRecord, SearchMetrics, SkillDetail, TaskSpec,
 } from "@/lib/types";
 import { PlacementSketch, TaskSketch } from "../hood/Sketches";
+import { outcomeText, plainNote } from "../run/outcomes";
 import { Badge, ErrorNote, Loading, Stat } from "../ui";
 import { routeName, skillName } from "./skillName";
 
-const OUTCOME: Record<string, { text: string; tone: "good" | "bad" | "neutral" | "accent" }> = {
-  verified: { text: "passed the physics test", tone: "good" },
-  physics_failure: { text: "failed the physics test", tone: "bad" },
-  feasible: { text: "possible, not needed", tone: "neutral" },
-  not_simulated: { text: "possible, not needed", tone: "neutral" },
-  collision: { text: "would hit something", tone: "bad" },
-  insufficient_clearance: { text: "too close to the wall", tone: "bad" },
-  unreachable: { text: "arm can't reach it", tone: "bad" },
-  discontinuous_ik: { text: "arm would have to jump", tone: "bad" },
-};
-
-/** The offline prior's note (services/transfer.py prior_order) in plain words. */
-function plainNote(note: string, teacher: string): string {
-  if (note.startsWith("capsule strategy")) return `Exactly the route that worked for the ${teacher}`;
-  if (note.startsWith("same route class")) return `Same kind of route as the ${teacher}'s, at a different distance from the wall`;
-  if (note.startsWith("alternative verified")) return `Another route that also worked for the ${teacher}`;
-  if (note.startsWith("kinematically feasible")) return `Was possible for the ${teacher}, but never tested`;
-  if (note.startsWith("source: ")) return `Didn't work for the ${teacher} (${note.slice(8)})`;
-  return note;
-}
 
 function Part({ n, title, children }: { n: number; title: string; children: ReactNode }) {
   return (
@@ -50,7 +31,7 @@ function Ranking({ run, trace, teacher }: { run: RunRecord; trace?: ReasoningTra
   return (
     <ol className="space-y-2" aria-label="Learner's route order">
       {shown.map((c, i) => {
-        const o = OUTCOME[c.outcome] ?? { text: c.outcome.replaceAll("_", " "), tone: "neutral" as const };
+        const o = outcomeText(c.outcome);
         return (
           <li key={c.candidate_id} className={`soft-card flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 ${c.candidate_id === selected ? "border-good" : ""}`}>
             <span className="w-6 font-mono text-sm text-ink-3">{i + 1}.</span>

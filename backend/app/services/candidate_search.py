@@ -10,11 +10,12 @@ Stages, all on the robot's own model:
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import nullcontext
 from dataclasses import dataclass
 
 import numpy as np
 
-from app.config import ARTIFACT_DIR, REACH_TOLERANCE_M
+from app.config import ARTIFACT_DIR, CLIP_HEIGHT, CLIP_WIDTH, REACH_TOLERANCE_M
 from app.models.run import RunRecord
 from app.models.skill import CandidateSummary, ExperienceCapsule, Placement, TaskSpec
 from app.services.capsules import compact_outcomes
@@ -26,9 +27,10 @@ from app.services.robot_catalog import RobotDecl
 from app.services.route_planner import PlannedCandidate, RouteCandidate, evaluate_candidate, solve_start
 from app.services.scene import build_model
 from app.services.simulation import ExecutionResult, execute_path
-from app.services.task_scene import task_to_base, world_scene
+from app.services.task_scene import base_to_task, task_to_base, to_vec3, world_scene
 
 START_IK_SEEDS = 8
+MAX_TRACE_POINTS = 60
 CapsuleFactory = Callable[[ExecutionResult, dict], ExperienceCapsule]
 # Runs only after a verified execution; returns extra results (e.g. the controller execution).
 AfterVerify = Callable[[list], dict]
@@ -58,6 +60,12 @@ def prepare(decl: RobotDecl, task: TaskSpec, placement: Placement, seed: int) ->
     return SearchSetup(decl, task, placement, adapter, q_start, task_to_base(task.target, placement))
 
 
+def route_brief(cand: RouteCandidate, **extra) -> dict:
+    """A candidate's geometry for progress events, so the live view can draw it before it is checked."""
+    return {"candidate_id": cand.candidate_id, "route_class": cand.route_class, "clearance_m": cand.clearance_m,
+            "waypoints_task": [list(w) for w in cand.waypoints_task], **extra}
+
+
 def evaluate_all(
     ctx: RunContext, setup: SearchSetup, candidates: list[RouteCandidate]
 ) -> list[PlannedCandidate]:
@@ -66,8 +74,38 @@ def evaluate_all(
         p = evaluate_candidate(setup.adapter, cand, setup.placement, setup.q_start)
         planned.append(p)
         ctx.event("checking", f"{cand.candidate_id}: {p.summary.outcome} — {p.summary.reason}",
-                  candidate_id=cand.candidate_id, outcome=p.summary.outcome)
+                  candidate_id=cand.candidate_id, outcome=p.summary.outcome, reason=p.summary.reason,
+                  min_clearance_m=p.summary.min_clearance_m)
     return planned
+
+
+def trace_in_task(res: ExecutionResult, placement: Placement) -> list:
+    """The simulated end-effector path in the task frame, thinned to MAX_TRACE_POINTS."""
+    trace = [to_vec3(base_to_task(p, placement)) for p in res.ee_trace]
+    stride = max(1, -(-len(trace) // MAX_TRACE_POINTS))
+    return [*trace[::stride], trace[-1]] if trace else []
+
+
+def recorded_try(
+    ctx: RunContext, setup: SearchSetup, rec: FrameRecorder, cid: str, joint_path, index: int, budget: int,
+) -> tuple[ExecutionResult, dict]:
+    """One physics try, rendered into its own clip and shown live while it runs."""
+    rec.new_clip()
+    rec.on_frame = ctx.live(f"Physics try {index} of {budget}: {cid}")
+    res, phys = physics_rollout(setup.adapter, setup.q_start, joint_path, setup.target_base, frame_hook=rec.capture)
+    stem = ARTIFACT_DIR / "runs" / ctx.run_id / f"try_{cid.replace('@', '_')}"
+    video = rec.save_mp4(stem.with_suffix(".mp4"))
+    thumb = rec.save_png(rec.frames[-1], stem.with_suffix(".png"))
+    return res, {**phys, "trace_task": trace_in_task(res, setup.placement), "future_index": index,
+                 "video": artifact_url(video), "thumbnail": artifact_url(thumb)}
+
+
+def try_event(ctx: RunContext, message: str, cid: str, s: CandidateSummary) -> None:
+    phys = s.physics or {}
+    ctx.event("simulating", message, candidate_id=cid, outcome=s.outcome, reason=s.reason,
+              endpoint_error_m=phys.get("endpoint_error_m"), collisions=len(phys.get("collisions", [])),
+              future_index=phys.get("future_index"), video=phys.get("video"), thumbnail=phys.get("thumbnail"),
+              trace_task=phys.get("trace_task"))
 
 
 def physics_rollout(
@@ -111,20 +149,27 @@ def with_physics(s: CandidateSummary, phys: dict) -> CandidateSummary:
 
 
 def rollout(
-    ctx: RunContext, setup: SearchSetup, planned: list[PlannedCandidate], order: list[str], budget: int
+    ctx: RunContext, setup: SearchSetup, planned: list[PlannedCandidate], order: list[str], budget: int,
+    record: bool = True,
 ) -> tuple[list[CandidateSummary], list[str]]:
-    """Simulate up to `budget` feasible candidates in `order`. Returns (summaries, simulated ids in order)."""
+    """Simulate up to `budget` feasible candidates in `order`. Returns (summaries, simulated ids in order).
+
+    record=False skips the clips and live frames (headless evaluation); the physics is identical.
+    """
     by_id = {p.summary.candidate_id: p for p in planned}
     simulated = [cid for cid in order if by_id[cid].joint_path is not None][:budget]
     feasible_n = sum(1 for p in planned if p.joint_path is not None)
     ctx.event("simulating", f"Physics rollouts of {len(simulated)} of {feasible_n} feasible candidates",
               candidates=simulated)
     updated: dict[str, CandidateSummary] = {}
-    for cid in simulated:
-        _, phys = physics_rollout(setup.adapter, setup.q_start, by_id[cid].joint_path, setup.target_base)
-        updated[cid] = with_physics(by_id[cid].summary, phys)
-        ctx.event("simulating", f"{cid}: {updated[cid].outcome}", candidate_id=cid,
-                  endpoint_error_m=phys["endpoint_error_m"], collisions=len(phys["collisions"]))
+    recorder = FrameRecorder(setup.adapter.model, task_view(setup.placement), CLIP_WIDTH, CLIP_HEIGHT) if record else None
+    with recorder or nullcontext():
+        for i, cid in enumerate(simulated, start=1):
+            path = by_id[cid].joint_path
+            _, phys = (recorded_try(ctx, setup, recorder, cid, path, i, len(simulated)) if recorder
+                       else physics_rollout(setup.adapter, setup.q_start, path, setup.target_base))
+            updated[cid] = with_physics(by_id[cid].summary, phys)
+            try_event(ctx, f"{cid}: {updated[cid].outcome}", cid, updated[cid])
     out = []
     for p in planned:
         s = p.summary
@@ -179,7 +224,8 @@ def execute_and_verify(
         setup.decl, build_model(setup.decl, world_scene(setup.task, setup.placement, tuple(winner.waypoints_task)))
     )
     out_dir = ARTIFACT_DIR / "runs" / ctx.run_id
-    with FrameRecorder(render_adapter.model, task_view(setup.placement)) as rec:
+    live = ctx.live(f"Recording the chosen route: {winner.candidate_id}")
+    with FrameRecorder(render_adapter.model, task_view(setup.placement), on_frame=live) as rec:
         res, phys = physics_rollout(render_adapter, setup.q_start, joint_path, setup.target_base,
                                     frame_hook=rec.capture)
         video = rec.save_mp4(out_dir / "execution.mp4")

@@ -6,6 +6,7 @@ objects so callers never touch ORM state.
 
 from __future__ import annotations
 
+from collections.abc import Collection
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -124,11 +125,16 @@ class Registry:
             return RunRecord.model_validate(row.payload) if row else None
 
     def list_runs(
-        self, run_type: str | None = None, robot_id: str | None = None, limit: int = 100
+        self, run_type: str | None = None, robot_id: str | None = None, limit: int = 100, offset: int = 0,
+        statuses: Collection[str] | None = None, exclude_statuses: Collection[str] | None = None,
     ) -> list[RunRecord]:
-        stmt = select(RunRow).order_by(RunRow.created_at.desc()).limit(limit)
+        stmt = select(RunRow).order_by(RunRow.created_at.desc()).offset(offset).limit(limit)
         if run_type:
             stmt = stmt.where(RunRow.run_type == run_type)
+        if statuses:
+            stmt = stmt.where(RunRow.status.in_(statuses))
+        if exclude_statuses:
+            stmt = stmt.where(RunRow.status.not_in(exclude_statuses))
         with self._session() as s:
             runs = [RunRecord.model_validate(r.payload) for r in s.scalars(stmt)]
         if robot_id:

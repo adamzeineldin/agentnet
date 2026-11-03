@@ -10,10 +10,10 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
-from app.config import ARTIFACT_DIR
+from app.config import CLIP_HEIGHT, CLIP_WIDTH
 from app.models.robot import RobotPassport
 from app.models.skill import CandidateSummary, ExperienceCapsule
-from app.services.candidate_search import SearchSetup, artifact_url, physics_rollout, task_view, with_physics
+from app.services.candidate_search import SearchSetup, recorded_try, task_view, try_event, with_physics
 from app.services.jobs import RunContext
 from app.services.reasoning.base import (
     CandidateView,
@@ -27,10 +27,7 @@ from app.services.reasoning.meta_muse import MetaReasoningError, estimated_cost_
 from app.services.reasoning.offline import OfflinePlanner
 from app.services.render import FrameRecorder
 from app.services.route_planner import PlannedCandidate
-from app.services.task_scene import base_to_task, to_vec3
 
-THUMB_W, THUMB_H = 320, 180
-MAX_TRACE_POINTS = 60
 
 
 @dataclass(frozen=True)
@@ -113,25 +110,16 @@ def imagine(
     updated: dict[str, CandidateSummary] = {}
     feedback: list[RolloutFeedback] = []
     revisions = 0
-    out_dir = ARTIFACT_DIR / "runs" / ctx.run_id
-    with FrameRecorder(setup.adapter.model, task_view(setup.placement), THUMB_W, THUMB_H) as rec:
+    with FrameRecorder(setup.adapter.model, task_view(setup.placement), CLIP_WIDTH, CLIP_HEIGHT) as rec:
         while len(updated) < budget:
             cid = next((c for c in order if c not in updated and by_id[c].joint_path is not None), None)
             if cid is None:
                 break
-            thumb = out_dir / f"future_{cid.replace('@', '_')}.png"
-            res, phys = physics_rollout(setup.adapter, setup.q_start, by_id[cid].joint_path, setup.target_base,
-                                        on_finish=lambda d, t=thumb: rec.save_png(rec.capture(d), t))
-            trace = [to_vec3(base_to_task(p, setup.placement)) for p in res.ee_trace]
-            stride = max(1, -(-len(trace) // MAX_TRACE_POINTS))
-            phys = {**phys, "trace_task": [*trace[::stride], trace[-1]] if trace else [],
-                    "thumbnail": artifact_url(thumb), "future_index": len(updated) + 1}
+            _, phys = recorded_try(ctx, setup, rec, cid, by_id[cid].joint_path, len(updated) + 1, budget)
             updated[cid] = with_physics(by_id[cid].summary, phys)
             s = updated[cid]
             feedback.append(RolloutFeedback(cid, s.outcome, s.reason, phys["endpoint_error_m"], len(phys["collisions"])))
-            ctx.event("simulating", f"Imagined future {len(updated)}/{budget}: {cid} → {s.outcome}",
-                      candidate_id=cid, endpoint_error_m=phys["endpoint_error_m"],
-                      collisions=len(phys["collisions"]), thumbnail=phys["thumbnail"])
+            try_event(ctx, f"Imagined future {len(updated)}/{budget}: {cid} → {s.outcome}", cid, s)
             if s.outcome != "verified" and revisions < provider.max_revisions and not error:
                 order, revisions = _revise(ctx, provider, context, feedback, order, proposals), revisions + 1
     summaries = _merge(planned, updated)

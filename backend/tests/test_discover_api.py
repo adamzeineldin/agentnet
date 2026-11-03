@@ -81,3 +81,49 @@ def test_publish_unknown_run_404_and_unknown_robot(client):
     assert client.post("/api/skills", json={"run_id": "nope"}).status_code == 404
     assert client.post("/api/runs/discover", json={"robot_id": "nope"}).status_code == 404
     assert client.get("/api/skills/nope").status_code == 404
+
+
+def test_every_physics_try_has_its_own_recorded_clip(client, discovered):
+    tried = [c for c in discovered["results"]["candidates"] if c.get("physics")]
+    assert tried, "discovery simulated at least one route"
+    assert sorted(c["physics"]["future_index"] for c in tried) == list(range(1, len(tried) + 1))
+    for c in tried:
+        assert client.get(c["physics"]["video"]).status_code == 200
+        assert client.get(c["physics"]["thumbnail"]).status_code == 200
+        assert c["physics"]["trace_task"], "the simulated hand path is stored in the task frame"
+
+
+def test_progress_events_carry_route_geometry_and_try_results(client, discovered):
+    events = discovered["events"]
+    routes = next(e["data"]["routes"] for e in events if "routes" in e["data"])
+    assert {r["candidate_id"] for r in routes} == {c["candidate_id"] for c in discovered["results"]["candidates"]}
+    assert all(len(r["waypoints_task"]) >= 2 for r in routes)
+    checks = [e["data"] for e in events if e["status"] == "checking" and "outcome" in e["data"]]
+    assert len(checks) == len(routes) and all(c["reason"] for c in checks)
+    tries = [e["data"] for e in events if e["status"] == "simulating" and "future_index" in e["data"]]
+    assert [t["candidate_id"] for t in tries] == discovered["results"]["search_metrics"]["simulated_order"]
+    assert all(t["video"] and t["outcome"] for t in tries)
+
+
+def test_live_frame_is_gone_after_the_run_finishes(client, discovered):
+    assert client.get(f"/api/runs/{discovered['run_id']}/live").status_code == 204
+    assert client.get("/api/runs/run_missing/live").status_code == 404
+
+
+def test_compact_run_list_drops_bulk_but_keeps_card_fields(client, discovered):
+    full = client.get("/api/runs?limit=5").json()
+    small = client.get("/api/runs?limit=5&full=false").json()
+    assert [r["run_id"] for r in small] == [r["run_id"] for r in full]
+    run = next(r for r in small if r["run_id"] == discovered["run_id"])
+    assert len(run["events"]) == 1 and "candidates" not in run["results"]
+    assert run["artifacts"]["poster"] and run["endpoint_error_m"] == discovered["endpoint_error_m"]
+    assert len(json.dumps(small)) < len(json.dumps(full))
+
+
+def test_run_list_pages_and_filters_by_status(client, discovered):
+    first = client.get("/api/runs?limit=1&full=false").json()
+    second = client.get("/api/runs?limit=1&offset=1&full=false").json()
+    assert first and (not second or first[0]["run_id"] != second[0]["run_id"])
+    done = client.get("/api/runs?run_status=succeeded&full=false").json()
+    assert done and all(r["status"] == "succeeded" for r in done)
+    assert all(r["status"] not in ("succeeded", "failed") for r in client.get("/api/runs?run_status=running").json())

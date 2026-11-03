@@ -70,7 +70,7 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
         return;
       }
       await loadSource(String(skill.provenance.run_id));
-      const transfers = await apiFetch<RunRecord[]>(`/api/runs?run_type=transfer&robot_id=${targetId}&limit=100`);
+      const transfers = await apiFetch<RunRecord[]>(`/api/runs?run_type=transfer&robot_id=${targetId}&limit=100&full=false`);
       if (cancelled) return;
       const latest = transfers.find((r) => r.results.source_skill_id === skill.skill_id && r.target_robot_id === targetId);
       if (latest) await loadTarget(latest.run_id); else clearTarget();
@@ -121,7 +121,7 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
       </StepCard>
 
       <StepCard n={2} title={`The ${teacher.short_name} learns the task`} state={teacherDone ? "done" : "active"}>
-        <TeacherStep teacher={teacher.short_name} stream={source} skills={skills} skillId={skill?.skill_id ?? null}
+        <TeacherStep teacher={teacher.short_name} teacherDof={teacher.dof} stream={source} skills={skills} skillId={skill?.skill_id ?? null}
           onPickSkill={(id) => { setSkillId(id); clearSource(); }}
           layout={layout} onLayout={setLayout}
           onTeach={() => { clearTarget(); void source.start(() => startDiscover(sourceId, layout)); }}

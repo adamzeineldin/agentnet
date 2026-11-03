@@ -112,7 +112,8 @@ def _execute(
     center = path.mean(axis=0)
     view = CameraView(lookat=(float(center[0]), float(center[1]), float(center[2])), distance=1.7)
     out_dir = ARTIFACT_DIR / "runs" / ctx.run_id
-    with FrameRecorder(render_adapter.model, view) as rec:
+    live = ctx.live(f"{decl.short_name} following the recorded path")
+    with FrameRecorder(render_adapter.model, view, on_frame=live) as rec:
         res, phys = physics_rollout(render_adapter, np.array(q_path[0]), q_path, path[-1], frame_hook=rec.capture,
                                     max_speed=speed, trace_every=TRACE_EVERY_STEPS)
         video = rec.save_mp4(out_dir / "execution.mp4")

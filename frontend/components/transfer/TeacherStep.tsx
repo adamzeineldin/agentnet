@@ -4,17 +4,16 @@ import type { ExperienceCapsule, RunRecord } from "@/lib/types";
 import type { RunStream } from "@/lib/useRunStream";
 import { ActButton } from "../auth/SignIn";
 import { CandidateCards } from "../CandidateCards";
-import { RouteDiagram } from "../RouteDiagram";
 import { Term } from "../Term";
 import { Disclosure } from "../ui";
 import { describeDiscover } from "./describe";
-import { RunProgress } from "./RunProgress";
-import { RunVideo } from "./RunMedia";
+import { RunViewer } from "../run/RunViewer";
 import { skillName } from "./skillName";
-import type { CandidateSummary, TaskSpec } from "@/lib/types";
+import type { CandidateSummary } from "@/lib/types";
 
 interface TeacherStepProps {
   teacher: string;
+  teacherDof: number;
   stream: RunStream;
   skills: ExperienceCapsule[];
   skillId: string | null;
@@ -26,21 +25,17 @@ interface TeacherStepProps {
 }
 
 function Routes({ run }: { run: RunRecord }) {
-  const task = run.results.task as TaskSpec | undefined;
   const candidates = (run.results.candidates ?? []) as CandidateSummary[];
-  if (!task || candidates.length === 0) return null;
+  if (candidates.length === 0) return null;
   return (
-    <Disclosure summary="Every route it tried" hint={`${candidates.length} routes, with why each failed or passed`}>
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-        <RouteDiagram task={task} candidates={candidates} selectedId={(run.results.selected as string) ?? null} />
-        <CandidateCards candidates={candidates} selectedId={(run.results.selected as string) ?? null} />
-      </div>
+    <Disclosure summary="Every route, in numbers" hint={`${candidates.length} routes: clearance, cost and physics error`}>
+      <CandidateCards candidates={candidates} selectedId={(run.results.selected as string) ?? null} />
     </Disclosure>
   );
 }
 
 /** Step 2: the teacher learns a new layout, or a skill it already saved is reused. */
-export function TeacherStep({ teacher, stream, skills, skillId, onPickSkill, layout, onLayout, onTeach, onSave }: TeacherStepProps) {
+export function TeacherStep({ teacher, teacherDof, stream, skills, skillId, onPickSkill, layout, onLayout, onTeach, onSave }: TeacherStepProps) {
   const { run, busy } = stream;
   const saved = run?.results.published === true;
   return (
@@ -68,22 +63,19 @@ export function TeacherStep({ teacher, stream, skills, skillId, onPickSkill, lay
           </label>
         )}
       </div>
-      {busy && <RunProgress events={stream.events} />}
       {run && !busy && (
-        <div className="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-          <RunVideo run={run} busy={false} emptyLabel="" />
-          <div className="space-y-3">
-            <p className={`text-base ${run.status === "succeeded" ? "text-ink" : "text-bad"}`}>{describeDiscover(run, teacher)}</p>
-            {run.status === "succeeded" && (saved
-              ? <p className="text-sm text-good">✓ Saved as a skill. Other robots can now learn it.</p>
-              : <>
-                  <p className="text-sm text-ink-3">Save it so other robots can learn from it.</p>
-                  <ActButton onClick={onSave} className="button-primary">Save this skill</ActButton>
-                </>)}
-            <Routes run={run} />
-          </div>
+        <div className="soft-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <p className={`min-w-0 flex-1 text-base ${run.status === "succeeded" ? "text-ink" : "text-bad"}`}>{describeDiscover(run, teacher)}</p>
+          {run.status === "succeeded" && (saved
+            ? <p className="text-sm text-good">✓ Saved as a skill. Other robots can now learn it.</p>
+            : <ActButton onClick={onSave} className="button-primary">Save this skill</ActButton>)}
         </div>
       )}
+      {(busy || run) && (
+        <RunViewer key={stream.runId ?? "none"} kind="discover" runId={stream.runId} events={stream.events} run={run} busy={busy}
+          names={{ robot: teacher, robotDof: teacherDof }} />
+      )}
+      {run && !busy && <Routes run={run} />}
     </div>
   );
 }

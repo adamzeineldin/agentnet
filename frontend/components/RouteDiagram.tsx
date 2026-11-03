@@ -11,6 +11,7 @@ const STYLE: Record<Group, { stroke: string; width: number; opacity: number; das
   feasible: { stroke: "var(--data)", width: 2, opacity: 0.85 },
   rejected: { stroke: "var(--bad)", width: 1.5, opacity: 0.4, dash: "4 3" },
 };
+const PENDING = { stroke: "var(--ink-3)", width: 1.25, opacity: 0.45, dash: "2 3" };
 
 const W = 300;
 const H = 190;
@@ -25,9 +26,11 @@ interface ViewProps {
   selectedId?: string | null;
   hoverId?: string | null;
   onHover?: (id: string | null) => void;
+  /** Routes not checked yet (live view): drawn faint, outcome ignored. */
+  pendingIds?: ReadonlySet<string>;
 }
 
-function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHover }: ViewProps) {
+function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHover, pendingIds }: ViewProps) {
   const [ax, ay] = axes;
   const pts: Vec3[] = [task.start, task.target, ...candidates.flatMap((c) => c.waypoints_task),
     ...task.obstacles.flatMap((o) => [
@@ -57,8 +60,7 @@ function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHo
             fill="var(--ink-3)" fillOpacity={0.35} stroke="var(--ink-3)" rx={2} />
         ))}
         {ordered.map((c) => {
-          const g = outcomeGroup(c.outcome);
-          const st = STYLE[g];
+          const st = pendingIds?.has(c.candidate_id) ? PENDING : STYLE[outcomeGroup(c.outcome)];
           const emph = c.candidate_id === selectedId || c.candidate_id === hoverId;
           // Simulated futures draw the EE trace MuJoCo produced; others draw planned waypoints.
           const path = c.physics?.trace_task?.length ? c.physics.trace_task : c.waypoints_task;
@@ -82,19 +84,22 @@ function View({ title, task, candidates, axes, labels, selectedId, hoverId, onHo
   );
 }
 
-export function RouteDiagram(props: Omit<ViewProps, "title" | "axes" | "labels">) {
+export function RouteDiagram({ plain = false, ...props }: Omit<ViewProps, "title" | "axes" | "labels"> & { plain?: boolean }) {
   return (
     <div className="space-y-2">
       <div className="grid gap-3 sm:grid-cols-2">
-        <View {...props} title="Side view (y–z projection: side routes pass in front of / behind the obstacle)" axes={[1, 2]} labels={["y", "z"]} />
-        <View {...props} title="Top view (task frame y–x, robot below)" axes={[1, 0]} labels={["y", "x (away from base)"]} />
+        <View {...props} title={plain ? "From the side: routes over the wall rise above it" : "Side view (y–z projection: side routes pass in front of / behind the obstacle)"}
+          axes={[1, 2]} labels={plain ? ["across", "up"] : ["y", "z"]} />
+        <View {...props} title={plain ? "From above, robot at the bottom: side routes bend around the wall" : "Top view (task frame y–x, robot below)"}
+          axes={[1, 0]} labels={plain ? ["across", "away from robot"] : ["y", "x (away from base)"]} />
       </div>
       <ul className="flex flex-wrap gap-4 text-[11px] text-ink-2">
-        <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-good" />✓ verified in physics</li>
-        <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-data" />◦ kinematically feasible</li>
-        <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 border-t border-dashed border-bad" />✕ rejected</li>
+        <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-good" />✓ {plain ? "passed in physics" : "verified in physics"}</li>
+        <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 bg-data" />◦ {plain ? "possible for its joints" : "kinematically feasible"}</li>
+        <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 border-t border-dashed border-bad" />✕ {plain ? "ruled out or failed" : "rejected"}</li>
+        {props.pendingIds && <li className="flex items-center gap-1.5"><span className="h-0.5 w-5 border-t border-dotted border-ink-3" />not checked yet</li>}
         <li className="flex items-center gap-1.5"><span className="size-2.5 bg-ink-3/50" />obstacle</li>
-        <li className="text-ink-3">simulated futures show the MuJoCo end-effector trace; others show planned waypoints</li>
+        {!plain && <li className="text-ink-3">simulated futures show the MuJoCo end-effector trace; others show planned waypoints</li>}
       </ul>
     </div>
   );
