@@ -76,6 +76,20 @@ returns.
 `deploy/codespace.sh` passes the secrets into the container, sets `NIMBOTICS_PUBLIC_URL` to the codespace link
 (OAuth redirects need the public address) and generates a session-signing secret.
 
+### Turning on Meta Muse Spark
+
+Without a model key the public copy uses the offline skill scout and route ranking, and says so on screen. To let
+Muse plan on the live site, store your Meta Model API key as a Codespaces secret (the command prompts for it; the
+key never enters the repository or the page):
+
+```bash
+gh secret set MODEL_API_KEY --user --app codespaces --repos adamzeineldin/agentnet
+```
+
+Then restart the codespace and recreate the container as in step 4 above. The image uses the
+`muse-spark-1.3-contributor` model and caps the skill scout at 200 model calls per day
+(`NIMBOTICS_SCOUT_DAILY_MODEL_CALLS`); repeated questions are answered from a cache.
+
 ### Own domain (nimbotics.net)
 
 A codespace link can't take a custom domain, because GitHub's proxy only answers for its own hostname. A free

@@ -24,9 +24,12 @@ test("robots page explains each robot plainly and keeps model-derived fields one
   await expect(page.getByRole("button", { name: "Add iiwa 14 to the fleet" })).toBeVisible();
 });
 
-test("try it: teach, save, learn, save — real jobs, explained in plain words", async ({ page }) => {
+test("teach: teach, save, learn, save — real jobs, explained in plain words", async ({ page }) => {
   await page.goto("/transfer");
-  await expect(page.getByText("First let the Panda learn the task and save it (step 2).")).toBeVisible();
+  await expect(page.getByText("First let the Panda learn the task and save it (step 3).")).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Reach past a wall/ })).toHaveAttribute("aria-checked", "true");
+  await page.locator("summary", { hasText: "Repeat an exact layout" }).click();
+  await page.getByRole("checkbox", { name: "Use an exact layout number" }).check();
   await page.getByRole("spinbutton", { name: "Layout number" }).fill("7");
   await page.getByRole("button", { name: "Teach the Panda" }).click();
   const save = page.getByRole("button", { name: "Save this skill" });
@@ -70,8 +73,9 @@ test("URSim option is disabled and labelled when no controller bridge is configu
 
 test("glossary hints explain jargon in place", async ({ page }) => {
   await page.goto("/transfer");
-  await page.getByRole("button", { name: "What does “Seed” mean?" }).first().click();
-  await expect(page.getByRole("tooltip")).toContainText("A number that picks the task layout");
+  await page.locator("summary", { hasText: "Repeat an exact layout" }).click();
+  await page.getByRole("button", { name: "What does “Layout number” mean?" }).first().click();
+  await expect(page.getByRole("tooltip")).toContainText("Each task type can be built in many layouts");
   await page.keyboard.press("Escape");
   await expect(page.getByRole("tooltip")).toHaveCount(0);
 });
@@ -99,7 +103,7 @@ test("how it works sits on the home page and explains the idea, the task, each s
   await expect(page.getByText(/inverse kinematics \(IK\), screened for collisions/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "Where the AI model fits" })).toBeVisible();
   await page.locator("summary", { hasText: "Glossary" }).click();
-  await expect(page.getByRole("definition").filter({ hasText: "A number that picks the task layout" })).toBeVisible();
+  await expect(page.getByRole("definition").filter({ hasText: "Each task type can be built in many layouts" })).toBeVisible();
   await expect(page.getByText("8 DROID episodes imported")).toBeVisible();
   await expect(page.getByText("not configured on this server")).toBeVisible();
   for (const label of ["real robot recording", "MuJoCo simulation", "URSim controller software", "model-written"]) {
@@ -236,4 +240,26 @@ test("redesigned routes fit a narrow screen with reduced motion", async ({ page 
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), { message: `${route} should fit the viewport` }).toBe(true);
   }
+});
+
+test("teach: a described goal picks a task type (offline scout without a model key) and sets up the steps", async ({ page }) => {
+  await page.goto("/transfer");
+  await page.getByPlaceholder(/Describe it/).fill("Put a cup on a high shelf");
+  await page.getByRole("button", { name: "Ask Muse" }).click();
+  await expect(page.getByText("Offline scout · no model call")).toBeVisible();
+  await expect(page.getByText("Task type:").locator("b")).toHaveText("Reach onto a shelf");
+  await page.getByRole("button", { name: "Use this" }).first().click();
+  await expect(page).toHaveURL(/task=shelf_v1/);
+  await expect(page.getByRole("radio", { name: /Reach onto a shelf/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText(/Task: Reach onto a shelf/)).toBeVisible();
+});
+
+test("robots: the example arm uploads, is completed by Nimbotics and joins the fleet", async ({ page }) => {
+  await page.goto("/robots");
+  await page.getByLabel("Robot model file").setInputFiles("public/examples/nimbotics-capsule-arm.xml");
+  await page.getByLabel("Robot name").fill("Capsule arm");
+  await page.getByRole("button", { name: "Upload and check" }).click();
+  await expect(page.getByText(/The Capsule arm \(6 joints, reaches/)).toBeVisible({ timeout: 60_000 });
+  await expect(page.getByRole("listitem").filter({ hasText: /^Added 6 position servos/ })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Fleet" }).getByText("Capsule arm")).toBeVisible();
 });

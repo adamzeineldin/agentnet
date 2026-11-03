@@ -44,7 +44,7 @@ export function PassportView({ passport: p }: { passport: RobotPassport }) {
                 <tr key={a.name} className="border-t border-line">
                   <td className="py-1">{a.name}</td><td>{a.joint_name}</td>
                   <td className="text-right">{a.kp}</td><td className="text-right">{a.kv}</td>
-                  <td className="text-right">±{a.force_range[1]}</td>
+                  <td className="text-right">{a.force_range ? `±${a.force_range[1]}` : "no limit"}</td>
                 </tr>
               ))}
             </tbody>

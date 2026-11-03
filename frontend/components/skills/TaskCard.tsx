@@ -29,7 +29,7 @@ export function TaskCard({ group, robots, robotName }: TaskCardProps) {
           <MiniTopView task={first.task} traces={group.byRobot.map((b) => ({
             points: b.latest.executed_trace_task_frame, label: robotName(b.robotId), color: colors.get(b.robotId)!,
           }))} />
-          <p className="text-[11px] text-ink-3">Seen from above: start ●, target ○, wall ▭. One line per robot; a route over the wall crosses it here.</p>
+          <p className="text-[11px] text-ink-3">Seen from above: start ●, target ○, obstacles ▭. One line per robot; a route over the top crosses them here.</p>
         </div>
         <div className="min-w-0 space-y-3">
           <h2 className="text-lg font-normal tracking-[-0.01em]">{taskTitle(first)}</h2>

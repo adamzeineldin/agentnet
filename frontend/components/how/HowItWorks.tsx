@@ -65,22 +65,23 @@ export function HowItWorks() {
         <IdeaFlow />
       </Section>
 
-      <Section id="task" title="The task: reach past a wall"
-        intro="Every robot on this site solves the same kind of puzzle. Move the hand from a start point to a target point. A small wall stands in between, so the straight line hits it. The arm has to go over the wall or around one of its sides.">
+      <Section id="task" title="The task: reach past obstacles"
+        intro="Every robot on this site solves the same kind of puzzle: move the hand from a start point to a target point with something in between. There are six task types: past a wall, under a roof, around a tall wall, over a long fence, onto a shelf and between two posts. The arm has to go over the obstacles or around one of their sides, or straight through when it fits.">
         <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
           <WallSketch />
           <aside className="soft-card border-accent/40 p-5">
             <h4 className="text-sm font-medium">What is a layout number?</h4>
             <p className="mt-2 text-sm text-ink-2">
-              The wall&apos;s size and the start and target positions are picked at random. The layout number (in
+              The obstacles&apos; sizes and the start and target positions are picked at random. The layout number (in
               code, the &ldquo;seed&rdquo;) does the picking: the same number always gives the same layout, so results
-              can be repeated. Think of it as a level number.
+              can be repeated. Think of it as a level number. You never have to choose one: each run gets a new layout
+              unless you ask for an exact one.
             </p>
           </aside>
         </div>
       </Section>
 
-      <Section id="steps" title="What happens when you press Try it" intro="Open “Technical detail” only if you want the engineering version.">
+      <Section id="steps" title="What happens when you press Teach" intro="Open “Technical detail” only if you want the engineering version.">
         <StepList />
         <p className="text-sm text-ink-2">
           <span className="font-medium text-ink">Real recordings work the same way.</span> On{" "}

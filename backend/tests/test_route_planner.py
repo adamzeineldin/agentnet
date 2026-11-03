@@ -15,7 +15,7 @@ from app.services.route_planner import (
     solve_start,
 )
 from app.services.scene import build_model
-from app.services.task_scene import DEFAULT_PLACEMENTS, generate_task, world_scene
+from app.services.task_scene import default_placement, generate_task, world_scene
 
 SEED = 42
 
@@ -23,7 +23,7 @@ SEED = 42
 @pytest.fixture(scope="module")
 def setup():
     task = generate_task(SEED)
-    pl = DEFAULT_PLACEMENTS["panda_01"]
+    pl = default_placement("panda_01")
     a = RobotAdapter(ROBOTS["panda_01"], build_model(ROBOTS["panda_01"], world_scene(task, pl)))
     q0 = solve_start(a, task, pl, make_seeds(a, 8, np.random.default_rng(SEED)))
     assert q0 is not None

@@ -7,7 +7,7 @@ export const OUTCOME: Record<string, { text: string; tone: BadgeTone }> = {
   feasible: { text: "possible, not needed", tone: "neutral" },
   not_simulated: { text: "possible, not needed", tone: "neutral" },
   collision: { text: "would hit something", tone: "bad" },
-  insufficient_clearance: { text: "too close to the wall", tone: "bad" },
+  insufficient_clearance: { text: "too close to an obstacle", tone: "bad" },
   unreachable: { text: "arm can't reach it", tone: "bad" },
   discontinuous_ik: { text: "arm would have to jump", tone: "bad" },
 };
@@ -41,7 +41,7 @@ export const CHECK_TEXT: Record<string, string> = {
 /** The offline prior's note (services/transfer.py prior_order) in plain words. */
 export function plainNote(note: string, teacher: string): string {
   if (note.startsWith("capsule strategy")) return `Exactly the route that worked for the ${teacher}`;
-  if (note.startsWith("same route class")) return `Same kind of route as the ${teacher}'s, at a different distance from the wall`;
+  if (note.startsWith("same route class")) return `Same kind of route as the ${teacher}'s, at a different distance from the obstacles`;
   if (note.startsWith("alternative verified")) return `Another route that also worked for the ${teacher}`;
   if (note.startsWith("kinematically feasible")) return `Was possible for the ${teacher}, but never tested`;
   if (note.startsWith("source: ")) return `Didn't work for the ${teacher} (${note.slice(8)})`;

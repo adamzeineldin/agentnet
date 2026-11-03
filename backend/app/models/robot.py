@@ -13,7 +13,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-PASSPORT_SCHEMA_VERSION = "1.0"
+PASSPORT_SCHEMA_VERSION = "1.1"
 
 Provenance = Literal["declared", "model", "measured"]
 Vec3 = tuple[float, float, float]
@@ -39,8 +39,9 @@ class ActuatorInfo(_Frozen):
     control_mode: Literal["position_servo"]
     kp: float
     kv: float
-    ctrl_range: tuple[float, float]
-    force_range: tuple[float, float]
+    # None: the model sets no limit.
+    ctrl_range: tuple[float, float] | None
+    force_range: tuple[float, float] | None
 
 
 class EndEffectorInfo(_Frozen):
@@ -98,6 +99,8 @@ class RobotPassport(_Frozen):
     workspace: WorkspaceEstimate
     capabilities: list[CapabilityEvidence]
     simulation_assumptions: list[str]
+    # Arm body pairs already touching in the model's home pose; excluded from contact (scene.resting_self_contacts).
+    resting_contacts_excluded: list[str] = []
     calibration_status: str
     field_provenance: dict[str, Provenance]
     created_at: datetime

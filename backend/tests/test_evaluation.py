@@ -12,7 +12,7 @@ from app.services.evaluation import (
 )
 from app.services.robot_catalog import ROBOTS
 from app.services.route_planner import generate_candidates
-from app.services.task_scene import DEFAULT_PLACEMENTS, ROOF_FAMILY, SCENE_FAMILY, generate_task
+from app.services.task_scene import default_placement, ROOF_FAMILY, SCENE_FAMILY, generate_task
 
 
 def test_roof_family_is_deterministic_and_distinct():
@@ -32,7 +32,7 @@ def test_scene_features_fixed_length():
 @pytest.fixture(scope="module")
 def ur5e_setup():
     task = generate_task(42)
-    setup = prepare(ROBOTS["ur5e_01"], task, DEFAULT_PLACEMENTS["ur5e_01"], 42)
+    setup = prepare(ROBOTS["ur5e_01"], task, default_placement("ur5e_01"), 42)
     assert setup is not None
     return task, setup
 

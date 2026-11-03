@@ -17,10 +17,10 @@ export const STEPS: Step[] = [
     title: "The Panda learns the task",
     what: "Robot A, a Franka Panda arm, tries 10 possible routes in the simulator: straight through, over the wall, " +
       "and around either side, each at a few distances from the wall. It keeps the first route that passes the test.",
-    see: "In Try it, press Teach. You get a video of the run and a plain summary of the route it found.",
+    see: "On the Teach page, press Teach. You get a video of the run and a plain summary of the route it found.",
     detail: "Each route is turned into joint angles with inverse kinematics (IK), screened for collisions, then " +
       "executed in MuJoCo physics through the robot's own motors.",
-    evidence: ["sim"], href: "/transfer", cta: "Try it",
+    evidence: ["sim"], href: "/transfer", cta: "Teach",
   },
   {
     title: "It saves a skill card",
@@ -39,7 +39,7 @@ export const STEPS: Step[] = [
       "afterwards, \"What just happened\" shows how it ranked them and why.",
     detail: "Route order comes from the Panda's experience: the offline planner by default, or Meta Muse Spark when " +
       "a key is configured. The model only ranks and explains; the simulator decides pass or fail.",
-    evidence: ["sim", "model"], href: "/transfer", cta: "Try it",
+    evidence: ["sim", "model"], href: "/transfer", cta: "Teach",
   },
   {
     title: "Physics decides pass or fail",
@@ -57,7 +57,7 @@ export const STEPS: Step[] = [
     see: "Tick \"also run on the URSim controller\" under More options before the learner tries. This is controller software, not a physical arm.",
     detail: "Joint targets are streamed at 125 Hz through ur_rtde. The check passes when the controller reaches the " +
       "final joints and its tool position agrees with the simulator within 5 mm.",
-    evidence: ["controller"], href: "/transfer", cta: "Try it",
+    evidence: ["controller"], href: "/transfer", cta: "Teach",
   },
 ];
 

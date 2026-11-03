@@ -10,7 +10,7 @@ from collections.abc import Collection
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import JSON, DateTime, String, create_engine, select
+from sqlalchemy import JSON, DateTime, String, Text, create_engine, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
@@ -66,6 +66,15 @@ class FleetRow(Base):
     robot_id: Mapped[str] = mapped_column(String, primary_key=True)
     added_by: Mapped[str | None] = mapped_column(String, nullable=True)
     added_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class UploadedRobotRow(Base):
+    """An arm a user uploaded: its declared facts (RobotDecl as JSON); the model files live under UPLOAD_DIR."""
+
+    __tablename__ = "uploaded_robots"
+    robot_id: Mapped[str] = mapped_column(String, primary_key=True)
+    decl: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
 class UserRow(Base):
@@ -205,6 +214,16 @@ class Registry:
                 s.add(FleetRow(robot_id=robot_id, added_by=added_by, added_at=utcnow()))
 
     # ---------------------------------------------------------------- users
+    def save_uploaded_robot(self, robot_id: str, decl_json: str) -> None:
+        with self._tx() as s:
+            s.merge(UploadedRobotRow(robot_id=robot_id, decl=decl_json, created_at=utcnow()))
+
+    def uploaded_robots(self) -> list[str]:
+        """Declared-facts JSON of every uploaded arm, oldest first."""
+        with self._session() as s:
+            rows = s.scalars(select(UploadedRobotRow).order_by(UploadedRobotRow.created_at)).all()
+            return [r.decl for r in rows]
+
     def save_user(self, user: User) -> User:
         with self._tx() as s:
             s.merge(UserRow(user_id=user.user_id, payload=user.model_dump(mode="json"), created_at=user.created_at))

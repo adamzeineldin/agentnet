@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { apiUrl, enableRobot } from "@/lib/api";
+import { UploadRobot } from "./robots/UploadRobot";
 import { fmtMetres } from "@/lib/format";
 import { useApi } from "@/lib/useApi";
 import type { CatalogEntry, ExperienceCapsule, RobotPassport, RobotSummary } from "@/lib/types";
@@ -54,7 +55,9 @@ function AtAGlance({ robot }: { robot: RobotSummary }) {
       <div className="min-w-0 space-y-5">
         <div>
           <h2 className="text-2xl font-light tracking-[-0.02em]">{robot.display_name.replace(/^Robot [AB] · /, "")}</h2>
-          <p className="text-sm text-ink-3">Simulated from {robot.maker}&apos;s official model.</p>
+          <p className="text-sm text-ink-3">{robot.model_source.startsWith("uploaded")
+            ? `Simulated from a model ${robot.model_source}, checked and completed by Nimbotics.`
+            : `Simulated from ${robot.maker}'s official model.`}</p>
         </div>
         <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
           <Fact label="Joints" value={robot.dof} meaning="Motors that can turn. More joints means more ways to reach the same spot." />
@@ -144,13 +147,14 @@ export function RobotFleet() {
         <div>
           <h2 className="text-xl font-normal tracking-[-0.01em]">Add a robot</h2>
           <p className="mt-1 max-w-3xl text-sm text-ink-2">
-            More arms from MuJoCo Menagerie. Adding one measures its reach from the model (a few seconds) and makes it
-            available to everyone as a teacher or learner in Transfer Lab. Some arms are too small for the wall task, and
-            their failures are shown honestly.
+            More arms from MuJoCo Menagerie, or your own. Adding one measures its reach from the model (a few seconds)
+            and makes it available to everyone as a teacher or learner on the Teach page. Some arms are too small for
+            some tasks, and their failures are shown honestly.
           </p>
         </div>
         {catalog.error && <ErrorNote message={catalog.error} />}
         {catalog.data && <Catalog entries={catalog.data} onAdded={(id) => { robots.reload(); catalog.reload(); select(id); }} />}
+        <UploadRobot onAdded={(id) => { robots.reload(); catalog.reload(); select(id); }} />
       </section>
     </div>
   );

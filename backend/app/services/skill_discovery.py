@@ -20,7 +20,7 @@ from app.services.capsules import build_capsule, compact_outcomes
 from app.services.jobs import RunContext
 from app.services.robot_catalog import get_robot_decl
 from app.services.route_planner import generate_candidates
-from app.services.task_scene import DEFAULT_PLACEMENTS, generate_task
+from app.services.task_scene import SCENE_FAMILY, default_placement, generate_task
 
 MAX_PHYSICS_ROLLOUTS = 3
 PLANNER_NAME = "route_search_v1"
@@ -30,10 +30,11 @@ METHOD = (
 )
 
 
-def discover_skill(ctx: RunContext, robot_id: str, seed: int, passport: RobotPassport) -> RunRecord:
+def discover_skill(ctx: RunContext, robot_id: str, seed: int, passport: RobotPassport,
+                   family: str = SCENE_FAMILY) -> RunRecord:
     decl = get_robot_decl(robot_id)
-    task = generate_task(seed)
-    placement = DEFAULT_PLACEMENTS[robot_id]
+    task = generate_task(seed, family)
+    placement = default_placement(robot_id)
     ctx.event("profiling", f"Building scene {task.scene_id} for {decl.short_name}",
               task=task.model_dump(mode="json"), placement=placement.model_dump(mode="json"))
     setup = prepare(decl, task, placement, seed)

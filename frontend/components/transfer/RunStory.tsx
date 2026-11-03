@@ -72,7 +72,7 @@ export function RunStory({ run, robots }: { run: RunRecord; robots: RobotSummary
     <div className="space-y-6">
       <Part n={1} title={`What the ${lName} was given`}>
         <p className="max-w-3xl text-sm text-ink-2">
-          The {tName}&apos;s saved skill: <b>{skillName(capsule)}</b>. It holds where the start, target and wall are, and
+          The {tName}&apos;s saved skill: <b>{skillName(capsule)}</b>. It holds where the start, target and obstacles are, and
           the route that worked, measured from a spot on the floor in front of the robot. It does <b>not</b> hold the
           {" "}{tName}&apos;s joint angles: {teacher && learner && teacher.dof !== learner.dof
             ? `the ${tName} has ${teacher.dof} joints and the ${lName} has ${learner.dof}, so joint angles can't be copied.`
@@ -112,7 +112,7 @@ export function RunStory({ run, robots }: { run: RunRecord; robots: RobotSummary
       <Part n={4} title="The physics test">
         <p className="max-w-3xl text-sm text-ink-2">
           The chosen motion runs in the simulator through the {lName}&apos;s own motors. It passes only if the hand ends
-          within 1 cm of the target, nothing touches the wall, no joint goes past its limit and the arm comes to rest.
+          within 1 cm of the target, nothing touches an obstacle, no joint goes past its limit and the arm comes to rest.
           {winner && (winner.route_class === capsule.strategy.route_class
             ? ` The ${lName} kept the ${tName}'s idea (${routeName(winner.route_class).toLowerCase()}) but moved its own way.`
             : ` It went ${routeName(winner.route_class).toLowerCase()} instead of the ${tName}'s route.`)}

@@ -27,7 +27,9 @@ def test_arm_joints_discovered_from_model(panda, ur5e):
 def test_passport_limits_match_loaded_model(adapters, passports, rid):
     model = adapters[rid].model
     for joint in passports[rid].arm_joints:
-        lo, hi = model.jnt_range[model.joint(joint.name).id]
+        jid = model.joint(joint.name).id
+        lo, hi = model.jnt_range[jid] if model.jnt_limited[jid] else (-np.pi, np.pi)  # continuous joints: one turn
+        assert joint.limited == bool(model.jnt_limited[jid])
         assert joint.lower == pytest.approx(lo) and joint.upper == pytest.approx(hi)
 
 

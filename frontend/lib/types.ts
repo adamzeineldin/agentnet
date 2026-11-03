@@ -41,8 +41,8 @@ export interface ActuatorInfo {
   control_mode: string;
   kp: number;
   kv: number;
-  ctrl_range: [number, number];
-  force_range: [number, number];
+  ctrl_range: [number, number] | null;
+  force_range: [number, number] | null;
 }
 
 export interface CapabilityEvidence {
@@ -390,3 +390,14 @@ export interface CatalogEntry {
 export type AuthProvider = "google" | "github";
 export interface AuthConfig { providers: AuthProvider[]; required: boolean }
 export interface PublicUser { user_id: string; provider: AuthProvider; name: string; avatar_url: string | null }
+
+export interface UploadResult { robot: RobotSummary; notes: string[] }
+
+export interface ScoutPick { skill_id: string; source_robot_id: string; route: string; why: string }
+export interface ScoutPlan {
+  goal: string; robot_id: string; task_family: string; task_title: string; task_why: string;
+  picks: ScoutPick[]; teacher_robot_id: string | null; teacher_why: string | null; summary: string | null;
+  provider: "offline_scout" | "meta_muse_spark"; provider_requested: string; model_id: string | null;
+  usage: { model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null } | null;
+  fallback_error: string | null; notes: string[]; created_at: string;
+}

@@ -29,7 +29,7 @@ const ICON: Record<StageState, { mark: string; className: string; label: string 
   skipped: { mark: "–", className: "bg-panel-2 text-ink-3", label: "not reached" },
 };
 
-const shortRoute = (r: RouteRow) => `${routeName(r.routeClass).replace("Around the ", "").replace(" the wall", "")}${r.clearanceM ? ` ${Math.round(r.clearanceM * 100)} cm` : ""}`;
+const shortRoute = (r: RouteRow) => `${routeName(r.routeClass).replace("Around the ", "").replace(" the top", "")}${r.clearanceM ? ` ${Math.round(r.clearanceM * 100)} cm` : ""}`;
 
 function CheckChips({ routes }: { routes: RouteRow[] }) {
   return (
@@ -104,7 +104,7 @@ function detail(key: StageKey, props: RunStepsProps): ReactNode {
     case "setup":
       return pic.task && pic.placement && (
         <p>
-          {kind === "discover" ? `Layout ${pic.task.seed}: a wall stands between the start and the target. ` : ""}
+          {kind === "discover" ? `Layout ${pic.task.seed}: ${pic.task.description} ` : ""}
           The task sits {fmtMetres(pic.placement.translation[0])} in front of the {robot}
           {pic.source && teacher ? ` (it was ${fmtMetres(pic.source.placement.translation[0])} in front of the ${teacher})` : ""}.
           {reachPct && ` The farthest point of the ${teacher}'s route is ${reachPct}% of the ${robot}'s reach.`}
@@ -114,7 +114,7 @@ function detail(key: StageKey, props: RunStepsProps): ReactNode {
         </p>
       );
     case "routes":
-      return pic.routes.length > 0 && <p>{pic.routes.length} routes: straight, over the top, and around either side, each at a few distances from the wall.</p>;
+      return pic.routes.length > 0 && <p>{pic.routes.length} routes: straight, over the top, and around either side, each at a few distances from the obstacles.</p>;
     case "check":
       return pic.routes.length > 0 && (
         <div className="space-y-2">
@@ -166,7 +166,7 @@ export function title(key: StageKey, kind: RunKind, { robot, teacher }: StepName
   switch (key) {
     case "skill": return `Read the ${teacher}'s saved skill`;
     case "setup": return kind === "discover" ? "Set up the task" : `Set the task down in front of the ${robot}`;
-    case "routes": return "Sketch routes past the wall";
+    case "routes": return "Sketch routes to the target";
     case "check": return kind === "discover" ? `Check each route against the ${robot}'s joints` : `Work out the ${robot}'s own joint motion for each route`;
     case "rank": return `Put the routes in order using what worked for the ${teacher}`;
     case "physics": return `Test the most promising routes in physics${pic.selected ? `: ${routePhrase(pic.selected)} chosen` : ""}`;

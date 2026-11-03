@@ -30,3 +30,23 @@ def test_runs_are_kept_apart_and_cleared():
     live.sink("b", "y")(FRAME)
     live.clear("a")
     assert live.get("a") is None and live.get("b").label == "y"
+
+
+def test_buffer_returns_frames_after_a_seq_with_increasing_times():
+    live = LiveFrames(min_interval_s=0.0)
+    for _ in range(5):
+        live.publish("r1", FRAME, "try 1")
+    frames = live.since("r1", 2)
+    assert [f.seq for f in frames] == [3, 4, 5]
+    assert frames[0].t <= frames[1].t <= frames[2].t
+    assert live.since("r1", 5) == [] and live.since("other", 0) == []
+
+
+def test_buffer_keeps_only_the_most_recent_frames():
+    from app.services.live import BUFFER_FRAMES
+
+    live = LiveFrames(min_interval_s=0.0)
+    for _ in range(BUFFER_FRAMES + 10):
+        live.publish("r1", FRAME, "try 1")
+    frames = live.since("r1", 0)
+    assert len(frames) == BUFFER_FRAMES and frames[-1].seq == BUFFER_FRAMES + 10

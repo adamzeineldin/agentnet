@@ -88,9 +88,9 @@ export function RouteDiagram({ plain = false, ...props }: Omit<ViewProps, "title
   return (
     <div className="space-y-2">
       <div className="grid gap-3 sm:grid-cols-2">
-        <View {...props} title={plain ? "From the side: routes over the wall rise above it" : "Side view (y–z projection: side routes pass in front of / behind the obstacle)"}
+        <View {...props} title={plain ? "From the side: routes over the top rise above the obstacles" : "Side view (y–z projection: side routes pass in front of / behind the obstacle)"}
           axes={[1, 2]} labels={plain ? ["across", "up"] : ["y", "z"]} />
-        <View {...props} title={plain ? "From above, robot at the bottom: side routes bend around the wall" : "Top view (task frame y–x, robot below)"}
+        <View {...props} title={plain ? "From above, robot at the bottom: side routes bend around the obstacles" : "Top view (task frame y–x, robot below)"}
           axes={[1, 0]} labels={plain ? ["across", "away from robot"] : ["y", "x (away from base)"]} />
       </div>
       <ul className="flex flex-wrap gap-4 text-[11px] text-ink-2">

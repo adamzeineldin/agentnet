@@ -1,10 +1,11 @@
 /** Plain-language meanings of the words used around the site. One source for the How it works glossary and <Term> hints. */
 
 export const GLOSSARY = {
-  seed: { term: "Seed", meaning: "A number that picks the task layout: wall size and where the start and target are. " +
-    "The same seed always gives the same layout; change it to get a new one. Like a level number in a game." },
-  scene: { term: "Scene", meaning: "One task layout: the floor, the wall (sometimes with a roof) and the start and target points." },
-  route: { term: "Route", meaning: "One way past the wall: straight, over, or around the near or far side. Also called a candidate." },
+  seed: { term: "Layout number", meaning: "Each task type can be built in many layouts: obstacle sizes and where the start " +
+    "and target are. A layout number picks one, and the same number always builds the same layout, so anyone can repeat a run. " +
+    "Like a level number in a game. You never need to pick one: a new random layout is used unless you choose." },
+  scene: { term: "Scene", meaning: "One task layout: the floor, the obstacles (a wall, a fence, a shelf, posts…) and the start and target points." },
+  route: { term: "Route", meaning: "One way to the target: straight, over the top, or around the near or far side. Also called a candidate." },
   skill: { term: "Skill / Experience Capsule", meaning: "The saved card: the task, the route that worked, and the evidence." },
   transfer: { term: "Transfer (retarget)", meaning: "Giving a skill learned by one robot to a robot with a different body." },
   imagination: { term: "Imagination", meaning: "Quick simulated previews of a few routes before choosing one to run for real in the simulator." },

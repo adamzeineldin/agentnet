@@ -13,9 +13,9 @@ import { Logo } from "./Logo";
 /** Five places. How it works lives on the home page, below the hero. */
 export const NAV = [
   { href: "/", label: "Home", what: "What Nimbotics is, and how it works" },
-  { href: "/transfer", label: "Try it", what: "Teach one robot a task, then watch another robot learn it" },
   { href: "/robots", label: "Robots", what: "The robot arms, and adding more" },
   { href: "/skills", label: "Skills", what: "Every task the robots have learned, and which robot can do what" },
+  { href: "/transfer", label: "Teach", what: "Teach one robot a task, then watch another robot learn it" },
   { href: "/real", label: "Real data", what: "Motions recorded on a real robot, replayed in simulation" },
   { href: "/evaluation", label: "Results", what: "Does sharing help? Measured, with every run" },
   { href: "/history", label: "All runs", what: "Every simulation, running or finished: watch it step by step" },

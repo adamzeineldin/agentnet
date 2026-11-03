@@ -1,3 +1,4 @@
+import { taskTitleOf } from "@/lib/tasks";
 import type { ExperienceCapsule, RobotSummary } from "@/lib/types";
 
 /** One task (a layout) and every robot's saved way of doing it. */
@@ -29,7 +30,7 @@ export function groupByTask(skills: ExperienceCapsule[], robots: RobotSummary[])
   }).sort((a, b) => b.newest.localeCompare(a.newest));
 }
 
-/** "Reach past a wall · layout 7" / "Reach under a roof · layout 3". */
+/** "Reach past a wall · layout 7" / "Reach onto a shelf · layout 3". */
 export function taskTitle(c: ExperienceCapsule): string {
-  return `${c.task.scene_id.startsWith("wall_roof") ? "Reach past a wall, under a roof" : "Reach past a wall"} · layout ${c.task.seed}`;
+  return `${taskTitleOf(c.task.scene_id)} · layout ${c.task.seed}`;
 }

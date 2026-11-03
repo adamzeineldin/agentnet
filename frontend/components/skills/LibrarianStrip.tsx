@@ -84,7 +84,7 @@ export function LibrarianStrip({ skills, robotName }: LibrarianStripProps) {
                       {s && <> from the {robotName(s.source_robot_id)}</>}.</p>
                     {s && <Link className="mt-2 inline-block text-xs text-accent hover:underline"
                       href={`/transfer?source=${s.source_robot_id}&target=${t.target_robot_id}&skill=${encodeURIComponent(s.skill_id)}`}>
-                      Try it →</Link>}
+                      Teach it →</Link>}
                   </li>
                 );
               })}

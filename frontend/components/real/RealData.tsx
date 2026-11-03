@@ -153,7 +153,7 @@ export function RealData() {
     <div className="space-y-6">
       <div className="space-y-2">
         <PageHeader eyebrow="Real robot data" title="Real Data" guide="trust">
-          The same idea as Transfer Lab, but the teacher is a real robot. These hand paths were recorded on a physical
+          The same idea as the Teach page, but the teacher is a real robot. These hand paths were recorded on a physical
           Panda arm (the public <Term id="droid">DROID</Term> dataset). Pick one and replay it on any arm in the fleet to
           see how closely that arm can follow it. Each arm works out its own joint angles.
         </PageHeader>

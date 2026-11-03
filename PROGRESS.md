@@ -328,3 +328,21 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   localhost are served as before. Tests: `test_cloud.py` (+2).
 - ⬜ Buy nimbotics.net, add it to Cloudflare, create the tunnel, set the secrets, update the OAuth callback URLs
   (steps in deploy/README.md). Not yet checked against a live tunnel.
+
+
+## Teach page, more tasks and robots, robot upload, Muse skill scout ✅ (2026-11-03)
+- ✅ Menu: "Try it" is now **Teach**, after Skills (Home, Robots, Skills, Teach, Real data, Results, All runs).
+- ✅ Layout numbers are no longer asked for: each run gets a new random layout; "Repeat an exact layout (advanced)"
+  explains and sets one. The learner chooses "the same layout" or "a new random layout" (D81).
+- ✅ Six task types with a picker and top-view sketches; teaching runs take a task type (D81).
+- ✅ Catalog: Kinova Gen3, Rethink Sawyer, Unitree Z1 (10 arms); resting-contact exclusions and unlimited ranges fixed
+  (D82). Smoke: all 10 PASS.
+- ✅ Upload your own robot on the Robots page (MJCF, URDF or zip with meshes), with an example arm to download; the
+  example plans 5 of 6 task types, a zipped Menagerie ViperX (meshes) uploads, PiPER is refused with its sag (D83).
+- ✅ Muse skill scout on the Teach page: "Describe it" → task type, skills to learn from or a teacher, one click sets
+  up the steps; offline scout without a key (D84). Verified locally with a real call: "Put a cup on a high shelf" →
+  shelf task, teach the Panda first; the Panda then learned it (layout 2881) and the UR5e learned it from the Panda.
+- ✅ Smoother live view: buffered frames at 15 fps, played back evenly (D85).
+- ✅ Tests: 314 backend (uploads 12, scout 10, live buffer 2, task types), smoke 10/10, Playwright.
+- ⬜ Live site: Muse needs the `MODEL_API_KEY` Codespaces secret (deploy/README.md); until then it shows the offline
+  scout.

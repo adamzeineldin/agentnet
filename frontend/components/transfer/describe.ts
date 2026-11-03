@@ -2,7 +2,7 @@ import { fmtM } from "@/lib/format";
 import type { RunRecord } from "@/lib/types";
 import { routeName } from "./skillName";
 
-/** "over@0.08" → "over the wall, 8 cm clear". */
+/** "over@0.08" → "over the top, 8 cm clear". */
 export function routePhrase(candidateId: string | null | undefined): string {
   if (!candidateId) return "no route";
   const [route, clearance] = candidateId.split("@");
@@ -13,7 +13,7 @@ export function routePhrase(candidateId: string | null | undefined): string {
 function accuracy(run: RunRecord): string {
   const touches = run.collision_count ?? 0;
   return `Its hand ended ${fmtM(run.endpoint_error_m, 1)} from the target` +
-    (touches === 0 ? " without touching the wall." : `, touching the wall ${touches} time${touches === 1 ? "" : "s"}.`);
+    (touches === 0 ? " without touching anything." : `, touching an obstacle ${touches} time${touches === 1 ? "" : "s"}.`);
 }
 
 /** One sentence for a finished discover run, built from the stored record only. */

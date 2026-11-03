@@ -34,7 +34,7 @@ from app.services.reasoning import get_provider
 from app.services.registry import Registry
 from app.services.robot_catalog import get_robot_decl
 from app.services.route_planner import RouteCandidate, generate_candidates, route_waypoints
-from app.services.task_scene import DEFAULT_PLACEMENTS, generate_task, task_to_base
+from app.services.task_scene import default_placement, family_of, generate_task, task_to_base
 
 MAX_PHYSICS_ROLLOUTS = 3
 PLANNER_NAME = "transfer_prior_v1"
@@ -127,9 +127,9 @@ def transfer_skill(
               source_task=capsule.task.model_dump(mode="json"), source_placement=capsule.placement.model_dump(mode="json"),
               source_trace=capsule.executed_trace_task_frame)
     source_passport = registry.get_passport(capsule.source_robot_id)
-    task = capsule.task if scene_seed is None or scene_seed == capsule.task.seed else generate_task(scene_seed)
+    task = capsule.task if scene_seed is None or scene_seed == capsule.task.seed else generate_task(scene_seed, family_of(capsule.task.scene_id))
     decl = get_robot_decl(target_robot_id)
-    placement = DEFAULT_PLACEMENTS[target_robot_id]
+    placement = default_placement(target_robot_id)
 
     ctx.event("profiling", f"Placing {task.scene_id} in the {decl.short_name} base frame",
               task=task.model_dump(mode="json"), placement=placement.model_dump(mode="json"))

@@ -82,6 +82,8 @@ class DiscoverRequest(BaseModel):
     model_config = ConfigDict(frozen=True)
     robot_id: str = "panda_01"
     scene_seed: int = Field(default=42, ge=0, le=2**31 - 1)
+    # One of task_families.SCENE_FAMILIES; checked by the endpoint so the error names the choices.
+    task_family: str = Field(default="wall_reach_v1", max_length=40)
 
 
 class TransferRequest(BaseModel):

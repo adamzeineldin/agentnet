@@ -8,6 +8,7 @@ marker is a visual-only site).
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from functools import lru_cache
 
 import mujoco
 
@@ -43,9 +44,37 @@ def build_model(decl: RobotDecl, scene: SceneSpec | None = None) -> mujoco.MjMod
     spec = mujoco.MjSpec.from_file(str(decl.scene_path))
     _apply_visual_theme(spec)
     _ensure_end_effector_site(spec, decl)
+    for body1, body2 in resting_self_contacts(decl):
+        spec.add_exclude(bodyname1=body1, bodyname2=body2)
     if scene is not None:
         _add_scene_objects(spec, scene)
     return spec.compile()
+
+
+@lru_cache(maxsize=64)
+def resting_self_contacts(decl: RobotDecl) -> tuple[tuple[str, str], ...]:
+    """Body pairs of the arm that already touch in the model's own home pose (e.g. closed gripper fingers).
+
+    They are part of the model's design, not a collision the arm runs into, so they are excluded from contact;
+    passports list them. Every other self-contact still fails a route.
+    """
+    spec = mujoco.MjSpec.from_file(str(decl.scene_path))
+    _ensure_end_effector_site(spec, decl)
+    model = spec.compile()
+    data = mujoco.MjData(model)
+    key = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, decl.home_keyframe)
+    if key >= 0:
+        mujoco.mj_resetDataKeyframe(model, data, key)
+    mujoco.mj_forward(model, data)
+    ee_body = int(model.site_bodyid[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, decl.end_effector.site_name)])
+    root = int(model.body_rootid[ee_body])
+    pairs: set[tuple[str, str]] = set()
+    for i in range(data.ncon):
+        b1, b2 = (int(model.geom_bodyid[g]) for g in data.contact[i].geom)
+        if b1 != b2 and int(model.body_rootid[b1]) == root == int(model.body_rootid[b2]):
+            n1, n2 = model.body(b1).name, model.body(b2).name
+            pairs.add((n1, n2) if n1 < n2 else (n2, n1))
+    return tuple(sorted(pairs))
 
 
 # Visual-only restyle (textures/materials) to match the dark Control Center; no effect on dynamics.

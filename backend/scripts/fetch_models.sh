@@ -9,7 +9,7 @@ fi
 cd "$DEST"
 git sparse-checkout init --cone
 git sparse-checkout set franka_emika_panda universal_robots_ur5e universal_robots_ur10e kuka_iiwa_14 \
-  ufactory_xarm7 ufactory_lite6 franka_fr3
+  ufactory_xarm7 ufactory_lite6 franka_fr3 kinova_gen3 rethink_robotics_sawyer unitree_z1
 git fetch --depth 1 origin "$COMMIT"
 git checkout --quiet "$COMMIT"
 echo "Menagerie pinned at $(git rev-parse HEAD)"

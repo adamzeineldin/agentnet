@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { randomLayout } from "@/lib/tasks";
 import { useApi } from "@/lib/useApi";
 import type {
   ControllerExecution, ControllerStatusInfo, ExecuteOn, Health, ReasoningMode, RobotSummary,
@@ -13,6 +14,7 @@ import { Term } from "../Term";
 import { Disclosure } from "../ui";
 import { ControllerPanel } from "./ControllerPanel";
 import { describeTransfer } from "./describe";
+import { ExactLayout } from "./ExactLayout";
 import { ImaginationPanel } from "./ImaginationPanel";
 import { JointCorrespondence } from "./JointCorrespondence";
 import { RunViewer } from "../run/RunViewer";
@@ -23,16 +25,15 @@ interface LearnerStepProps {
   learner: RobotSummary;
   robots: RobotSummary[];
   stream: RunStream;
-  teacherLayout: number;
   onLearn: (sceneSeed: number | null, mode: ReasoningMode, executeOn: ExecuteOn) => void;
   onSave: () => void;
 }
 
 /** Step 3: the learner adapts the teacher's skill, then "What just happened" tells the story of that very run. */
-export function LearnerStep({ teacher, learner, robots, stream, teacherLayout, onLearn, onSave }: LearnerStepProps) {
+export function LearnerStep({ teacher, learner, robots, stream, onLearn, onSave }: LearnerStepProps) {
   const { run, busy } = stream;
   const [newLayout, setNewLayout] = useState(false);
-  const [layout, setLayout] = useState(3);
+  const [exact, setExact] = useState<number | null>(null);
   const [mode, setMode] = useState<ReasoningMode>("offline");
   const [onUrsim, setOnUrsim] = useState(false);
   const health = useApi<Health>("/api/health");
@@ -55,16 +56,14 @@ export function LearnerStep({ teacher, learner, robots, stream, teacherLayout, o
         <legend className="sr-only">Which layout the learner is tested on</legend>
         <label className="flex items-center gap-2">
           <input type="radio" checked={!newLayout} onChange={() => setNewLayout(false)} disabled={busy} />
-          the same layout ({teacherLayout})
+          the same layout the {t} learned on
         </label>
         <label className="flex items-center gap-2">
           <input type="radio" checked={newLayout} onChange={() => setNewLayout(true)} disabled={busy} />
-          a layout it hasn&apos;t seen:
-          <input type="number" min={0} value={layout} disabled={busy || !newLayout} aria-label="New layout number"
-            onChange={(e) => setLayout(Math.max(0, Number.parseInt(e.target.value || "0", 10)))}
-            className="tabular w-20 border border-line-strong bg-panel px-2 py-1 text-ink disabled:opacity-50" />
+          a new random layout
         </label>
       </fieldset>
+      {newLayout && <ExactLayout value={exact} onChange={setExact} disabled={busy} />}
       <Disclosure summary="More options" hint={`route order: ${mode === "meta" ? "Muse Spark" : "fixed rule"}`}>
         <div className="space-y-3 text-sm">
           <label className="flex flex-wrap items-center gap-2">
@@ -83,7 +82,7 @@ export function LearnerStep({ teacher, learner, robots, stream, teacherLayout, o
           </label>
         </div>
       </Disclosure>
-      <ActButton onClick={() => onLearn(newLayout ? layout : null, mode, onUrsim && ursimReady ? "ursim" : "none")}
+      <ActButton onClick={() => onLearn(newLayout ? exact ?? randomLayout() : null, mode, onUrsim && ursimReady ? "ursim" : "none")}
         disabled={busy} className="button-primary disabled:cursor-wait disabled:opacity-50">
         {busy ? "Learning…" : `Let the ${l} learn it`}
       </ActButton>

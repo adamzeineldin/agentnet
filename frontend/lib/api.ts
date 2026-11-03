@@ -1,5 +1,6 @@
 import type {
   ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RobotSummary, RunEvent, RunRecord,
+  ScoutPlan, UploadResult,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
@@ -28,7 +29,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const detail = typeof body?.detail === "string" ? body.detail : res.statusText;
+    const detail = typeof body?.detail === "string" ? body.detail
+      : Array.isArray(body?.detail) ? body.detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join("; ") || res.statusText
+      : res.statusText;
     throw new ApiError(res.status, `${res.status}: ${detail}`);
   }
   if (res.status === 204) return null as T;
@@ -47,11 +50,24 @@ export function startMotionCheck(robotId: string, seed = 7): Promise<RunRecord> 
   });
 }
 
-export function startDiscover(robotId: string, sceneSeed: number): Promise<RunRecord> {
+export function startDiscover(robotId: string, sceneSeed: number, taskFamily = "wall_reach_v1"): Promise<RunRecord> {
   return apiFetch<RunRecord>("/api/runs/discover", {
     method: "POST",
-    body: JSON.stringify({ robot_id: robotId, scene_seed: sceneSeed }),
+    body: JSON.stringify({ robot_id: robotId, scene_seed: sceneSeed, task_family: taskFamily }),
   });
+}
+
+/** Upload your own arm: the file itself is the request body (.xml, .urdf or .zip). */
+export function uploadRobot(file: File, name: string, tool?: string): Promise<UploadResult> {
+  const q = new URLSearchParams({ name, filename: file.name, ...(tool ? { tool } : {}) });
+  return apiFetch<UploadResult>(`/api/robots/upload?${q}`, {
+    method: "POST", body: file, headers: { "content-type": "application/octet-stream" },
+  });
+}
+
+/** Which task type a goal is, and which saved skills `robotId` should learn from (Muse, or the offline scout). */
+export function scoutPlan(goal: string, robotId: string): Promise<ScoutPlan> {
+  return apiFetch<ScoutPlan>("/api/library/scout", { method: "POST", body: JSON.stringify({ goal, robot_id: robotId }) });
 }
 
 export function publishSkill(runId: string): Promise<ExperienceCapsule> {

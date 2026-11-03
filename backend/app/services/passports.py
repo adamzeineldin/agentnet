@@ -23,6 +23,7 @@ from app.models.robot import (
 from app.services.kinematics import make_seeds, solve_ik
 from app.services.robot_adapter import RobotAdapter
 from app.services.robot_catalog import RobotDecl
+from app.services.scene import resting_self_contacts
 
 WORKSPACE_SAMPLES = 3000
 WORKSPACE_POINTS_KEPT = 400
@@ -106,6 +107,10 @@ def probe_ik(adapter: RobotAdapter, pts: np.ndarray, seed: int) -> CapabilityEvi
     )
 
 
+def _limit(r: tuple[float, float]) -> tuple[float, float] | None:
+    return r if np.isfinite(r).all() else None
+
+
 def build_passport(decl: RobotDecl, adapter: RobotAdapter, seed: int = 0) -> RobotPassport:
     t0 = time.perf_counter()
     model = adapter.model
@@ -118,16 +123,20 @@ def build_passport(decl: RobotDecl, adapter: RobotAdapter, seed: int = 0) -> Rob
         robot_id=decl.robot_id,
         display_name=decl.display_name,
         short_name=decl.short_name,
-        model_source=f"mujoco_menagerie/{decl.model_dir}",
-        model_version=f"menagerie@{MENAGERIE_COMMIT[:12]}",
-        model_file=f"{decl.model_dir}/{decl.scene_xml}",
+        model_source=f"mujoco_menagerie/{decl.model_dir}" if decl.source == "menagerie"
+        else f"uploaded by {decl.uploaded_by or 'a visitor'}",
+        model_version=f"menagerie@{MENAGERIE_COMMIT[:12]}" if decl.source == "menagerie"
+        else f"upload@{model_dir_hash(decl.model_path)[:12]}",
+        model_file=f"{decl.model_dir}/{decl.scene_xml}" if decl.source == "menagerie" else decl.scene_xml,
         model_hash=model_dir_hash(decl.model_path),
         mujoco_version=mujoco.__version__,
         fallback_model=decl.fallback_model,
         joint_names=[model.joint(j).name for j in range(model.njnt)],
         arm_joints=[JointInfo(**_joint_fields(j)) for j in adapter.joints],
         dof=adapter.dof,
-        actuators=[ActuatorInfo(**a.__dict__) for a in adapter.actuators],
+        actuators=[ActuatorInfo(**{**a.__dict__, "ctrl_range": _limit(a.ctrl_range), "force_range": _limit(a.force_range)})
+                   for a in adapter.actuators],
+        resting_contacts_excluded=[f"{b1}↔{b2}" for b1, b2 in resting_self_contacts(decl)],
         end_effector=EndEffectorInfo(
             site_name=ee.site_name,
             parent_body=ee_body,

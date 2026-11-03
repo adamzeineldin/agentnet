@@ -56,6 +56,10 @@ class Contact:
     distance: float
 
 
+def _range(values: np.ndarray, limited: bool) -> tuple[float, float]:
+    return (float(values[0]), float(values[1])) if limited else (-np.inf, np.inf)
+
+
 class RobotAdapter:
     def __init__(self, decl: RobotDecl, model: mujoco.MjModel) -> None:
         self.decl = decl
@@ -147,11 +151,9 @@ class RobotAdapter:
                     control_mode="position_servo",
                     kp=kp,
                     kv=float(-bias[2]),
-                    ctrl_range=(float(m.actuator_ctrlrange[a][0]), float(m.actuator_ctrlrange[a][1])),
-                    force_range=(
-                        float(m.actuator_forcerange[a][0]),
-                        float(m.actuator_forcerange[a][1]),
-                    ),
+                    # An unlimited range is stored as (0, 0) in the model: read it as unbounded, not as zero.
+                    ctrl_range=_range(m.actuator_ctrlrange[a], bool(m.actuator_ctrllimited[a])),
+                    force_range=_range(m.actuator_forcerange[a], bool(m.actuator_forcelimited[a])),
                 )
             )
         return tuple(result)

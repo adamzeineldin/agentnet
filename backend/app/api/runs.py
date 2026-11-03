@@ -14,6 +14,7 @@ from app.models.run import TERMINAL_STATUSES, DiscoverRequest, RunRecord
 from app.services.jobs import SimulationWorker, create_run, run_guarded
 from app.services.live import LIVE
 from app.services.skill_discovery import PLANNER_NAME, discover_skill
+from app.services.task_families import SCENE_FAMILIES
 from app.services.registry import Registry
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -65,6 +66,9 @@ def start_discover(
     user: User | None = Depends(require_user),
 ) -> RunRecord:
     require_fleet_robot(registry, body.robot_id)
+    if body.task_family not in SCENE_FAMILIES:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
+                            f"Unknown task type {body.task_family!r}; choose one of {list(SCENE_FAMILIES)}")
     passport = registry.get_passport(body.robot_id)
     if passport is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Passport not computed yet")
@@ -74,7 +78,7 @@ def start_discover(
     )
     worker.submit(
         run_guarded, registry, run.run_id,
-        lambda ctx: discover_skill(ctx, body.robot_id, body.scene_seed, passport),
+        lambda ctx: discover_skill(ctx, body.robot_id, body.scene_seed, passport, body.task_family),
     )
     return run
 
@@ -86,13 +90,17 @@ def get_run(run_id: str, registry: Registry = Depends(get_registry)) -> RunRecor
 
 @router.get("/{run_id}/live")
 def live_frame(run_id: str, after: int = 0, registry: Registry = Depends(get_registry)) -> Response:
-    """Newest rendered frame of a running run as {seq, label, image}; 204 when there is none newer than `after`."""
+    """Rendered frames of a running run newer than seq `after`, as {frames: [{seq, label, t, image}]}.
+
+    `t` is seconds since the run's first frame, for even playback. 204 when there is nothing newer.
+    """
     _require_run(registry, run_id)
-    frame = LIVE.get(run_id)
-    if frame is None or frame.seq <= after:
+    frames = LIVE.since(run_id, after)
+    if not frames:
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers={"Cache-Control": "no-store"})
-    image = "data:image/jpeg;base64," + base64.b64encode(frame.jpeg).decode()
-    body = json.dumps({"seq": frame.seq, "label": frame.label, "image": image})
+    body = json.dumps({"frames": [
+        {"seq": f.seq, "label": f.label, "t": round(f.t, 3),
+         "image": "data:image/jpeg;base64," + base64.b64encode(f.jpeg).decode()} for f in frames]})
     return Response(body, media_type="application/json", headers={"Cache-Control": "no-store"})
 
 

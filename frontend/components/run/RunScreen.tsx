@@ -21,7 +21,7 @@ interface RunScreenProps {
   onBack: () => void;
 }
 
-/** "Physics try 2 of 3: over@0.08" → "Physics try 2 of 3: over the wall, 8 cm clear". */
+/** "Physics try 2 of 3: over@0.08" → "Physics try 2 of 3: over the top, 8 cm clear". */
 function plainLabel(label: string): string {
   const [head, id] = label.split(": ");
   return id?.includes("@") ? `${head}: ${routePhrase(id)}` : label;

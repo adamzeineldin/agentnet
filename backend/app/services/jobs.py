@@ -62,6 +62,10 @@ class SimulationWorker:
             self._adapters[robot_id] = RobotAdapter(decl, build_model(decl))
         return self._adapters[robot_id]
 
+    def forget(self, robot_id: str) -> None:
+        """Drop a cached adapter (an upload that failed or was replaced)."""
+        self._adapters.pop(robot_id, None)
+
     def shutdown(self) -> None:
         self._pool.shutdown(wait=True, cancel_futures=True)
 

@@ -19,7 +19,7 @@ from app.models.skill import (
 )
 from app.services.registry import utcnow
 from app.services.simulation import ExecutionResult
-from app.services.task_scene import FRAME_CONVENTION, SCENE_FAMILY, base_to_task, to_vec3
+from app.services.task_scene import FRAME_CONVENTION, base_to_task, family_of, to_vec3
 
 MAX_TRACE_POINTS = 120
 
@@ -88,7 +88,7 @@ def build_capsule(
         },
         environment={
             "scene_id": task.scene_id,
-            "scene_family": SCENE_FAMILY,
+            "scene_family": family_of(task.scene_id),
             "random_seed": task.seed,
             "simulator": f"MuJoCo {mujoco.__version__}",
             "timestep_s": timestep,

@@ -6,7 +6,10 @@ Functions here touch MuJoCo and must run on the simulation worker thread.
 from __future__ import annotations
 
 import logging
+import shutil
 from pathlib import Path
+
+import numpy as np
 
 from app.config import ARTIFACT_DIR
 from app.models.robot import (
@@ -20,7 +23,11 @@ from app.services.jobs import SimulationWorker
 from app.services.passports import build_passport, model_dir_hash
 from app.services.registry import Registry
 from app.services.render import FrameRecorder
-from app.services.robot_catalog import ROBOTS, get_robot_decl
+from app.services import uploads
+from app.services.robot_adapter import RobotAdapter
+from app.services.scene import build_model
+from app.services.simulation import execute_path
+from app.services.robot_catalog import ROBOTS, RobotDecl, get_robot_decl
 
 log = logging.getLogger(__name__)
 
@@ -117,3 +124,58 @@ def with_skill_evidence(passport: RobotPassport, skills: list[ExperienceCapsule]
     )
     caps = [c for c in passport.capabilities if c.task_type != "obstacle_aware_reach"]
     return passport.model_copy(update={"capabilities": [*caps, reach]})
+
+
+def upload_robot(worker: SimulationWorker, registry: Registry, filename: str, data: bytes, name: str,
+                 tool_hint: str | None, uploaded_by: str | None) -> tuple[RobotPassport, list[str]]:
+    """Turn an uploaded model into a fleet arm (services/uploads.py). Worker thread only.
+
+    Any failure removes the files and leaves the fleet unchanged; UploadError says what to fix.
+    """
+    robot_id, folder = uploads.new_upload_folder(data, name)
+    try:
+        notes = uploads.unpack(filename, data, folder)
+        uploads.check_xml(folder)
+        model_file = uploads.find_model(folder)
+        if model_file.suffix.lower() == ".urdf":
+            uploads.flatten_meshes(model_file.parent)
+        norm, decl, drift = _normalized_decl(robot_id, name, model_file, tool_hint, uploaded_by, replace_servos=False)
+        if drift > uploads.HOLD_DRIFT_LIMIT_M and not any("Added" in n and "servos" in n for n in norm.notes):
+            norm, decl, drift = _normalized_decl(robot_id, name, model_file, tool_hint, uploaded_by, replace_servos=True)
+        if drift > uploads.HOLD_DRIFT_LIMIT_M:
+            raise uploads.UploadError(f"The arm cannot hold its home pose in physics (it moves {drift * 1000:.0f} mm "
+                                      "in one second). Check its masses, joint damping and actuators.")
+        uploads.register(decl)
+        passport = compute_passport(worker, registry, robot_id)
+        decl = uploads.with_task_distance(decl, passport.workspace.max_reach_m)
+        uploads.register(decl)
+        registry.save_uploaded_robot(robot_id, uploads.decl_to_json(decl))
+        registry.add_to_fleet(robot_id, uploaded_by)
+        log.info("Uploaded robot %s registered (%d joints)", robot_id, passport.dof)
+        return passport, [*norm.notes, f"Task placed {decl.task_distance_m:.2f} m in front of the base "
+                          f"(half its measured reach of {passport.workspace.max_reach_m:.2f} m).", *notes]
+    except Exception:
+        uploads.unregister(robot_id)
+        worker.forget(robot_id)
+        shutil.rmtree(folder, ignore_errors=True)
+        raise
+
+
+def _normalized_decl(robot_id: str, name: str, model_file: Path, tool_hint: str | None, uploaded_by: str | None,
+                     replace_servos: bool) -> tuple[uploads.Normalized, RobotDecl, float]:
+    norm = uploads.normalize(model_file, model_file.parent, tool_hint, replace_servos=replace_servos)
+    decl = uploads.make_decl(robot_id, name, model_file.parent, norm, uploaded_by)
+    try:
+        adapter = RobotAdapter(decl, build_model(decl))
+    except ValueError as exc:
+        raise uploads.UploadError(f"Nimbotics could not drive this arm: {exc}") from exc
+    return norm, decl, hold_drift(adapter)
+
+
+def hold_drift(adapter: RobotAdapter, seconds: float = 1.0) -> float:
+    """How far the tool moves when the servos hold the home pose (gravity-compensated) for `seconds`."""
+    data = adapter.new_data()
+    start = adapter.fk(data).copy()
+    home = adapter.home_q()
+    res = execute_path(adapter, data, [home, home], max_settle_seconds=seconds)
+    return float(np.linalg.norm(np.array(res.final_ee_pos) - start))

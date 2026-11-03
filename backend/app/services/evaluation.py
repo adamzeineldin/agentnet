@@ -25,7 +25,7 @@ from app.services.candidate_search import SearchSetup, physics_rollout, prepare,
 from app.services.capsules import build_capsule
 from app.services.robot_catalog import get_robot_decl
 from app.services.route_planner import RouteCandidate, evaluate_candidate, generate_candidates
-from app.services.task_scene import DEFAULT_PLACEMENTS, generate_task
+from app.services.task_scene import default_placement, generate_task
 from app.services.transfer import prior_order
 
 PHYSICS_BUDGET = 3
@@ -71,7 +71,7 @@ class Row:
 def discover_headless(robot_id: str, task: TaskSpec, passport: RobotPassport) -> ExperienceCapsule | None:
     """Same discovery pipeline as the API (cost order, top-3 rollouts), without events or rendering."""
     decl = get_robot_decl(robot_id)
-    setup = prepare(decl, task, DEFAULT_PLACEMENTS[robot_id], task.seed)
+    setup = prepare(decl, task, default_placement(robot_id), task.seed)
     if setup is None:
         return None
     planned = [evaluate_candidate(setup.adapter, c, setup.placement, setup.q_start) for c in generate_candidates(task)]
@@ -146,7 +146,7 @@ def variant_orders(task: TaskSpec, capsule: ExperienceCapsule | None) -> dict[st
 
 def evaluate_scene(task: TaskSpec, target_id: str, library: list[ExperienceCapsule]) -> list[Row]:
     decl = get_robot_decl(target_id)
-    setup = prepare(decl, task, DEFAULT_PLACEMENTS[target_id], task.seed)
+    setup = prepare(decl, task, default_placement(target_id), task.seed)
     capsule = retrieve(task, library)
     family = task.scene_id.rsplit("_s", 1)[0]
     rows = []

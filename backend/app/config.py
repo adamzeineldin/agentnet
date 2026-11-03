@@ -17,9 +17,13 @@ MENAGERIE_DIR = Path(os.environ.get("NIMBOTICS_MENAGERIE_DIR", DATA_DIR / "menag
 MENAGERIE_COMMIT = "f3b6013629c7b94f8ee93fd977b161fa8350f9bc"
 DB_PATH = Path(os.environ.get("NIMBOTICS_DB_PATH", DATA_DIR / "nimbotics.db"))
 ARTIFACT_DIR = Path(os.environ.get("NIMBOTICS_ARTIFACT_DIR", DATA_DIR / "artifacts"))
+# Uploaded robot models; next to the artifacts so the cloud volume keeps them.
+UPLOAD_DIR = Path(os.environ.get("NIMBOTICS_UPLOAD_DIR", ARTIFACT_DIR.parent / "uploads"))
 
 MODEL_API_KEY = os.environ.get("MODEL_API_KEY") or None
 META_MODEL_ID = os.environ.get("META_MODEL_ID", "muse-spark-1.3")
+# Spend cap for the public skill scout: model calls per UTC day; beyond it the offline scout answers.
+SCOUT_DAILY_MODEL_CALLS = int(os.environ.get("NIMBOTICS_SCOUT_DAILY_MODEL_CALLS", "200"))
 
 # Optional UR controller bridge (backend/ur_bridge, talks ur_rtde to URSim). Unset = controller step unavailable.
 URSIM_BRIDGE_URL = os.environ.get("NIMBOTICS_URSIM_BRIDGE_URL") or None
@@ -61,7 +65,7 @@ RENDER_EFFECTS = os.environ.get("NIMBOTICS_RENDER_EFFECTS", "1") != "0"
 # Clips of each physics try during the route search (the chosen route's clip uses RENDER_WIDTH/HEIGHT).
 CLIP_WIDTH, CLIP_HEIGHT = 448, 252  # 16:9, both multiples of 4 so the encoder never resizes
 # The live view keeps at most one JPEG per running run, refreshed at most this often (wall-clock seconds).
-LIVE_FRAME_INTERVAL_S = 0.1
+LIVE_FRAME_INTERVAL_S = 1 / 15  # live view at the clips' 15 fps
 CONTROLLER_STREAM_HZ = 125.0
 CONTROLLER_FINAL_TOL_RAD = 1e-3
 # Controller TCP vs MuJoCo FK at the same joints; nominal UR kinematics vs the Menagerie model differ by ~1 mm.

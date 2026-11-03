@@ -2,6 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { DEFAULT_FAMILY, TASK_TITLES, familyOf } from "@/lib/tasks";
 import { apiFetch, publishSkill, startDiscover, startTransfer } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import { useRunStream } from "@/lib/useRunStream";
@@ -9,6 +10,7 @@ import type { ExperienceCapsule, RobotSummary, RunRecord } from "@/lib/types";
 import { LearnerStep } from "./transfer/LearnerStep";
 import { RobotPair } from "./transfer/RobotPair";
 import { StepCard } from "./transfer/StepCard";
+import { TaskStep } from "./transfer/TaskStep";
 import { TeacherStep } from "./transfer/TeacherStep";
 import { ErrorNote, Loading, PageHeader } from "./ui";
 
@@ -36,14 +38,14 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
   const params = useSearchParams();
   const router = useRouter();
   const [sourceId, targetId] = pickPair(robots, params.get("source"), params.get("target"));
+  const family = TASK_TITLES[params.get("task") ?? ""] ? params.get("task")! : DEFAULT_FAMILY;
   const teacher = robots.find((r) => r.robot_id === sourceId)!;
   const learner = robots.find((r) => r.robot_id === targetId)!;
   const skillsApi = useApi<ExperienceCapsule[]>(`/api/skills?source_robot_id=${sourceId}`);
-  const skills = skillsApi.data ?? [];
+  const skills = (skillsApi.data ?? []).filter((s) => familyOf(s.task.scene_id) === family);
   const source = useRunStream();
   const target = useRunStream();
   const [skillId, setSkillId] = useState<string | null>(null);
-  const [layout, setLayout] = useState(42);
   const { load: loadSource, clear: clearSource } = source;
   const { load: loadTarget, clear: clearTarget } = target;
   const skill = skills.find((s) => s.skill_id === skillId)
@@ -52,12 +54,14 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
   // A fresh, unsaved discovery replaces the saved skill as what step 2 shows.
   const fresh = source.live && source.run !== null;
 
-  function choosePair(s: string, t: string) {
-    setSkillId(null);
+  function go(s: string, t: string, task: string, skill?: string) {
+    setSkillId(skill ?? null);
     clearSource();
     clearTarget();
-    router.replace(`/transfer?source=${s}&target=${t}`, { scroll: false });
+    const q = new URLSearchParams({ source: s, target: t, task, ...(skill ? { skill } : {}) });
+    router.replace(`/transfer?${q}`, { scroll: false });
   }
+  const choosePair = (s: string, t: string) => go(s, t, family);
 
   // Show the run behind the chosen skill, and its latest attempt by this learner, if any.
   useEffect(() => {
@@ -110,29 +114,36 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <PageHeader eyebrow="Try it" title="Teach one robot, watch another learn" guide="steps">
-        Three steps. Pick two robot arms, let the first one learn to reach past a wall, then see whether the second one,
-        with a different body, can learn it from the first.
+      <PageHeader eyebrow="Teach" title="Teach one robot, watch another learn" guide="steps">
+        Pick a task (or describe one and let Muse choose), let one robot arm learn it in the physics simulator, then see
+        whether a second arm, with a different body, can learn it from the first.
       </PageHeader>
       {[source.error, target.error, skillsApi.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
 
-      <StepCard n={1} title="Pick a teacher and a learner" state="done">
+      <StepCard n={1} title="What should the robots learn?" state="done">
+        <TaskStep family={family} learner={learner} robots={robots} disabled={busy}
+          onFamily={(f) => go(sourceId, targetId, f)}
+          onUsePick={(f, pick) => go(pick.source_robot_id, targetId, f, pick.skill_id)}
+          onUseTeacher={(f, t) => go(t, t === targetId ? sourceId : targetId, f)} />
+      </StepCard>
+
+      <StepCard n={2} title="Pick a teacher and a learner" state="done">
         <RobotPair robots={robots} source={sourceId} target={targetId} disabled={busy} onChange={choosePair} />
       </StepCard>
 
-      <StepCard n={2} title={`The ${teacher.short_name} learns the task`} state={teacherDone ? "done" : "active"}>
-        <TeacherStep teacher={teacher.short_name} teacherDof={teacher.dof} stream={source} skills={skills} skillId={skill?.skill_id ?? null}
+      <StepCard n={3} title={`The ${teacher.short_name} learns the task`} state={teacherDone ? "done" : "active"}>
+        <TeacherStep teacher={teacher.short_name} teacherDof={teacher.dof} taskTitle={TASK_TITLES[family]} stream={source}
+          skills={skills} skillId={skill?.skill_id ?? null}
           onPickSkill={(id) => { setSkillId(id); clearSource(); }}
-          layout={layout} onLayout={setLayout}
-          onTeach={() => { clearTarget(); void source.start(() => startDiscover(sourceId, layout)); }}
+          onTeach={(layout) => { clearTarget(); void source.start(() => startDiscover(sourceId, layout, family)); }}
           onSave={() => void saveTeacher()} />
       </StepCard>
 
-      <StepCard n={3} title={`The ${learner.short_name} learns it from the ${teacher.short_name}`}
+      <StepCard n={4} title={`The ${learner.short_name} learns it from the ${teacher.short_name}`}
         state={!learnSkill ? "locked" : target.run?.status === "succeeded" ? "done" : "active"}
-        lockedNote={`First let the ${teacher.short_name} learn the task and save it (step 2).`}>
+        lockedNote={`First let the ${teacher.short_name} learn the task and save it (step 3).`}>
         {learnSkill && (
-          <LearnerStep teacher={teacher} learner={learner} robots={robots} stream={target} teacherLayout={learnSkill.task.seed}
+          <LearnerStep teacher={teacher} learner={learner} robots={robots} stream={target}
             onLearn={(sceneSeed, mode, executeOn) =>
               void target.start(() => startTransfer(learnSkill.skill_id, targetId, sceneSeed, mode, executeOn))}
             onSave={() => void saveLearner()} />
