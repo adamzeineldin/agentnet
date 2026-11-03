@@ -58,3 +58,20 @@ def test_worker_counts_pending_jobs_and_the_job_gate_refuses_when_full(monkeypat
         release.set()
         worker.shutdown()
     assert worker.pending == 0
+
+
+def test_www_host_redirects_to_the_public_url_and_other_hosts_are_served(web_dir):
+    with TestClient(create_app(web_dir=web_dir, public_url="https://nimbotics.net")) as c:
+        res = c.get("/real?seed=7", headers={"host": "www.nimbotics.net"}, follow_redirects=False)
+        assert res.status_code == 308
+        assert res.headers["location"] == "https://nimbotics.net/real?seed=7"
+        post = c.post("/api/runs", headers={"host": "WWW.nimbotics.net:443"}, follow_redirects=False)
+        assert post.status_code == 308 and post.headers["location"] == "https://nimbotics.net/api/runs"
+        # The apex, the codespace link and localhost are served as before.
+        for host in ("nimbotics.net", "agentnet-demo-7860.app.github.dev", "localhost:7860"):
+            assert c.get("/", headers={"host": host}).text == "<h1>home</h1>"
+
+
+def test_without_a_public_url_nothing_redirects(web_dir):
+    with TestClient(create_app(web_dir=web_dir, public_url=None)) as c:
+        assert c.get("/", headers={"host": "www.nimbotics.net"}, follow_redirects=False).status_code == 200

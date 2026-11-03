@@ -76,6 +76,47 @@ returns.
 `deploy/codespace.sh` passes the secrets into the container, sets `NIMBOTICS_PUBLIC_URL` to the codespace link
 (OAuth redirects need the public address) and generates a session-signing secret.
 
+### Own domain (nimbotics.net)
+
+A codespace link can't take a custom domain, because GitHub's proxy only answers for its own hostname. A free
+Cloudflare Tunnel connects the domain to the site instead. The tunnel only makes outbound connections from the
+codespace, Cloudflare provides HTTPS, and visitors no longer see GitHub's "development port" notice.
+
+1. Buy the domain. Then, in the Cloudflare dashboard, choose **Add a domain** (Free plan) and change the
+   registrar's nameservers to the two that Cloudflare shows. If you buy the domain from Cloudflare Registrar, it is
+   already set up this way.
+2. Go to **Zero Trust → Networks → Tunnels → Create a tunnel → Cloudflared**, name it `nimbotics`, and copy the
+   token from the install command (the long string after `--token`).
+3. In the tunnel, open **Public hostnames** and add two:
+   - `nimbotics.net` → service `HTTP`, URL `localhost:7860`
+   - `www.nimbotics.net` → the same service (the site redirects www to `https://nimbotics.net`)
+4. Store the tunnel token and the public address as Codespaces secrets:
+
+   ```bash
+   gh secret set CLOUDFLARE_TUNNEL_TOKEN --user --app codespaces --repos adamzeineldin/agentnet
+   ```
+
+   ```bash
+   gh secret set NIMBOTICS_PUBLIC_URL --user --app codespaces --repos adamzeineldin/agentnet --body https://nimbotics.net
+   ```
+
+5. If sign-in is turned on, change the OAuth apps to the new address: homepage `https://nimbotics.net`,
+   callbacks `https://nimbotics.net/api/auth/callback/github` and `https://nimbotics.net/api/auth/callback/google`.
+6. Restart the codespace so it picks up the secrets. Then recreate the site container so it gets the new public
+   URL. Runs are kept on the volume. `codespace.sh start` also starts the `nimbotics-tunnel` container:
+
+   ```bash
+   gh codespace ssh -c <codespace-name> -- 'bash -lc "docker rm -f nimbotics; cd /workspaces/agentnet && bash deploy/codespace.sh start"'
+   ```
+
+7. Check the result: `curl -sI https://nimbotics.net/api/health` should return 200, and
+   `curl -sI https://www.nimbotics.net/` should return a 308 redirect to `https://nimbotics.net/`. To see the
+   tunnel's logs, run `docker logs nimbotics-tunnel` in the codespace.
+
+The domain is only as available as the codespace. While the codespace is stopped (after 4 hours without activity,
+or when the monthly free hours run out), nimbotics.net shows a Cloudflare error page. If you move to an always-on
+server, run the same image and the same `cloudflared` command there. The domain setup stays the same.
+
 ## Hugging Face Spaces (needs PRO)
 
 Since 2026, Docker Spaces on free CPU need a PRO subscription ($9/month); creating one without it returns HTTP 402.

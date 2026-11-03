@@ -320,3 +320,11 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   header and presentation mode; screen readers hear "nimbotics".
 - ✅ App icon: the arm n on a dark rounded tile (`app/icon.svg`), rendered into `favicon.ico` (16/32/48) and
   `apple-icon.png` (180).
+
+## Own domain ⬜ (2026-11-03, waiting on the domain)
+- ✅ `deploy/codespace.sh` starts a Cloudflare Tunnel (`cloudflare/cloudflared:2026.10.0`, host network → :7860) when
+  the `CLOUDFLARE_TUNNEL_TOKEN` Codespaces secret is set; nothing changes without it (D80).
+- ✅ `www.` of `NIMBOTICS_PUBLIC_URL` redirects to it (308, path and query kept); the apex, codespace link and
+  localhost are served as before. Tests: `test_cloud.py` (+2).
+- ⬜ Buy nimbotics.net, add it to Cloudflare, create the tunnel, set the secrets, update the OAuth callback URLs
+  (steps in deploy/README.md). Not yet checked against a live tunnel.

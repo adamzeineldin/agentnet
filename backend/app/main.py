@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api import auth, benchmarks, controller, demo, health, library, real_data, robots, runs, skills, transfers
-from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH, WEB_DIR
+from app.canonical_host import WwwRedirect
+from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH, PUBLIC_URL, WEB_DIR
 from app.services.fleet import ensure_passports
 from app.services.jobs import SimulationWorker
 from app.services.registry import Registry
@@ -31,8 +32,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.worker.shutdown()
 
 
-def create_app(web_dir: Path | None = WEB_DIR) -> FastAPI:
+def create_app(web_dir: Path | None = WEB_DIR, public_url: str | None = PUBLIC_URL) -> FastAPI:
     app = FastAPI(title="Nimbotics", version="0.1.0", lifespan=lifespan)
+    if public_url:
+        app.add_middleware(WwwRedirect, public_url=public_url)
     app.add_middleware(
         CORSMiddleware, allow_origin_regex=CORS_ORIGIN_REGEX, allow_methods=["*"], allow_headers=["*"],
         allow_credentials=True,
