@@ -310,4 +310,6 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   cover every run type, results filter on the server, and the list pages instead of capping at 200 (D79).
 - ✅ Cloud: rendering without shadows (5× faster frames on OSMesa); registry and clips on a Docker volume so redeploys
   keep runs.
+- ✅ Deployed 2026-11-03 (`020d64f`): the 9 runs already on the live site were copied onto the `nimbotics-runtime` volume;
+  a discovery run on layout 77 showed live frames, recorded 3 try clips and finished in 9.4 s (was ~17 s with one clip).
 - ✅ Tests: 252 backend (live frames, try clips, route events, compact list, paging), smoke, Playwright.
