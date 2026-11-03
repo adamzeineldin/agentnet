@@ -321,13 +321,16 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ App icon: the arm n on a dark rounded tile (`app/icon.svg`), rendered into `favicon.ico` (16/32/48) and
   `apple-icon.png` (180).
 
-## Own domain ⬜ (2026-11-03, waiting on the domain)
+## Own domain ✅ (2026-11-03)
 - ✅ `deploy/codespace.sh` starts a Cloudflare Tunnel (`cloudflare/cloudflared:2026.10.0`, host network → :7860) when
   the `CLOUDFLARE_TUNNEL_TOKEN` Codespaces secret is set; nothing changes without it (D80).
 - ✅ `www.` of `NIMBOTICS_PUBLIC_URL` redirects to it (308, path and query kept); the apex, codespace link and
   localhost are served as before. Tests: `test_cloud.py` (+2).
-- ⬜ Buy nimbotics.net, add it to Cloudflare, create the tunnel, set the secrets, update the OAuth callback URLs
-  (steps in deploy/README.md). Not yet checked against a live tunnel.
+- ✅ Live at https://nimbotics.net (2026-11-03): domain from Namecheap, nameservers moved to Cloudflare (Free plan),
+  tunnel `nimbotics` with routes nimbotics.net and www.nimbotics.net → http://localhost:7860, Codespaces secrets
+  `CLOUDFLARE_TUNNEL_TOKEN` and `NIMBOTICS_PUBLIC_URL`. Checked from outside: `/api/health` 200, home page 200,
+  `www.nimbotics.net/robots?x=1` → 308 to `https://nimbotics.net/robots?x=1`; stored runs kept. Image built at
+  `3e57264`. Sign-in is still off (no OAuth secrets), and the domain is down whenever the codespace is stopped.
 
 
 ## Teach page, more tasks and robots, robot upload, Muse skill scout ✅ (2026-11-03)
