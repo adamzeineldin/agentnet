@@ -214,7 +214,12 @@ test("library: search filters skills, and a skill page leads to its runs and bac
   await search.fill("shelf");
   await expect(row).toHaveCount(0);
   await search.fill("");
+  // The fixed choices sit in one Filters panel; a chosen one also shows as a token in the search bar.
+  await page.getByRole("button", { name: "Filters" }).click();
   await page.getByRole("radiogroup", { name: "Known by" }).getByRole("radio", { name: "Shared by several robots" }).click();
+  await expect(page.getByRole("button", { name: "Remove filter Shared by several robots" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog", { name: "Filters" })).toHaveCount(0);
   await row.click();
   await expect(page).toHaveURL(/open=wall_reach_v1_s7/);
   await expect(page.getByRole("list", { name: "Robots that know this skill" })).toContainText("learned from the Panda");

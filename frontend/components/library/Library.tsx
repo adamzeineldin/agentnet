@@ -8,10 +8,9 @@ import { useApi } from "@/lib/useApi";
 import { RunDialog } from "../history/RunDialog";
 import { groupByTask, type TaskGroup } from "../skills/grouping";
 import { ErrorNote, Loading } from "../ui";
-import { Chips } from "./Chips";
+import { Filters, SPREADS } from "./Filters";
 import {
-  layoutTitle, matchesSearch, taskTypeTitle, type LibraryQuery, type LibrarySort, type LibraryView, type LibraryWho,
-  type SkillSpread,
+  layoutTitle, matchesSearch, taskTypeTitle, type LibraryQuery, type LibraryView,
 } from "./query";
 import { RobotsView, sortRobots } from "./RobotsView";
 import { SearchBox, type Suggestion, type Token } from "./SearchBox";
@@ -24,12 +23,6 @@ const VIEWS: [LibraryView, string][] = [["skills", "Skills"], ["robots", "Robots
 const PLACEHOLDER: Record<LibraryView, string> = {
   skills: "Search skills, or type a robot or task type to filter…",
   robots: "Search robots by name or maker, or type a task type…",
-};
-const SPREADS: [SkillSpread, string][] = [["all", "All"], ["shared", "Shared by several robots"], ["single", "One robot"]];
-const WHOS: [LibraryWho, string][] = [["everyone", "Everyone"], ["mine", "Mine"]];
-const SORTS: Record<LibraryView, [LibrarySort, string][]> = {
-  skills: [["newest", "Newest"], ["most", "Most robots"]],
-  robots: [["newest", "Newest"], ["most", "Most skills"]],
 };
 
 /** Robots and task types whose names contain the text, the ones in use first. */
@@ -48,22 +41,9 @@ function suggestionsFor(text: string, view: LibraryView, robots: RobotSummary[],
   return [...robotHits, ...taskHits];
 }
 
-/** The short, fixed choices for the current view, as chips rather than dropdowns. "Mine" needs an account. */
-function Facets({ query, update, signedIn }: {
-  query: LibraryQuery; update: (patch: Partial<LibraryQuery>) => void; signedIn: boolean;
-}) {
-  return (
-    <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
-      {signedIn && <Chips label="Whose" options={WHOS} value={query.who} onPick={(who) => update({ who })} />}
-      {query.view === "skills" && <Chips label="Known by" options={SPREADS} value={query.spread} onPick={(spread) => update({ spread })} />}
-      <Chips label="Sort" options={SORTS[query.view]} value={query.sort} onPick={(sort) => update({ sort })} />
-    </div>
-  );
-}
-
 /**
  * One shared library of skills and robots (runs open from a skill or robot page), built to stay usable at thousands of each: a single search that turns
- * robots and task types into filter tokens, chips for the few fixed choices, and paged or collapsed lists everywhere.
+ * robots and task types into filter tokens, a Filters panel and Sort menu for the fixed choices, and paged or collapsed lists everywhere.
  */
 export function Library() {
   const { query, update } = useLibraryQuery();
@@ -90,6 +70,9 @@ export function Library() {
   const tokens: Token[] = [
     query.robot && query.view !== "robots" && { key: "robot", label: name(query.robot), onRemove: () => update({ robot: null }) },
     query.task && { key: "task", label: taskTypeTitle(query.task, tasks.data), onRemove: () => update({ task: null }) },
+    query.spread !== "all" && query.view === "skills" && {
+      key: "spread", label: SPREADS.find(([v]) => v === query.spread)?.[1] ?? query.spread, onRemove: () => update({ spread: "all" }),
+    },
   ].filter((t): t is Token => !!t);
   const pick = (s: Suggestion) => update(s.kind === "robot"
     ? { robot: s.id, q: "", open: null }
@@ -104,7 +87,8 @@ export function Library() {
       <SearchBox value={query.q} placeholder={PLACEHOLDER[query.view]} tokens={tokens} onPick={pick}
         onChange={(q) => update({ q, open: null })}
         suggest={(text) => suggestionsFor(text, query.view, fleet, tasks.data ?? [], groups, query)} />
-      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+      {/* Over the list so the Filters and Sort panels open on top of it, under the search suggestions (z-20). */}
+      <div className="relative z-10 flex flex-wrap items-center gap-x-3 gap-y-3">
         <div className="segmented w-fit" role="tablist" aria-label="Library view">
           {VIEWS.map(([view, label]) => (
             <button key={view} role="tab" aria-selected={query.view === view} onClick={() => update({ view, open: null })}>
@@ -112,7 +96,7 @@ export function Library() {
             </button>
           ))}
         </div>
-        {!query.open && <div className="min-w-0 flex-1"><Facets query={query} update={update} signedIn={user !== null} /></div>}
+        {!query.open && <Filters query={query} update={update} signedIn={user !== null} robots={fleet} tasks={tasks.data ?? []} />}
       </div>
       {error && <ErrorNote message={error} />}
       {!robots.data && !error && <Loading />}

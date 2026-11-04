@@ -37,7 +37,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
 function Shell({ pathname, children }: { pathname: string; children: ReactNode }) {
   return <div className="flex min-h-screen flex-col">
-    <header className="site-header sticky top-0 z-20">
+    {/* z-40: above anything a page raises (the Library search sits at z-20), below tooltips (z-50) and modal dialogs. */}
+    <header className="site-header sticky top-0 z-40">
       {/* Logo left and account right at every width, all three on one centre line and the same height as the nav;
           the nav sits centred, on its own row on narrow screens. */}
       <div className="mx-auto flex min-h-[88px] max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 md:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr]">

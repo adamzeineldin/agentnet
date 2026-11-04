@@ -596,3 +596,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   showed under Stored models, hidden from signed-out visitors until made public. Phone width: no sideways scroll.
 - ⬜ Not done: rotated boxes for mounts that are not quarter turns (headings are rounded, and the placement says so);
   a whole-robot view in snapshots of uploaded arms (they use the arm camera).
+- ✅ Library filters calmed (D99): the row of black chips (Everyone/Mine, Known by, Sort) became a quiet
+  "All · My library" toggle (signed in), one Filters panel (known by, robot, task type, clear; a count badge when any
+  is on) and a Sort menu. A "known by" choice now also shows as a removable token in the search bar. Checked in the
+  browser at 1280 px and 375 px (panels open over the list, no sideways scroll, Escape returns focus).
