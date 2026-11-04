@@ -1,0 +1,182 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@300;400;500;600&display=block" rel="stylesheet">
+<style>
+  :root { --bg: #f6f6f4; --panel: #ffffff; --ink: #17191b; --ink-2: #4f5357; --ink-3: #6b6f73; --accent: #d65a31;
+          --line: #e3e3df; --good: #2f8a55; --warn: #c9822b; --dark: #0f1112; --dark-ink: #e9e9e5; }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { width: 1440px; height: 810px; overflow: hidden; font-family: "IBM Plex Sans", sans-serif; color: var(--ink); background: var(--bg); }
+  body.dark { background: var(--dark); color: var(--dark-ink); }
+  body.transparent { background: transparent; }
+  .card { position: absolute; inset: 0; padding: 96px 120px; }
+  .mono { font-family: "IBM Plex Mono", monospace; letter-spacing: .14em; text-transform: uppercase; font-size: 15px; color: var(--accent); }
+  .in { opacity: 0; transform: translateY(14px); animation: in .9s cubic-bezier(.2,.7,.2,1) forwards; }
+  @keyframes in { to { opacity: 1; transform: none; } }
+  .grid { position: absolute; inset: -40px; background-image: radial-gradient(rgba(255,255,255,.09) 1.2px, transparent 1.3px);
+          background-size: 28px 28px; animation: drift 30s linear infinite; }
+  body:not(.dark) .grid { background-image: radial-gradient(rgba(0,0,0,.07) 1.2px, transparent 1.3px); }
+  @keyframes drift { to { transform: translate(28px, 28px); } }
+  .logo { display: inline-flex; align-items: baseline; font-weight: 500; letter-spacing: -.01em; }
+  .logo svg { width: .52em; height: .53em; margin-right: .055em; overflow: visible; }
+  .logo .i { position: relative; line-height: 1; }
+  .logo .i b { position: absolute; left: 50%; top: .12em; width: .155em; height: .155em; margin-left: -.0775em; border-radius: 50%; background: var(--accent); }
+
+  /* hook */
+  #hook { display: flex; flex-direction: column; justify-content: center; gap: 22px; }
+  #hook h1 { font-weight: 300; font-size: 76px; letter-spacing: -.02em; line-height: 1.08; }
+  #hook h1 em { font-style: normal; color: var(--accent); }
+  #hook .muted { color: #8c9094; }
+
+  /* muse */
+  #muse h1 { font-weight: 300; font-size: 60px; letter-spacing: -.02em; margin: 14px 0 44px; }
+  #muse h1 span { color: var(--accent); }
+  .cols { display: grid; grid-template-columns: 1fr 120px 1fr; align-items: stretch; }
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 22px; padding: 28px 32px; box-shadow: 0 10px 30px rgba(0,0,0,.05); }
+  .panel h2 { font-size: 24px; font-weight: 500; margin-bottom: 18px; display: flex; align-items: center; gap: 10px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  .dot.good { background: var(--good); }
+  .row { display: flex; gap: 14px; align-items: baseline; padding: 11px 0; border-top: 1px solid var(--line); font-size: 20px; }
+  .row:first-of-type { border-top: 0; }
+  .row b { font-family: "IBM Plex Mono", monospace; font-weight: 500; font-size: 14px; color: var(--ink-3); letter-spacing: .08em; text-transform: uppercase; width: 118px; flex: none; }
+  .arrow { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; color: var(--ink-3); font-family: "IBM Plex Mono", monospace; font-size: 13px; letter-spacing: .1em; text-transform: uppercase; }
+  .arrow svg { width: 70px; }
+  .guard { margin-top: 34px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .chip { border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 9px 16px; font-size: 16px; color: var(--ink-2); }
+
+  /* evidence */
+  #evidence h1 { font-weight: 300; font-size: 60px; letter-spacing: -.02em; margin: 14px 0 10px; }
+  #evidence .sub { color: var(--ink-3); font-size: 20px; margin-bottom: 44px; }
+  .bars { display: grid; gap: 20px; width: 1000px; }
+  .bar { display: grid; grid-template-columns: 300px 1fr 90px; align-items: center; gap: 22px; font-size: 21px; }
+  .track { height: 26px; background: #ebebe7; border-radius: 999px; overflow: hidden; }
+  .fill { height: 100%; width: 0; border-radius: 999px; background: var(--ink); animation: fill 1.4s cubic-bezier(.2,.7,.2,1) forwards; }
+  .fill.acc { background: var(--accent); }
+  .fill.mut { background: #a9adb1; }
+  @keyframes fill { to { width: var(--w); } }
+  .num { font-family: "IBM Plex Mono", monospace; font-size: 22px; text-align: right; }
+  .effort { margin-top: 46px; display: flex; align-items: center; gap: 30px; }
+  .sq { display: grid; grid-template-columns: repeat(20, 30px); gap: 7px; }
+  .sq i { width: 30px; height: 30px; border-radius: 7px; background: #d9d9d4; opacity: 0; animation: in .4s forwards; }
+  .sq i.g { background: var(--good); } .sq i.w { background: var(--warn); }
+  .legend { font-size: 19px; color: var(--ink-2); line-height: 1.6; }
+  .legend span { display: inline-flex; align-items: center; gap: 8px; margin-right: 18px; }
+  .legend em { width: 14px; height: 14px; border-radius: 4px; display: inline-block; }
+  .foot { position: absolute; left: 120px; bottom: 54px; font-size: 15px; color: var(--ink-3); font-family: "IBM Plex Mono", monospace; }
+
+  /* end */
+  #end { display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+  #end h1 { font-weight: 300; font-size: 74px; letter-spacing: -.02em; line-height: 1.12; }
+  #end .logo { font-size: 64px; margin-top: 64px; }
+  #end .url { font-family: "IBM Plex Mono", monospace; font-size: 22px; color: var(--accent); margin-top: 18px; letter-spacing: .04em; }
+  #end .with { margin-top: 40px; font-size: 18px; color: #8c9094; }
+
+  /* lower third */
+  #lt { display: block; padding: 0; }
+  #lt .pill { position: absolute; left: 44px; bottom: 40px; display: inline-flex; align-items: center; gap: 12px; padding: 13px 22px 13px 18px;
+              background: rgba(23,25,27,.92); color: #f2f2ee; border-radius: 999px; font-size: 19px; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+  #lt .pill .dot { width: 11px; height: 11px; }
+  /* minimal cards */
+  #muse, #evidence { display: flex; flex-direction: column; justify-content: center; align-items: center; }
+  .split { display: grid; grid-template-columns: 1fr 90px 1fr; gap: 40px; align-items: start; width: 1150px; }
+  .split > svg { width: 90px; margin-top: 34px; }
+  .split h1 { font-weight: 300; font-size: 64px; letter-spacing: -.02em; margin-bottom: 30px; }
+  .split h1 span { color: var(--accent); }
+  .split ul { list-style: none; padding: 0; display: grid; gap: 16px; font-size: 27px; color: var(--ink-2); font-weight: 300; }
+  #evidence .bars { width: 1050px; gap: 26px; }
+  #evidence .bar { grid-template-columns: 250px 1fr 100px; font-size: 26px; font-weight: 300; }
+  #evidence .track { height: 30px; }
+  #evidence .num { font-size: 26px; }
+  #evidence .effort { margin-top: 64px; width: 1050px; }
+  #evidence .legend { width: 1050px; font-size: 22px; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+
+<section class="card" id="hook">
+  <h1 class="in" data-k="l1" style="animation-delay:.7s">A robot learns a skill.</h1>
+  <h1 class="in muted" data-k="l2" style="animation-delay:2.6s">But that skill stays locked inside its body.</h1>
+  <h1 class="in" data-k="l3" style="animation-delay:6.4s">The next robot starts from <em>zero.</em></h1>
+</section>
+
+<section class="card" id="muse">
+  <div class="split">
+    <div>
+      <h1 class="in" data-k="m_head" style="animation-delay:.8s">Muse thinks.</h1>
+      <ul>
+        <li class="in" data-k="m1" style="animation-delay:2.4s">Matches goals</li>
+        <li class="in" data-k="m2" style="animation-delay:3.2s">Designs tasks</li>
+        <li class="in" data-k="m3" style="animation-delay:4.0s">Ranks routes</li>
+        <li class="in" data-k="m4" style="animation-delay:4.8s">Sums up the library</li>
+      </ul>
+    </div>
+    <svg class="in" data-k="arrow" style="animation-delay:9.6s" viewBox="0 0 70 20"><path d="M2 10h62M54 2l10 8-10 8" fill="none" stroke="#9a9ea2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    <div>
+      <h1 class="in" data-k="p_head" style="animation-delay:10.0s"><span>Physics proves.</span></h1>
+      <ul>
+        <li class="in" data-k="p1" style="animation-delay:10.9s">Solves each robot's motion</li>
+        <li class="in" data-k="p2" style="animation-delay:11.6s">Tests it in MuJoCo</li>
+        <li class="in" data-k="p3" style="animation-delay:12.3s">Saves only what passes</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="card" id="evidence">
+  <div class="bars">
+    <div class="bar in" data-k="b1" style="animation-delay:3.0s"><span>With sharing</span><div class="track"><div class="fill acc" style="--w:85%;animation-delay:3.4s"></div></div><span class="num">17/20</span></div>
+    <div class="bar in" data-k="b2" style="animation-delay:3.4s"><span>From scratch</span><div class="track"><div class="fill" style="--w:85%;animation-delay:3.8s"></div></div><span class="num">17/20</span></div>
+    <div class="bar in" data-k="b3" style="animation-delay:7.0s"><span>Plain retargeting</span><div class="track"><div class="fill mut" style="--w:50%;animation-delay:7.4s"></div></div><span class="num">10/20</span></div>
+  </div>
+  <div class="effort"><div class="sq" id="sq"></div></div>
+  <p class="legend in" data-k="lg" style="margin-top:18px;animation-delay:10.4s">
+    <span><em style="background:var(--good)"></em>less search · 11</span>
+    <span><em style="background:var(--warn)"></em>more search · 6</span>
+  </p>
+</section>
+
+<section class="card" id="end">
+  <h1 class="in" data-k="e1" style="animation-delay:.3s">One robot learns it.</h1>
+  <h1 class="in" data-k="e2" style="animation-delay:1.6s">Every robot remembers.</h1>
+  <div class="logo in" data-k="logo" style="animation-delay:3.4s">
+    <svg viewBox="0 0 52 53" fill="none"><path d="M6.25 46.75V26a19.75 19.75 0 0 1 39.5 0v2" stroke="currentColor" stroke-width="12.5" stroke-linecap="round"/><circle cx="45.75" cy="46" r="7" fill="currentColor"/></svg><span class="i">ı<b></b></span>mbotics
+  </div>
+  <p class="url in" data-k="url" style="animation-delay:3.9s">nimbotics.net</p>
+</section>
+
+<section class="card" id="lt"><div class="pill"><span class="dot"></span><span id="lttext"></span></div></section>
+
+<script>
+  const q = new URLSearchParams(location.search);
+  const card = q.get("card");
+  // ?delays=key:seconds,... retimes elements to the words of a voice take (record_timed.mjs).
+  const delays = Object.fromEntries((q.get("delays") || "").split(",").filter(Boolean).map((p) => p.split(":")).map(([k, v]) => [k, +v]));
+  for (const [k, v] of Object.entries(delays)) {
+    const el = document.querySelector(`[data-k="${k}"]`);
+    if (el) { el.style.animationDelay = v + "s"; el.querySelectorAll(".fill").forEach((f) => (f.style.animationDelay = v + 0.4 + "s")); }
+  }
+  if (card === "hook" || card === "end") document.body.classList.add("dark");
+  if (card === "lt") {
+    document.body.classList.add("transparent");
+    document.documentElement.style.background = "transparent";
+    document.querySelector(".grid").remove();
+    document.getElementById("lttext").textContent = q.get("text");
+    if (q.get("tone") === "good") document.querySelector("#lt .dot").classList.add("good");
+    if (q.get("tone") === "bad") document.querySelector("#lt .dot").style.background = "#d64545";
+  }
+  const sq = document.getElementById("sq");
+  const kinds = [...Array(11).fill("g"), ...Array(6).fill("w")];
+  kinds.forEach((k, i) => { const e = document.createElement("i"); if (k !== "n") e.className = k; e.style.animationDelay = ((delays.sq ?? 9.6) + i * 0.05) + "s"; sq.appendChild(e); });
+  // Only the requested card stays; its animations start when the recorder says go, so it starts from its first frame.
+  document.querySelectorAll("section.card").forEach((s) => { if (s.id !== card) s.remove(); });
+  document.getElementById(card).style.visibility = "hidden";
+  document.querySelectorAll("*").forEach((e) => (e.style.animationPlayState = "paused"));
+  window.go = () => { document.getElementById(card).style.visibility = "visible";
+    document.querySelectorAll("*").forEach((e) => (e.style.animationPlayState = "running")); };
+  if (card === "lt") window.go();
+</script>
+</body>
+</html>

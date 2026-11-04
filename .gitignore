@@ -35,3 +35,6 @@ frontend/test-results/
 frontend/playwright-report/
 .e2e-data/
 backend/app/data/uploads/
+
+# demo video intermediates (rebuilt by demo_video/build.py)
+demo_video/build/

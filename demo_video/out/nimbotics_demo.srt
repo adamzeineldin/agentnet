@@ -1,0 +1,175 @@
+1
+00:00:00,000 --> 00:00:02,380
+A robot learns a skill.
+
+2
+00:00:02,720 --> 00:00:05,260
+But that skill stays locked inside its body.
+
+3
+00:00:05,740 --> 00:00:07,420
+The next robot starts from zero.
+
+4
+00:00:08,360 --> 00:00:09,980
+And you can't just copy it over.
+
+5
+00:00:10,280 --> 00:00:11,700
+A Panda has seven joints.
+
+6
+00:00:12,060 --> 00:00:13,900
+A UR5e has six.
+
+7
+00:00:14,340 --> 00:00:16,480
+Same task, totally different motion.
+
+8
+00:00:17,540 --> 00:00:19,700
+Nimbotics is a shared memory for robots.
+
+9
+00:00:20,200 --> 00:00:22,200
+One robot learns a task in simulation.
+
+10
+00:00:22,560 --> 00:00:25,940
+It saves the task and the route that worked, but not its joint angles.
+
+11
+00:00:26,340 --> 00:00:28,920
+A different robot then works out its own motion.
+
+12
+00:00:29,380 --> 00:00:31,540
+And physics decides what gets saved.
+
+13
+00:00:34,350 --> 00:00:35,210
+Here's the Lab.
+
+14
+00:00:35,330 --> 00:00:39,230
+I pick the UR5e and describe the job in plain words.
+
+15
+00:00:41,140 --> 00:00:46,660
+Meta's Muse Spark reads my request and the whole library in one call, and finds the matching task.
+
+16
+00:00:47,020 --> 00:00:48,580
+Reach between two posts.
+
+17
+00:00:49,580 --> 00:00:53,360
+If it isn't sure, it shows me the closest match and asks a question.
+
+18
+00:00:53,920 --> 00:00:56,500
+The UR5e has never done this task.
+
+19
+00:00:56,720 --> 00:00:59,680
+But the Capsule arm, a robot someone uploaded, has.
+
+20
+00:01:00,200 --> 00:01:04,440
+So the UR5e learns from it, and Muse decides which routes to try first.
+
+21
+00:01:05,980 --> 00:01:10,490
+Muse can look at both robots and why each route failed, but it can only read.
+
+22
+00:01:10,540 --> 00:01:11,960
+It never moves the robot.
+
+23
+00:01:12,320 --> 00:01:17,780
+The UR5e solves its own motion, and the MuJoCo simulator tests the top three routes.
+
+24
+00:01:18,680 --> 00:01:21,580
+Less than a millimetre off target, and it touched nothing.
+
+25
+00:01:21,780 --> 00:01:25,300
+Only then is the skill saved, linked back to the Capsule arm.
+
+26
+00:01:26,180 --> 00:01:27,680
+Every Muse call is logged.
+
+27
+00:01:27,840 --> 00:01:30,960
+This run used two calls, for less than a tenth of a cent.
+
+28
+00:01:31,280 --> 00:01:35,700
+And this time, Muse picked the same route our basic rule would have.
+
+29
+00:01:36,200 --> 00:01:39,720
+Muse can also design a brand new task from one sentence.
+
+30
+00:01:40,020 --> 00:01:42,900
+Our backend checks the layout before anything runs.
+
+31
+00:01:43,500 --> 00:01:45,230
+But Muse can't make a task possible.
+
+32
+00:01:45,280 --> 00:01:49,380
+Here, no route passed the physics test, so nothing was saved.
+
+33
+00:01:50,460 --> 00:01:51,150
+So Muse thinks.
+
+34
+00:01:51,200 --> 00:01:56,240
+It matches goals, designs tasks, ranks routes, and sums up the library.
+
+35
+00:01:56,980 --> 00:01:57,680
+Physics proves.
+
+36
+00:01:58,020 --> 00:02:01,020
+Nothing becomes a skill until the simulator checks it.
+
+37
+00:02:01,640 --> 00:02:04,160
+We tested this on twenty new scenes.
+
+38
+00:02:04,760 --> 00:02:09,430
+Sharing matched planning from scratch, seventeen out of twenty, while plain retargeting solved ten.
+
+39
+00:02:09,480 --> 00:02:13,680
+It cut the search on eleven scenes, and made it worse on six.
+
+40
+00:02:14,400 --> 00:02:17,000
+It's live at nimbotics dot net.
+
+41
+00:02:17,100 --> 00:02:23,680
+Anyone can upload their own robot, even humanoids, two armed and mobile robots, and see which robot taught which.
+
+42
+00:02:24,120 --> 00:02:25,330
+One robot learns it.
+
+43
+00:02:25,380 --> 00:02:26,480
+Every robot remembers.
+
+44
+00:02:26,700 --> 00:02:27,820
+This is Nimbotics.

@@ -1,0 +1,82 @@
+[
+ {
+  "id": "v01",
+  "scene": "Hook",
+  "text": "A robot learns a skill. But that skill stays locked inside its body. The next robot starts from zero."
+ },
+ {
+  "id": "v02",
+  "scene": "Problem",
+  "text": "And you can't just copy it over. A Panda has seven joints. A UR5e has six. Same task, totally different motion."
+ },
+ {
+  "id": "v03",
+  "scene": "Solution",
+  "text": "Nimbotics is a shared memory for robots. One robot learns a task in simulation. It saves the task and the route that worked, but not its joint angles. A different robot then works out its own motion. And physics decides what gets saved."
+ },
+ {
+  "id": "v04",
+  "scene": "Lab: describe",
+  "text": "Here's the Lab. I pick the UR5e and describe the job in plain words."
+ },
+ {
+  "id": "v05a",
+  "scene": "Lab: Muse matches",
+  "text": "Meta's Muse Spark reads my request and the whole library in one call, and finds the matching task. Reach between two posts."
+ },
+ {
+  "id": "v05b",
+  "scene": "Lab: Muse asks",
+  "text": "If it isn't sure, it shows me the closest match and asks a question."
+ },
+ {
+  "id": "v06",
+  "scene": "Lab: librarian",
+  "text": "The UR5e has never done this task. But the Capsule arm, a robot someone uploaded, has. So the UR5e learns from it, and Muse decides which routes to try first."
+ },
+ {
+  "id": "v07",
+  "scene": "Lab: run",
+  "text": "Muse can look at both robots and why each route failed, but it can only read. It never moves the robot. The UR5e solves its own motion, and the MuJoCo simulator tests the top three routes."
+ },
+ {
+  "id": "v08",
+  "scene": "Lab: result",
+  "text": "Less than a millimetre off target, and it touched nothing. Only then is the skill saved, linked back to the Capsule arm."
+ },
+ {
+  "id": "v09",
+  "scene": "Lab: audit",
+  "text": "Every Muse call is logged. This run used two calls, for less than a tenth of a cent. And this time, Muse picked the same route our basic rule would have."
+ },
+ {
+  "id": "v09b",
+  "scene": "Muse designs a task",
+  "text": "Muse can also design a brand new task from one sentence. Our backend checks the layout before anything runs."
+ },
+ {
+  "id": "v09c",
+  "scene": "Physics says no",
+  "text": "But Muse can't make a task possible. Here, no route passed the physics test, so nothing was saved."
+ },
+ {
+  "id": "v10",
+  "scene": "Muse thinks, physics proves",
+  "text": "So Muse thinks. It matches goals, designs tasks, ranks routes, and sums up the library. Physics proves. Nothing becomes a skill until the simulator checks it."
+ },
+ {
+  "id": "v11",
+  "scene": "Evidence",
+  "text": "We tested this on twenty new scenes. Sharing matched planning from scratch, seventeen out of twenty, while plain retargeting solved ten. It cut the search on eleven scenes, and made it worse on six."
+ },
+ {
+  "id": "v12",
+  "scene": "Library",
+  "text": "It's live at nimbotics dot net. Anyone can upload their own robot, even humanoids, two armed and mobile robots, and see which robot taught which."
+ },
+ {
+  "id": "v13",
+  "scene": "Close",
+  "text": "One robot learns it. Every robot remembers. This is Nimbotics."
+ }
+]
