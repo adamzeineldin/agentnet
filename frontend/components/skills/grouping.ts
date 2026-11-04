@@ -32,5 +32,5 @@ export function groupByTask(skills: ExperienceCapsule[], robots: RobotSummary[])
 
 /** "Reach past a wall · layout 7" / "Reach onto a shelf · layout 3". */
 export function taskTitle(c: ExperienceCapsule): string {
-  return `${taskTitleOf(c.task.scene_id)} · layout ${c.task.seed}`;
+  return `${taskTitleOf(c.task)} · layout ${c.task.seed}`;
 }

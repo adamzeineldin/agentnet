@@ -1,7 +1,7 @@
-import type { TaskSpec } from "./types";
+import type { TaskDesign, TaskSpec } from "./types";
 
 /** Task types the robots can learn (backend services/task_families.py). Titles are used before /api/tasks loads. */
-export interface TaskTypeInfo { family: string; title: string; summary: string; example: TaskSpec }
+export interface TaskTypeInfo { family: string; title: string; summary: string; example: TaskSpec | null; design?: TaskDesign | null }
 
 export const DEFAULT_FAMILY = "wall_reach_v1";
 
@@ -14,13 +14,18 @@ export const TASK_TITLES: Record<string, string> = {
   posts_v1: "Reach between two posts",
 };
 
-/** "shelf_v1_s42" → "shelf_v1". */
+/** Task types designed from a description have ids like "custom_reach_into_an_open_box_bfb7bf". */
+export const DESIGNED_PREFIX = "custom_";
+
+/** "shelf_v1_s42" → "shelf_v1"; "custom_reach_under_a_beam_1a2b3c_s0" → "custom_reach_under_a_beam_1a2b3c". */
 export function familyOf(sceneId: string): string {
-  return Object.keys(TASK_TITLES).find((f) => sceneId.startsWith(`${f}_s`)) ?? DEFAULT_FAMILY;
+  const family = sceneId.replace(/_s\d+$/, "");
+  return TASK_TITLES[family] || family.startsWith(DESIGNED_PREFIX) ? family : DEFAULT_FAMILY;
 }
 
-export function taskTitleOf(sceneId: string): string {
-  return TASK_TITLES[familyOf(sceneId)];
+/** A designed task's layout description starts with its title ("Reach into an open box. Designed from …"). */
+export function taskTitleOf(task: TaskSpec): string {
+  return TASK_TITLES[familyOf(task.scene_id)] ?? task.description.split(". ")[0];
 }
 
 /** A fresh layout number; every number builds a different layout of the same task type. */

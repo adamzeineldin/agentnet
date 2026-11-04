@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
+from types import MappingProxyType
 
 import numpy as np
 
@@ -30,6 +31,8 @@ class TaskType:
     title: str
     summary: str
     generate: Callable[[int], TaskSpec]
+    # The layout shown as the type's example: designed task types show their exact design (layout 0).
+    example_seed: int = DEFAULT_SEED
 
 
 def _ends(rng: np.random.Generator, half_y: float, start_z: tuple[float, float] = (0.12, 0.18),
@@ -142,7 +145,7 @@ def posts_task(seed: int) -> TaskSpec:
     )
 
 
-TASK_TYPES: dict[str, TaskType] = {t.family: t for t in (
+_TASKS: dict[str, TaskType] = {t.family: t for t in (
     TaskType(SCENE_FAMILY, "Reach past a wall",
              "A wall stands between the start and the target. Over it, or around either side.", wall_task),
     TaskType(ROOF_FAMILY, "Reach under a roof",
@@ -156,14 +159,29 @@ TASK_TYPES: dict[str, TaskType] = {t.family: t for t in (
     TaskType(POSTS_FAMILY, "Reach between two posts",
              "Two posts with a gap between them. Straight through works only if the whole arm fits.", posts_task),
 )}
-SCENE_FAMILIES = tuple(TASK_TYPES)
+# Built-in families; task types designed from a description (task_design) are registered next to them.
+SCENE_FAMILIES = tuple(_TASKS)
+TASK_TYPES = MappingProxyType(_TASKS)
+
+
+def register(task_type: TaskType) -> None:
+    if task_type.family in SCENE_FAMILIES:
+        raise ValueError(f"{task_type.family!r} is a built-in task type")
+    _TASKS[task_type.family] = task_type
+
+
+def unregister(family: str) -> None:
+    if family not in SCENE_FAMILIES:
+        _TASKS.pop(family, None)
 
 
 def generate_task(seed: int = DEFAULT_SEED, family: str = SCENE_FAMILY) -> TaskSpec:
     if family not in TASK_TYPES:
-        raise ValueError(f"Unknown scene family {family!r}; known: {SCENE_FAMILIES}")
+        raise ValueError(f"Unknown scene family {family!r}; known: {list(TASK_TYPES)}")
     return TASK_TYPES[family].generate(seed)
 
 
 def family_of(scene_id: str) -> str:
-    return next((f for f in SCENE_FAMILIES if scene_id.startswith(f"{f}_s")), SCENE_FAMILY)
+    """'shelf_v1_s42' -> 'shelf_v1'. A family that is not loaded reads as the basic wall."""
+    family, sep, seed = scene_id.rpartition("_s")
+    return family if sep and seed.isdigit() and family in TASK_TYPES else SCENE_FAMILY

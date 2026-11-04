@@ -2,7 +2,7 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
-import { DEFAULT_FAMILY, TASK_TITLES, familyOf } from "@/lib/tasks";
+import { DEFAULT_FAMILY, DESIGNED_PREFIX, TASK_TITLES, familyOf, type TaskTypeInfo } from "@/lib/tasks";
 import { apiFetch, publishSkill, startDiscover, startTransfer } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import { useRunStream } from "@/lib/useRunStream";
@@ -38,7 +38,12 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
   const params = useSearchParams();
   const router = useRouter();
   const [sourceId, targetId] = pickPair(robots, params.get("source"), params.get("target"));
-  const family = TASK_TITLES[params.get("task") ?? ""] ? params.get("task")! : DEFAULT_FAMILY;
+  const tasks = useApi<TaskTypeInfo[]>("/api/tasks");
+  const asked = params.get("task") ?? "";
+  // A designed task type is trusted while the list loads; once loaded, only listed types are kept.
+  const known = TASK_TITLES[asked] || (tasks.data ? tasks.data.some((t) => t.family === asked) : asked.startsWith(DESIGNED_PREFIX));
+  const family = known ? asked : DEFAULT_FAMILY;
+  const taskTitle = tasks.data?.find((t) => t.family === family)?.title ?? TASK_TITLES[family] ?? "the designed task";
   const teacher = robots.find((r) => r.robot_id === sourceId)!;
   const learner = robots.find((r) => r.robot_id === targetId)!;
   const skillsApi = useApi<ExperienceCapsule[]>(`/api/skills?source_robot_id=${sourceId}`);
@@ -118,13 +123,14 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
         Pick a task (or describe one and let Muse choose), let one robot arm learn it in the physics simulator, then see
         whether a second arm, with a different body, can learn it from the first.
       </PageHeader>
-      {[source.error, target.error, skillsApi.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
+      {[source.error, target.error, skillsApi.error, tasks.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
 
       <StepCard n={1} title="What should the robots learn?" state="done">
-        <TaskStep family={family} learner={learner} robots={robots} disabled={busy}
+        <TaskStep family={family} tasks={tasks.data} learner={learner} robots={robots} disabled={busy}
           onFamily={(f) => go(sourceId, targetId, f)}
           onUsePick={(f, pick) => go(pick.source_robot_id, targetId, f, pick.skill_id)}
-          onUseTeacher={(f, t) => go(t, t === targetId ? sourceId : targetId, f)} />
+          onUseTeacher={(f, t) => go(t, t === targetId ? sourceId : targetId, f)}
+          onDesigned={(f) => { tasks.reload(); go(sourceId, targetId, f); }} />
       </StepCard>
 
       <StepCard n={2} title="Pick a teacher and a learner" state="done">
@@ -132,7 +138,7 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
       </StepCard>
 
       <StepCard n={3} title={`The ${teacher.short_name} learns the task`} state={teacherDone ? "done" : "active"}>
-        <TeacherStep teacher={teacher.short_name} teacherDof={teacher.dof} taskTitle={TASK_TITLES[family]} stream={source}
+        <TeacherStep teacher={teacher.short_name} teacherDof={teacher.dof} taskTitle={taskTitle} stream={source}
           skills={skills} skillId={skill?.skill_id ?? null}
           onPickSkill={(id) => { setSkillId(id); clearSource(); }}
           onTeach={(layout) => { clearTarget(); void source.start(() => startDiscover(sourceId, layout, family)); }}

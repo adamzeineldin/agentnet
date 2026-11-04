@@ -1,15 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { scoutPlan } from "@/lib/api";
-import { TASK_TITLES, type TaskTypeInfo } from "@/lib/tasks";
-import type { RobotSummary, ScoutPick, ScoutPlan, TaskSpec } from "@/lib/types";
-import { useApi } from "@/lib/useApi";
+import { designTask, scoutPlan } from "@/lib/api";
+import { DESIGNED_PREFIX, TASK_TITLES, type TaskTypeInfo } from "@/lib/tasks";
+import type { DesignResult, RobotSummary, ScoutPick, ScoutPlan } from "@/lib/types";
 import { ActButton } from "../auth/SignIn";
 import { Badge, ErrorNote } from "../ui";
+import { DesignedTask, DesignerBadge } from "./DesignedTask";
+import { TaskSketch } from "./TaskSketch";
 
 interface TaskStepProps {
   family: string;
+  /** Every task type, built in and designed (GET /api/tasks); null while loading. */
+  tasks: TaskTypeInfo[] | null;
   learner: RobotSummary;
   robots: RobotSummary[];
   disabled: boolean;
@@ -18,67 +21,69 @@ interface TaskStepProps {
   onUsePick: (family: string, pick: ScoutPick) => void;
   /** No saved skill fits: this robot learns the task first. */
   onUseTeacher: (family: string, teacherId: string) => void;
+  /** A task type was just designed: reload the task types and select it. */
+  onDesigned: (family: string) => void;
 }
 
-const EXAMPLES = ["Put a cup on a high shelf", "Reach through a gap between two posts", "Reach under a table"];
+const EXAMPLES = ["Put a cup on a high shelf", "Reach into a deep bin", "Reach under a low beam", "Reach past two staggered walls"];
+const DESIGNED_SHOWN = 6;
 
-/** Top view of a layout: obstacles as boxes, start ● and target ○ (task frame, robot at the bottom). */
-function TaskSketch({ task }: { task: TaskSpec }) {
-  const s = 220; // px per metre
-  const x = (v: number) => 60 + v * s; // lateral (task y) to the right
-  const y = (v: number) => 46 - v * s; // away from the robot (task x) upwards
-  return (
-    <svg viewBox="0 0 120 92" className="h-16 w-full" aria-hidden="true">
-      {task.obstacles.map((o) => (
-        <rect key={o.name} x={x(o.center[1] - o.half_size[1])} y={y(o.center[0] + o.half_size[0])}
-          width={2 * o.half_size[1] * s} height={2 * o.half_size[0] * s} rx={1}
-          className="fill-ink-3/40 stroke-ink-3" strokeWidth={0.6} />
-      ))}
-      <circle cx={x(task.start[1])} cy={y(task.start[0])} r={3} className="fill-ink" />
-      <circle cx={x(task.target[1])} cy={y(task.target[0])} r={3} className="fill-none stroke-accent" strokeWidth={1.5} />
-    </svg>
-  );
-}
+type Asking = "scout" | "design" | null;
 
-function MuseScout({ learner, robots, disabled, onUsePick, onUseTeacher }: Omit<TaskStepProps, "family" | "onFamily">) {
+function MuseScout({ learner, robots, disabled, onUsePick, onUseTeacher, onDesigned }:
+  Omit<TaskStepProps, "family" | "onFamily" | "tasks">) {
   const [goal, setGoal] = useState("");
   const [plan, setPlan] = useState<ScoutPlan | null>(null);
+  const [designed, setDesigned] = useState<DesignResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [asking, setAsking] = useState(false);
+  const [asking, setAsking] = useState<Asking>(null);
   const name = (id: string | null) => robots.find((r) => r.robot_id === id)?.short_name ?? id ?? "";
+  const ready = goal.trim().length >= 3 && !asking && !disabled;
 
-  async function ask(text: string) {
+  async function ask(text: string, kind: "scout" | "design") {
     setGoal(text);
-    setAsking(true);
+    setAsking(kind);
     setError(null);
     try {
-      setPlan(await scoutPlan(text, learner.robot_id));
+      if (kind === "scout") {
+        setPlan(await scoutPlan(text, learner.robot_id));
+        setDesigned(null);
+      } else {
+        setDesigned(await designTask(text));
+        setPlan(null);
+      }
     } catch (e) {
       setError((e as Error).message);
     } finally {
-      setAsking(false);
+      setAsking(null);
     }
   }
 
   const muse = plan?.provider === "meta_muse_spark";
   return (
     <div className="space-y-3 rounded-2xl bg-panel-2/60 p-4">
-      <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); if (goal.trim().length >= 3) void ask(goal.trim()); }}>
+      <form className="flex flex-wrap gap-2" onSubmit={(e) => { e.preventDefault(); if (ready) void ask(goal.trim(), "scout"); }}>
         <label className="min-w-0 flex-1">
           <span className="sr-only">What should the {learner.short_name} do?</span>
-          <input value={goal} onChange={(e) => setGoal(e.target.value)} maxLength={300} disabled={asking || disabled}
+          <input value={goal} onChange={(e) => setGoal(e.target.value)} maxLength={300} disabled={!!asking || disabled}
             placeholder={`Describe it: what should the ${learner.short_name} do?`}
             className="w-full border border-line-strong bg-panel px-3 py-2 text-sm text-ink" />
         </label>
-        <ActButton type="submit" disabled={asking || disabled || goal.trim().length < 3} className="button-primary disabled:opacity-50">
-          {asking ? "Muse is reading the library…" : "Ask Muse"}
+        <ActButton type="submit" disabled={!ready} className="button-primary disabled:opacity-50">
+          {asking === "scout" ? "Muse is reading the library…" : "Find what to learn from"}
+        </ActButton>
+        <ActButton type="button" disabled={!ready} onClick={() => void ask(goal.trim(), "design")} className="pill disabled:opacity-50">
+          {asking === "design" ? "Muse is designing…" : "Design a new task"}
         </ActButton>
       </form>
       <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-3">
-        Try:{EXAMPLES.map((ex) => <button key={ex} type="button" disabled={asking || disabled} onClick={() => void ask(ex)}
+        Try:{EXAMPLES.map((ex) => <button key={ex} type="button" disabled={!!asking || disabled} onClick={() => setGoal(ex)}
           className="text-accent hover:underline">“{ex}”</button>)}
       </p>
+      {asking === "design" && <p className="text-xs text-ink-3" aria-live="polite">
+        Designing a layout and checking it against the limits; with Muse this takes up to a minute.</p>}
       {error && <ErrorNote message={error} />}
+      {designed && <DesignedTask result={designed} disabled={disabled} onTeach={onDesigned} />}
       {plan && (
         <div className="space-y-3 border-t border-line pt-3 text-sm" aria-live="polite">
           <div className="flex flex-wrap items-center gap-2">
@@ -112,33 +117,59 @@ function MuseScout({ learner, robots, disabled, onUsePick, onUseTeacher }: Omit<
             {muse ? "Muse only suggests. " : ""}Whether the {learner.short_name} can really learn it is decided below, in the physics simulator.
             {plan.fallback_error && ` Muse could not answer (${plan.fallback_error}), so the offline scout did.`}
           </p>
+          <p className="text-xs text-ink-3">Not quite the task you meant?{" "}
+            <button type="button" disabled={!ready} onClick={() => void ask(goal.trim(), "design")} className="text-accent hover:underline">
+              Let Muse design a new task from this description</button>.</p>
         </div>
       )}
     </div>
   );
 }
 
-/** Step 1: what the robots learn. Pick a task type, or describe it and let Muse choose it and what to learn from. */
+function TaskChoice({ task, checked, disabled, onPick }: {
+  task: TaskTypeInfo; checked: boolean; disabled: boolean; onPick: () => void;
+}) {
+  return (
+    <button type="button" role="radio" aria-checked={checked} disabled={disabled} onClick={onPick}
+      className={`rounded-xl border p-3 text-left transition-colors ${checked ? "border-accent bg-panel" : "border-line bg-panel-2/40 hover:border-line-strong"}`}>
+      {task.example && <TaskSketch task={task.example} />}
+      <span className="block text-sm font-medium">{task.title}</span>
+      {task.summary && <span className="mt-0.5 block text-xs text-ink-3">{task.summary}</span>}
+      {task.design && <span className="mt-1 block"><DesignerBadge provider={task.design.provider} /></span>}
+    </button>
+  );
+}
+
+const GRID = "grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-2";
+
+/** Step 1: what the robots learn. Pick a task type, describe it so Muse finds skills, or let Muse design a new one. */
 export function TaskStep(props: TaskStepProps) {
-  const { family, disabled, onFamily } = props;
-  const tasks = useApi<TaskTypeInfo[]>("/api/tasks");
-  const list = tasks.data ?? Object.entries(TASK_TITLES).map(([f, title]) => ({ family: f, title, summary: "", example: null }));
+  const { family, tasks, disabled, onFamily } = props;
+  const [showAll, setShowAll] = useState(false);
+  const list = tasks ?? Object.entries(TASK_TITLES).map(([f, title]) => ({ family: f, title, summary: "", example: null }));
+  const builtIn = list.filter((t) => !t.family.startsWith(DESIGNED_PREFIX));
+  const designed = list.filter((t) => t.family.startsWith(DESIGNED_PREFIX)).reverse(); // newest first
+  // Keep the selected designed task visible even when it is not among the newest.
+  const shown = showAll ? designed : designed.filter((t, i) => i < DESIGNED_SHOWN || t.family === family);
+  const choice = (t: TaskTypeInfo) => (
+    <TaskChoice key={t.family} task={t} checked={family === t.family} disabled={disabled} onPick={() => onFamily(t.family)} />
+  );
   return (
     <div className="space-y-4">
       <MuseScout {...props} />
-      <div>
-        <p className="mb-2 text-xs text-ink-3">Or pick a task type yourself:</p>
-        <div role="radiogroup" aria-label="Task type" className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,180px),1fr))] gap-2">
-          {list.map((t) => (
-            <button key={t.family} type="button" role="radio" aria-checked={family === t.family} disabled={disabled}
-              onClick={() => onFamily(t.family)}
-              className={`rounded-xl border p-3 text-left transition-colors ${family === t.family ? "border-accent bg-panel" : "border-line bg-panel-2/40 hover:border-line-strong"}`}>
-              {t.example && <TaskSketch task={t.example} />}
-              <span className="block text-sm font-medium">{t.title}</span>
-              {t.summary && <span className="mt-0.5 block text-xs text-ink-3">{t.summary}</span>}
-            </button>
-          ))}
-        </div>
+      <div role="radiogroup" aria-label="Task type" className="space-y-3">
+        <p className="text-xs text-ink-3">Or pick a task type yourself:</p>
+        <div className={GRID}>{builtIn.map(choice)}</div>
+        {designed.length > 0 && (
+          <>
+            <p className="text-xs text-ink-3">Designed from descriptions ({designed.length}):</p>
+            <div className={GRID}>{shown.map(choice)}</div>
+            {designed.length > shown.length && (
+              <button type="button" onClick={() => setShowAll(true)} className="text-xs text-accent hover:underline">
+                Show all {designed.length} designed tasks</button>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

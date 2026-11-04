@@ -245,13 +245,27 @@ test("redesigned routes fit a narrow screen with reduced motion", async ({ page 
 test("teach: a described goal picks a task type (offline scout without a model key) and sets up the steps", async ({ page }) => {
   await page.goto("/transfer");
   await page.getByPlaceholder(/Describe it/).fill("Put a cup on a high shelf");
-  await page.getByRole("button", { name: "Ask Muse" }).click();
+  await page.getByRole("button", { name: "Find what to learn from" }).click();
   await expect(page.getByText("Offline scout · no model call")).toBeVisible();
   await expect(page.getByText("Task type:").locator("b")).toHaveText("Reach onto a shelf");
   await page.getByRole("button", { name: "Use this" }).first().click();
   await expect(page).toHaveURL(/task=shelf_v1/);
   await expect(page.getByRole("radio", { name: /Reach onto a shelf/ })).toHaveAttribute("aria-checked", "true");
   await expect(page.getByText(/Task: Reach onto a shelf/)).toBeVisible();
+});
+
+test("teach: a described task is designed (offline designer without a model key), listed and selected", async ({ page }) => {
+  await page.goto("/transfer");
+  await page.getByPlaceholder(/Describe it/).fill("Reach under a low beam");
+  await page.getByRole("button", { name: "Design a new task" }).click();
+  await expect(page.getByText("Offline designer · no model call")).toBeVisible();
+  await expect(page.getByText("New task type: Reach under a beam")).toBeVisible();
+  await page.getByText("What Nimbotics checked").click();
+  await expect(page.getByText(/Start and target are 0\.48 m apart/)).toBeVisible();
+  await page.getByRole("button", { name: "Teach this task" }).click();
+  await expect(page).toHaveURL(/task=custom_reach_under_a_beam_/);
+  await expect(page.getByRole("radio", { name: /Reach under a beam/ })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByText(/Task: Reach under a beam/)).toBeVisible();
 });
 
 test("robots: the example arm uploads, is completed by Nimbotics and joins the fleet", async ({ page }) => {

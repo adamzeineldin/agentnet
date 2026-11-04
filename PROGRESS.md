@@ -349,3 +349,15 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Tests: 314 backend (uploads 12, scout 10, live buffer 2, task types), smoke 10/10, Playwright.
 - ⬜ Live site: Muse needs the `MODEL_API_KEY` Codespaces secret (deploy/README.md); until then it shows the offline
   scout.
+
+## Muse designs new task types ✅ (2026-11-03)
+- ✅ "Design a new task" on the Teach page: Muse turns a description into a new task type (layout, title, summary,
+  what it leaves out), checked against fixed limits before it is saved; top and side sketches and the list of checks
+  are shown; "Teach this task" selects it. Designed types are listed under the built-in ones with who designed them
+  (D86). Offline designer without a key (6 templates: open box, beam, staggered walls, high shelf, staircase, wall).
+- ✅ Measured: offline templates on Panda and UR5e, two layouts each: beam, staggered walls, high shelf, staircase and
+  wall all learned; the open box was learned by the UR5e only (Panda and Gen3 hands hit its walls).
+- ✅ Real Muse calls (local): "Reach over a low fence and into a bin behind it" → 1 call, $0.0009, learned by no arm (wrists hit the bin);
+  with measured limits and learning evidence in the prompt, "Reach into a bin that sits behind a low fence" → 2 calls (Muse fixed a
+  broken first layout), $0.0012; the UR5e learned it (over the fence, 8 cm clearance, 0.6 mm), the Panda did not.
+- ✅ Tests: 350 backend (task design 36), smoke 10/10, Playwright 20/20.

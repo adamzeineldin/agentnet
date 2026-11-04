@@ -206,7 +206,8 @@ def apply_answer(answer: dict, goal: str, learner: str, robots: Sequence[RobotSu
     )
 
 
-def _reserve_call() -> bool:
+def reserve_model_call() -> bool:
+    """Count one model call against the daily cap shared by the scout and the task designer."""
     today = datetime.now(UTC).date()
     with _lock:
         if _spent.get(today, 0) >= SCOUT_DAILY_MODEL_CALLS:
@@ -226,7 +227,7 @@ def scout(goal: str, learner: RobotSummary, robots: Sequence[RobotSummary], skil
             return _cache[key]
     if not use_model:
         plan = offline_plan(goal, learner.robot_id, robots, skills)
-    elif not _reserve_call():
+    elif not reserve_model_call():
         plan = offline_plan(goal, learner.robot_id, robots, skills, extra_notes=[
             f"Muse scout skipped: today's limit of {SCOUT_DAILY_MODEL_CALLS} model calls is used up."])
     else:

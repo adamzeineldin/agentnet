@@ -77,6 +77,16 @@ class UploadedRobotRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class DesignedTaskRow(Base):
+    """A task type designed from a description (TaskDesign as JSON). goal_key: normalized goal + provider."""
+
+    __tablename__ = "designed_tasks"
+    family: Mapped[str] = mapped_column(String, primary_key=True)
+    goal_key: Mapped[str] = mapped_column(String, index=True)
+    design: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
 class UserRow(Base):
     __tablename__ = "users"
     user_id: Mapped[str] = mapped_column(String, primary_key=True)
@@ -217,6 +227,22 @@ class Registry:
     def save_uploaded_robot(self, robot_id: str, decl_json: str) -> None:
         with self._tx() as s:
             s.merge(UploadedRobotRow(robot_id=robot_id, decl=decl_json, created_at=utcnow()))
+
+    def save_designed_task(self, family: str, goal_key: str, design_json: str) -> None:
+        with self._tx() as s:
+            s.merge(DesignedTaskRow(family=family, goal_key=goal_key, design=design_json, created_at=utcnow()))
+
+    def designed_tasks(self) -> list[str]:
+        """TaskDesign JSON of every designed task type, oldest first."""
+        with self._session() as s:
+            rows = s.scalars(select(DesignedTaskRow).order_by(DesignedTaskRow.created_at)).all()
+            return [r.design for r in rows]
+
+    def designed_task_for(self, goal_key: str) -> str | None:
+        """The design stored for this goal, or None."""
+        with self._session() as s:
+            row = s.scalars(select(DesignedTaskRow).where(DesignedTaskRow.goal_key == goal_key)).first()
+            return row.design if row else None
 
     def uploaded_robots(self) -> list[str]:
         """Declared-facts JSON of every uploaded arm, oldest first."""

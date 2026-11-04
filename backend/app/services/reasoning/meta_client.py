@@ -70,6 +70,8 @@ class Conversation:
     schema: dict
     kind: str
     max_rounds: int
+    # Output budget per call, reasoning included. Layout design reasons about geometry and needs more.
+    max_tokens: int = MAX_TOKENS
 
 
 def tool_spec(name: str, description: str, properties: dict, required: list[str]) -> dict:
@@ -106,7 +108,7 @@ class MetaChatClient:
         messages: list[dict] = [{"role": "system", "content": conv.system}, {"role": "user", "content": conv.user}]
         for round_idx in range(conv.max_rounds + 1):
             final_round = round_idx == conv.max_rounds
-            body = {"model": self.model_id, "messages": messages, "max_tokens": MAX_TOKENS,
+            body = {"model": self.model_id, "messages": messages, "max_tokens": conv.max_tokens,
                     "reasoning_effort": REASONING_EFFORT}
             if final_round:
                 body["messages"] = [*messages, {"role": "user", "content": conv.final_instruction}]

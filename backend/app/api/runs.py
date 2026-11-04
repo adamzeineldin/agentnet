@@ -14,7 +14,7 @@ from app.models.run import TERMINAL_STATUSES, DiscoverRequest, RunRecord
 from app.services.jobs import SimulationWorker, create_run, run_guarded
 from app.services.live import LIVE
 from app.services.skill_discovery import PLANNER_NAME, discover_skill
-from app.services.task_families import SCENE_FAMILIES
+from app.services.task_families import TASK_TYPES
 from app.services.registry import Registry
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
@@ -66,9 +66,9 @@ def start_discover(
     user: User | None = Depends(require_user),
 ) -> RunRecord:
     require_fleet_robot(registry, body.robot_id)
-    if body.task_family not in SCENE_FAMILIES:
+    if body.task_family not in TASK_TYPES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
-                            f"Unknown task type {body.task_family!r}; choose one of {list(SCENE_FAMILIES)}")
+                            f"Unknown task type {body.task_family!r}; choose one of {list(TASK_TYPES)}")
     passport = registry.get_passport(body.robot_id)
     if passport is None:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Passport not computed yet")

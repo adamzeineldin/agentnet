@@ -401,3 +401,14 @@ export interface ScoutPlan {
   usage: { model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null } | null;
   fallback_error: string | null; notes: string[]; created_at: string;
 }
+
+/** A task type designed from a description (backend models/task_design.py). Only a layout: physics decides the rest. */
+export interface TaskDesign {
+  family: string; title: string; summary: string; goal: string;
+  layout: { start: Vec3; target: Vec3; obstacles: BoxSpec[] };
+  limitation: string; checks: string[];
+  provider: "offline_designer" | "meta_muse_spark"; provider_requested: string; model_id: string | null;
+  usage: ModelUsage | null; fallback_error: string | null; notes: string[];
+  created_by: string | null; created_at: string;
+}
+export interface DesignResult { design: TaskDesign; example: TaskSpec; reused: boolean }

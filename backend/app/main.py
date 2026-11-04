@@ -18,6 +18,7 @@ from app.canonical_host import WwwRedirect
 from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH, PUBLIC_URL, WEB_DIR
 from app.services.fleet import ensure_passports
 from app.services.uploads import load_uploaded
+from app.services.task_design import load_designed
 from app.services.jobs import SimulationWorker
 from app.services.registry import Registry
 from app.web import mount_web
@@ -33,6 +34,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     missing = load_uploaded(app.state.registry.uploaded_robots())
     if missing:
         logging.getLogger(__name__).warning("Uploaded robots with missing files skipped: %s", missing)
+    skipped = load_designed(app.state.registry.designed_tasks())
+    if skipped:
+        logging.getLogger(__name__).warning("Designed task types that failed the layout checks: %s", skipped)
     await app.state.worker.call(ensure_passports, app.state.worker, app.state.registry)
     yield
     app.state.worker.shutdown()

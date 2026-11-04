@@ -1,6 +1,6 @@
 import type {
   ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RobotSummary, RunEvent, RunRecord,
-  ScoutPlan, UploadResult,
+  DesignResult, ScoutPlan, UploadResult,
 } from "./types";
 
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
@@ -68,6 +68,11 @@ export function uploadRobot(file: File, name: string, tool?: string): Promise<Up
 /** Which task type a goal is, and which saved skills `robotId` should learn from (Muse, or the offline scout). */
 export function scoutPlan(goal: string, robotId: string): Promise<ScoutPlan> {
   return apiFetch<ScoutPlan>("/api/library/scout", { method: "POST", body: JSON.stringify({ goal, robot_id: robotId }) });
+}
+
+/** Design a new task type from a description (Muse, or the offline designer) and add it to the task types. */
+export function designTask(goal: string): Promise<DesignResult> {
+  return apiFetch<DesignResult>("/api/tasks/design", { method: "POST", body: JSON.stringify({ goal }) });
 }
 
 export function publishSkill(runId: string): Promise<ExperienceCapsule> {
