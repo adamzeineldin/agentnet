@@ -367,3 +367,21 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   the header; the offline banner still appears when the backend is unreachable. The site always renders light (the
   stored-theme script is gone, so no one is stuck in dark). `/present` still works by URL.
 - ✅ Playwright: dropped the "backend live" check and the theme test.
+
+## Landing page: How it works as a scroll story ✅ (2026-11-03)
+- ✅ Below the hero, a pinned scroll-driven 3D illustration in the site theme tells the idea in four one-line beats
+  (Learn, Remember, Adapt, Prove), caption centred above the scene and progress below it. The camera orbits as you
+  scroll (perspective SVG, no 3D library). Arms are lit solids (pedestal and turret, tube links, joint housings, a
+  two-finger gripper that closes around the start and target knobs); the glass wall is depth-sorted against the
+  gripper; everything casts a floor shadow. Robot A's failed tries stop where any drawn part first touches the wall
+  (spark, red flash, an X at the end of each try's own route; the gripper is the widest part, so it is what meets the wall), the task folds
+  into a skill card laid out like the Skills page (task, robot row, route, "learned it itself"); as Adapt begins the card
+  lifts away, its route slides out of the thumbnail and settles as the dashed "Robot A's route" in front of a
+  differently built Robot B while the task rises from the floor, and B previews and traces its own route, then the physics
+  checks and the new skill's lineage. Clearances were checked numerically: successful routes clear the wall by about 28 units, failed tries
+  touch it, no part passes through a post or the floor. It is an illustration and shows no run data.
+- ✅ Under the story: seven short questions and answers (what it does, why not joint angles, who decides, where AI
+  fits, real robots, which arms, failures) and "Try it now". The old step list, glossary, evidence cards and server
+  status panel are gone from the home page; the simulation-only note is the "real robot" answer and the footer. On phones the stage shrinks
+  to the scene with numbered progress.
+- ✅ Tests: 350 backend, smoke 10/10, Playwright home + how-it-works tests updated and passing.

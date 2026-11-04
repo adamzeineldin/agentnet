@@ -8,7 +8,7 @@ test.describe.configure({ mode: "serial" });
 test("home shows the hero and, below it, how it works", async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { level: 1 })).toContainText("One robot learns it.");
-  await expect(page.getByRole("heading", { name: "Teach one robot arm a task. Let a different arm do it too." })).toBeVisible();
+  await expect(page.getByRole("region", { name: "How it works" }).getByRole("list", { name: "The idea" })).toBeAttached();
   await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link")).toHaveCount(7);
 });
 
@@ -91,23 +91,16 @@ test("real data page replays a recorded DROID episode on the Panda in MuJoCo", a
   await expect(page.getByText("✓ follows recorded path")).toBeVisible();
 });
 
-test("how it works sits on the home page and explains the idea, the task, each step, layouts and every evidence source", async ({ page }) => {
+test("how it works sits on the home page: a four-beat story, plain questions and a way to try it", async ({ page }) => {
   await page.goto("/how-it-works");
   await expect(page).toHaveURL(/\/#how-it-works$/);
   await expect(page.getByRole("list", { name: "The idea" }).getByRole("listitem")).toHaveCount(4);
-  await expect(page.getByRole("img", { name: /Side view/ })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "What is a layout number?" })).toBeVisible();
-  await expect(page.getByRole("list", { name: "Pipeline" }).getByRole("listitem")).toHaveCount(5);
-  await page.locator("summary", { hasText: "Technical detail" }).first().click();
-  await expect(page.getByText(/inverse kinematics \(IK\), screened for collisions/)).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Where the AI model fits" })).toBeVisible();
-  await page.locator("summary", { hasText: "Glossary" }).click();
-  await expect(page.getByRole("definition").filter({ hasText: "Each task type can be built in many layouts" })).toBeVisible();
-  await expect(page.getByText("8 DROID episodes imported")).toBeVisible();
-  await expect(page.getByText("not configured on this server")).toBeVisible();
-  for (const label of ["real robot recording", "MuJoCo simulation", "URSim controller software", "model-written"]) {
-    await expect(page.getByText(label, { exact: true }).first()).toBeVisible();
-  }
+  const questions = page.getByRole("region", { name: "Questions" });
+  await expect(questions.locator("summary")).toHaveCount(7);
+  await questions.locator("summary", { hasText: "Has this run on a real robot?" }).click();
+  await expect(questions.getByText(/Not yet\. Results here are simulation-verified/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "Try it now →" })).toHaveAttribute("href", "/transfer");
+  await expect(page.getByText("What this server has switched on")).toHaveCount(0);
 });
 
 test("librarian organizes the registry offline without changing skills", async ({ page, request }) => {
