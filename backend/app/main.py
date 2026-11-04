@@ -9,14 +9,15 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.staticfiles import StaticFiles
 
 from app.api import (
-    auth, benchmarks, blog, controller, demo, health, library, password_auth, real_data, robots, runs, skills, tasks,
-    transfers,
+    auth, benchmarks, blog, controller, demo, health, library, password_auth, real_data, robots, runs, sharing, skills,
+    tasks, transfers,
 )
+from app.artifact_files import ArtifactFiles
 from app.canonical_host import WwwRedirect
-from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH, PUBLIC_URL, WEB_DIR
+from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DATABASE, PUBLIC_URL, WEB_DIR
+from app.services import storage
 from app.services.fleet import ensure_passports
 from app.services.uploads import load_uploaded
 from app.services.task_design import load_designed
@@ -30,7 +31,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-    app.state.registry = Registry(DB_PATH)
+    app.state.registry = Registry(DATABASE)
     app.state.worker = SimulationWorker()
     missing = load_uploaded(app.state.registry.uploaded_robots())
     if missing:
@@ -41,6 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     await app.state.worker.call(ensure_passports, app.state.worker, app.state.registry)
     yield
     app.state.worker.shutdown()
+    storage.wait_for_pushes()
 
 
 def create_app(web_dir: Path | None = WEB_DIR, public_url: str | None = PUBLIC_URL) -> FastAPI:
@@ -65,8 +67,9 @@ def create_app(web_dir: Path | None = WEB_DIR, public_url: str | None = PUBLIC_U
     app.include_router(real_data.router)
     app.include_router(tasks.router)
     app.include_router(blog.router)
+    app.include_router(sharing.router)
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
-    app.mount("/artifacts", StaticFiles(directory=ARTIFACT_DIR), name="artifacts")
+    app.mount("/artifacts", ArtifactFiles(directory=ARTIFACT_DIR), name="artifacts")
     if web_dir is not None:
         mount_web(app, web_dir)
     return app

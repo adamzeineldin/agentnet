@@ -20,7 +20,7 @@ export function SolutionDetail({ capsule, robotName, onOpenRun }: {
     <div className="space-y-4 rounded-xl bg-panel-2/50 p-4">
       {run.error && <ErrorNote message={run.error} />}
       {!run.data ? <Loading label="Loading the recorded run…" /> : (
-        <div className="grid items-start gap-4 lg:grid-cols-2">
+        <div className="grid items-start gap-4 2xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
           <RunVideo run={run.data} busy={false} emptyLabel="No video for this run" />
           <div className="space-y-3">
             <p className="text-sm text-ink">

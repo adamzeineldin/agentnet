@@ -21,15 +21,18 @@ from app.models.robot import (
 from app.models.skill import ExperienceCapsule
 from app.services.jobs import SimulationWorker
 from app.services.passports import build_passport, model_dir_hash
-from app.services.registry import Registry
+from app.services.registry import EVERYONE, Registry, Viewer
 from app.services.render import FrameRecorder
-from app.services import uploads
+from app.models.sharing import can_see, initial_visibility
+from app.services import storage, uploads
 from app.services.robot_adapter import RobotAdapter
 from app.services.scene import build_model
 from app.services.simulation import execute_path
 from app.services.robot_catalog import ROBOTS, RobotDecl, get_robot_decl
 
 log = logging.getLogger(__name__)
+
+RobotAccess = dict[str, tuple[str | None, str]]
 
 
 def snapshot_path(robot_id: str) -> Path:
@@ -49,14 +52,25 @@ def compute_passport(
     data = adapter.new_data()
     with FrameRecorder(adapter.model) as rec:
         rec.save_png(rec.capture(data), snapshot_path(robot_id))
+    storage.push_artifact_later(snapshot_path(robot_id))
     log.info("Passport computed for %s in %.2fs", robot_id, passport.compute_seconds)
     return registry.save_passport(passport)
 
 
-def fleet_ids(registry: Registry) -> list[str]:
-    """Arms in the fleet, in catalog order: the default fleet plus any added since."""
+def fleet_ids(registry: Registry, viewer: Viewer = EVERYONE) -> list[str]:
+    """Arms in the fleet, in catalog order: the default fleet plus any added since, limited to what viewer sees."""
     added = registry.added_robot_ids()
-    return [rid for rid, d in ROBOTS.items() if d.default_fleet or rid in added]
+    access = registry.robot_access()
+    return [rid for rid, d in ROBOTS.items()
+            if (d.default_fleet or rid in added) and robot_visible(access, rid, viewer)]
+
+
+def robot_visible(access: RobotAccess, robot_id: str, viewer: Viewer) -> bool:
+    """Catalog arms are public; an uploaded arm follows its row (registry.robot_access)."""
+    if viewer is EVERYONE or robot_id not in access:
+        return True
+    owner, visibility = access[robot_id]
+    return can_see(owner, visibility, viewer)
 
 
 def ensure_passports(worker: SimulationWorker, registry: Registry) -> list[RobotPassport]:
@@ -86,9 +100,13 @@ def add_robot(worker: SimulationWorker, registry: Registry, robot_id: str, added
     return passport
 
 
-def summarize(passport: RobotPassport) -> RobotSummary:
+def summarize(passport: RobotPassport, access: RobotAccess | None = None, viewer: Viewer = None) -> RobotSummary:
+    """The fleet card. With access (registry.robot_access) it says the arm's visibility and whether viewer owns it."""
     decl = ROBOTS.get(passport.robot_id)
+    owner, visibility = (access or {}).get(passport.robot_id, (None, "public"))
     return RobotSummary(
+        visibility=visibility,
+        mine=owner is not None and owner == viewer,
         maker=decl.maker if decl else "",
         controller=decl.controller.kind if decl and decl.controller else None,
         robot_id=passport.robot_id,
@@ -127,7 +145,8 @@ def with_skill_evidence(passport: RobotPassport, skills: list[ExperienceCapsule]
 
 
 def upload_robot(worker: SimulationWorker, registry: Registry, filename: str, data: bytes, name: str,
-                 tool_hint: str | None, uploaded_by: str | None) -> tuple[RobotPassport, list[str]]:
+                 tool_hint: str | None, uploaded_by: str | None,
+                 owner_id: str | None = None) -> tuple[RobotPassport, list[str]]:
     """Turn an uploaded model into a fleet arm (services/uploads.py). Worker thread only.
 
     Any failure removes the files and leaves the fleet unchanged; UploadError says what to fix.
@@ -149,7 +168,9 @@ def upload_robot(worker: SimulationWorker, registry: Registry, filename: str, da
         passport = compute_passport(worker, registry, robot_id)
         decl = uploads.with_task_distance(decl, passport.workspace.max_reach_m)
         uploads.register(decl)
-        registry.save_uploaded_robot(robot_id, uploads.decl_to_json(decl))
+        # The files go to the file store before the robot is recorded, so a recorded robot is never fileless.
+        storage.push_upload(robot_id)
+        registry.save_uploaded_robot(robot_id, uploads.decl_to_json(decl), owner_id, initial_visibility(owner_id))
         registry.add_to_fleet(robot_id, uploaded_by)
         log.info("Uploaded robot %s registered (%d joints)", robot_id, passport.dof)
         return passport, [*norm.notes, f"Task placed {decl.task_distance_m:.2f} m in front of the base "

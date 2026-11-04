@@ -1,6 +1,7 @@
 import type {
-  BlogPost, BlogPostInput, DesignResult, ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode,
-  PublicUser, RobotSummary, RunEvent, RunRecord, ScoutPlan, UploadResult,
+  BlogPost, BlogPostInput, DesignResult, ExecuteOn, ExperienceCapsule, LearningCheck, LibrarianMode, LibraryReport,
+  ReasoningMode,
+  PublicUser, RobotSummary, RunEvent, RunRecord, ScoutPlan, SharedKind, UploadResult, Visibility, VisibilityPlan,
 } from "./types";
 
 // "localhost", not 127.0.0.1: the pages run on localhost:3000, and browsers only send the sign-in cookie
@@ -8,7 +9,8 @@ import type {
 export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000").replace(/\/$/, "");
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  /** `detail` is the response's raw detail when it is structured (e.g. a visibility plan to confirm). */
+  constructor(public readonly status: number, message: string, public readonly detail?: unknown) {
     super(message);
   }
 }
@@ -34,7 +36,7 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
     const detail = typeof body?.detail === "string" ? body.detail
       : Array.isArray(body?.detail) ? body.detail.map((d: { msg?: string }) => d.msg).filter(Boolean).join("; ") || res.statusText
       : res.statusText;
-    throw new ApiError(res.status, `${res.status}: ${detail}`);
+    throw new ApiError(res.status, `${res.status}: ${detail}`, body?.detail);
   }
   if (res.status === 204) return null as T;
   return res.json() as Promise<T>;
@@ -52,10 +54,34 @@ export function startMotionCheck(robotId: string, seed = 7): Promise<RunRecord> 
   });
 }
 
-export function startDiscover(robotId: string, sceneSeed: number, taskFamily = "wall_reach_v1"): Promise<RunRecord> {
+/** `publish`: save the verified skill with the run, so nothing waits on a separate save step. */
+export function startDiscover(robotId: string, sceneSeed: number, taskFamily = "wall_reach_v1", publish = false): Promise<RunRecord> {
   return apiFetch<RunRecord>("/api/runs/discover", {
     method: "POST",
-    body: JSON.stringify({ robot_id: robotId, scene_seed: sceneSeed, task_family: taskFamily }),
+    body: JSON.stringify({ robot_id: robotId, scene_seed: sceneSeed, task_family: taskFamily, publish }),
+  });
+}
+
+/** Before anything learns: does the robot know the task, does another robot, or nobody? (rules, no model call) */
+export async function checkLearning(robotId: string, taskFamily: string, fromRobotId: string | null): Promise<LearningCheck> {
+  try {
+    return await apiFetch<LearningCheck>("/api/library/check", {
+      method: "POST",
+      body: JSON.stringify({ robot_id: robotId, task_family: taskFamily, from_robot_id: fromRobotId }),
+    });
+  } catch (e) {
+    // FastAPI's bare "Not Found" means the route itself is missing: the backend predates the librarian check.
+    if (e instanceof ApiError && e.message === "404: Not Found") throw new ApiError(404, OLD_BACKEND);
+    throw e;
+  }
+}
+
+const OLD_BACKEND = "The backend is older than this page and has no librarian check. Restart it to load the current code.";
+
+/** Try another robot's skill on the layout of this robot's skill; the backend keeps it only if it is better. */
+export function startImprove(skillId: string, sourceSkillId: string): Promise<RunRecord> {
+  return apiFetch<RunRecord>(`/api/skills/${encodeURIComponent(skillId)}/improve`, {
+    method: "POST", body: JSON.stringify({ source_skill_id: sourceSkillId }),
   });
 }
 
@@ -68,13 +94,21 @@ export function uploadRobot(file: File, name: string, tool?: string): Promise<Up
 }
 
 /** Which task type a goal is, and which saved skills `robotId` should learn from (Muse, or the offline scout). */
-export function scoutPlan(goal: string, robotId: string): Promise<ScoutPlan> {
-  return apiFetch<ScoutPlan>("/api/library/scout", { method: "POST", body: JSON.stringify({ goal, robot_id: robotId }) });
+export async function scoutPlan(goal: string, robotId: string): Promise<ScoutPlan> {
+  const plan = await apiFetch<Partial<ScoutPlan>>("/api/library/scout", { method: "POST", body: JSON.stringify({ goal, robot_id: robotId }) });
+  // A backend older than the match fields answered with a single pick: read it as a match to confirm, with no alternatives.
+  return { ...plan, match: plan.match ?? "unsure", alternatives: plan.alternatives ?? [], question: plan.question ?? null } as ScoutPlan;
 }
 
 /** Design a new task type from a description (Muse, or the offline designer) and add it to the task types. */
 export function designTask(goal: string): Promise<DesignResult> {
   return apiFetch<DesignResult>("/api/tasks/design", { method: "POST", body: JSON.stringify({ goal }) });
+}
+
+/** Make your run, skill or uploaded robot public or private. Without `confirm`, a change that carries other items
+ * along fails with 409 and the plan in `ApiError.detail` (see backend services/sharing.py). */
+export function changeVisibility(kind: SharedKind, id: string, visibility: Visibility, confirm = false): Promise<VisibilityPlan> {
+  return apiFetch<VisibilityPlan>("/api/visibility", { method: "POST", body: JSON.stringify({ kind, id, visibility, confirm }) });
 }
 
 export function publishSkill(runId: string): Promise<ExperienceCapsule> {
@@ -83,13 +117,13 @@ export function publishSkill(runId: string): Promise<ExperienceCapsule> {
 
 export function startTransfer(
   sourceSkillId: string, targetRobotId: string, sceneSeed: number | null, reasoningMode: ReasoningMode,
-  executeOn: ExecuteOn = "none",
+  executeOn: ExecuteOn = "none", publish = false,
 ): Promise<RunRecord> {
   return apiFetch<RunRecord>("/api/transfers", {
     method: "POST",
     body: JSON.stringify({
       source_skill_id: sourceSkillId, target_robot_id: targetRobotId, scene_seed: sceneSeed, reasoning_mode: reasoningMode,
-      execute_on: executeOn,
+      execute_on: executeOn, publish,
     }),
   });
 }

@@ -10,6 +10,7 @@ import { RunScreen } from "../run/RunScreen";
 import { EventLog, RunEvidence } from "../RunEvidence";
 import { describeDiscover, describeTransfer } from "../transfer/describe";
 import { ProviderBadge } from "../transfer/ImaginationPanel";
+import { VisibilityControl } from "../library/Visibility";
 import { Badge, Disclosure, ErrorNote, Loading } from "../ui";
 import { RUN_KIND } from "./runKinds";
 
@@ -136,6 +137,9 @@ export function RunDialog({ runId, robots, onClose, onShowSkill }: RunDialogProp
           <button type="button" onClick={() => ref.current?.close()} className="pill" aria-label="Close run">Close ✕</button>
         </div>
       </header>
+      {run?.mine && (
+        <div className="mb-4"><VisibilityControl kind="run" id={run.run_id} visibility={run.visibility} /></div>
+      )}
       {error && <ErrorNote message={error} />}
       {!run && !error && <Loading label="Loading the run…" />}
       {run && <Body run={run} robots={robots} />}

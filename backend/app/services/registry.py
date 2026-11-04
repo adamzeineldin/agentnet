@@ -1,4 +1,4 @@
-"""SQLite registry (SQLAlchemy 2.x) for passports, runs, skills, library reports, fleet, users and blog posts.
+"""Registry (SQLAlchemy 2.x; SQLite file or Postgres) for passports, runs, skills, library reports, fleet, users and blog posts.
 
 Rows store validated Pydantic JSON; the repository functions return Pydantic
 objects so callers never touch ORM state.
@@ -10,7 +10,7 @@ from collections.abc import Collection
 from datetime import UTC, datetime
 from pathlib import Path
 
-from sqlalchemy import JSON, DateTime, String, Text, create_engine, select
+from sqlalchemy import JSON, DateTime, String, Text, create_engine, inspect, or_, select, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
@@ -18,6 +18,7 @@ from app.models.blog import BlogPost
 from app.models.library import LibraryReport
 from app.models.robot import RobotPassport
 from app.models.run import RunEvent, RunRecord
+from app.models.sharing import Visibility
 from app.models.skill import ExperienceCapsule
 from app.models.user import Credential, User
 
@@ -56,6 +57,8 @@ class RunRow(Base):
     status: Mapped[str] = mapped_column(String, index=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    owner_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
+    visibility: Mapped[str] = mapped_column(String, index=True, default="public")
 
 
 class SkillRow(Base):
@@ -66,6 +69,8 @@ class SkillRow(Base):
     run_id: Mapped[str] = mapped_column(String, unique=True)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    owner_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
+    visibility: Mapped[str] = mapped_column(String, index=True, default="public")
 
 
 class LibraryReportRow(Base):
@@ -91,6 +96,8 @@ class UploadedRobotRow(Base):
     robot_id: Mapped[str] = mapped_column(String, primary_key=True)
     decl: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    owner_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
+    visibility: Mapped[str] = mapped_column(String, index=True, default="public")
 
 
 class DesignedTaskRow(Base):
@@ -128,13 +135,77 @@ class BlogPostRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
 
 
+def database_url(database: str | Path) -> str:
+    """SQLAlchemy URL for a SQLite path or a Postgres URL (postgres:// and postgresql:// use psycopg 3)."""
+    if isinstance(database, Path):
+        return f"sqlite:///{database}"
+    for scheme in ("postgres://", "postgresql://"):
+        if database.startswith(scheme):
+            return "postgresql+psycopg://" + database[len(scheme):]
+    return database
+
+
+# Columns added after a table first shipped: create_all never alters existing tables, so they are added here.
+# Rows that predate them read as public with no owner (models/sharing.py).
+_ADDED_COLUMNS = {
+    table: {"owner_id": "VARCHAR", "visibility": "VARCHAR NOT NULL DEFAULT 'public'"}
+    for table in ("runs", "skills", "uploaded_robots")
+}
+
+
+def _upgrade_schema(engine: Engine) -> None:
+    existing = inspect(engine)
+    with engine.begin() as conn:
+        for table, columns in _ADDED_COLUMNS.items():
+            have = {c["name"] for c in existing.get_columns(table)}
+            for name, ddl in columns.items():
+                if name not in have:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+                    conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{table}_{name} ON {table} ({name})"))
+
+
+class _Everyone:
+    """Marker for internal reads (worker, scripts): no visibility filter."""
+
+
+EVERYONE = _Everyone()
+# Who is reading: a user id, None for a signed-out visitor (public only), or EVERYONE for internal code.
+Viewer = str | None | _Everyone
+
+
+def _visible(row_cls, viewer: Viewer):  # noqa: ANN001, ANN202 - an ORM class / SQL condition
+    if isinstance(viewer, _Everyone):
+        return None
+    if viewer is None:
+        return row_cls.visibility == "public"
+    return or_(row_cls.visibility == "public", row_cls.owner_id == viewer)
+
+
+def _where_visible(stmt, row_cls, viewer: Viewer):  # noqa: ANN001, ANN202
+    condition = _visible(row_cls, viewer)
+    return stmt if condition is None else stmt.where(condition)
+
+
+def _row_visible(row, viewer: Viewer) -> bool:  # noqa: ANN001 - RunRow / SkillRow / UploadedRobotRow
+    if isinstance(viewer, _Everyone):
+        return True
+    return row.visibility == "public" or (row.owner_id is not None and row.owner_id == viewer)
+
+
+def make_engine(database: str | Path) -> Engine:
+    if isinstance(database, Path):
+        database.parent.mkdir(parents=True, exist_ok=True)
+        return create_engine(database_url(database), connect_args={"check_same_thread": False})
+    # pool_pre_ping: hosted Postgres (Neon) closes idle connections when it scales to zero.
+    return create_engine(database_url(database), pool_pre_ping=True, pool_size=5, max_overflow=5)
+
+
 class Registry:
-    def __init__(self, db_path: Path) -> None:
-        db_path.parent.mkdir(parents=True, exist_ok=True)
-        self.engine: Engine = create_engine(
-            f"sqlite:///{db_path}", connect_args={"check_same_thread": False}
-        )
+    def __init__(self, database: str | Path) -> None:
+        """database: a SQLite file path (local default) or a Postgres URL (DATABASE_URL)."""
+        self.engine: Engine = make_engine(database)
         Base.metadata.create_all(self.engine)
+        _upgrade_schema(self.engine)
         self._session = sessionmaker(self.engine, expire_on_commit=False)
 
     def _tx(self) -> Session:
@@ -160,30 +231,40 @@ class Registry:
 
     # ---------------------------------------------------------------- runs
     def save_run(self, run: RunRecord) -> RunRecord:
+        """Insert or update. The owner is set once: a copy without owner_id never clears it."""
         with self._tx() as s:
+            existing = s.get(RunRow, run.run_id)
+            owner = run.owner_id or (existing.owner_id if existing else None)
             s.merge(
                 RunRow(
                     run_id=run.run_id,
                     run_type=run.run_type,
                     status=run.status,
-                    payload=run.model_dump(mode="json"),
+                    payload=run.model_dump(mode="json", exclude={"mine"}),
                     created_at=run.created_at,
+                    owner_id=owner,
+                    visibility=run.visibility,
                 )
             )
-        return run
+        return run.model_copy(update={"owner_id": owner})
 
-    def get_run(self, run_id: str) -> RunRecord | None:
+    def get_run(self, run_id: str, viewer: Viewer = EVERYONE) -> RunRecord | None:
         with self._session() as s:
             row = s.get(RunRow, run_id)
-            return RunRecord.model_validate(row.payload) if row else None
+            return _run(row) if row and _row_visible(row, viewer) else None
 
     def list_runs(
         self, run_type: str | None = None, robot_id: str | None = None, limit: int = 100, offset: int = 0,
         statuses: Collection[str] | None = None, exclude_statuses: Collection[str] | None = None,
-        family: str | None = None, scene_id: str | None = None,
+        family: str | None = None, scene_id: str | None = None, viewer: Viewer = EVERYONE,
+        owner_id: str | None = None,
     ) -> list[RunRecord]:
-        """Newest first. robot_id, family (task type) and scene_id (one layout) are matched before paging."""
-        stmt = select(RunRow).order_by(RunRow.created_at.desc())
+        """Newest first. robot_id, family (task type) and scene_id (one layout) are matched before paging.
+
+        viewer limits the list to what that user may see; owner_id to one owner's runs."""
+        stmt = _where_visible(select(RunRow).order_by(RunRow.created_at.desc()), RunRow, viewer)
+        if owner_id:
+            stmt = stmt.where(RunRow.owner_id == owner_id)
         if run_type:
             stmt = stmt.where(RunRow.run_type == run_type)
         if statuses:
@@ -194,7 +275,7 @@ class Registry:
         if not in_python:
             stmt = stmt.offset(offset).limit(limit)
         with self._session() as s:
-            runs = [RunRecord.model_validate(r.payload) for r in s.scalars(stmt)]
+            runs = [_run(r) for r in s.scalars(stmt)]
         if not in_python:
             return runs
         matching = [r for r in runs if _run_matches(r, robot_id, family, scene_id)]
@@ -209,32 +290,45 @@ class Registry:
                     source_robot_id=capsule.source_robot_id,
                     parent_skill_id=capsule.parent_skill_id,
                     run_id=capsule.provenance["run_id"],
-                    payload=capsule.model_dump(mode="json"),
+                    payload=capsule.model_dump(mode="json", exclude={"mine"}),
                     created_at=capsule.created_at,
+                    owner_id=capsule.owner_id,
+                    visibility=capsule.visibility,
                 )
             )
         return capsule
 
-    def get_skill(self, skill_id: str) -> ExperienceCapsule | None:
+    def set_skill_visibility(self, skill_id: str, visibility: Visibility) -> None:
+        with self._tx() as s:
+            row = s.get(SkillRow, skill_id)
+            if row is None:
+                raise KeyError(skill_id)
+            row.visibility = visibility
+            row.payload = {**row.payload, "visibility": visibility}
+
+    def get_skill(self, skill_id: str, viewer: Viewer = EVERYONE) -> ExperienceCapsule | None:
         with self._session() as s:
             row = s.get(SkillRow, skill_id)
-            return ExperienceCapsule.model_validate(row.payload) if row else None
+            return _skill(row) if row and _row_visible(row, viewer) else None
 
-    def get_skill_by_run(self, run_id: str) -> ExperienceCapsule | None:
+    def get_skill_by_run(self, run_id: str, viewer: Viewer = EVERYONE) -> ExperienceCapsule | None:
         with self._session() as s:
             row = s.scalars(select(SkillRow).where(SkillRow.run_id == run_id)).first()
-            return ExperienceCapsule.model_validate(row.payload) if row else None
+            return _skill(row) if row and _row_visible(row, viewer) else None
 
     def list_skills(
-        self, source_robot_id: str | None = None, parent_skill_id: str | None = None
+        self, source_robot_id: str | None = None, parent_skill_id: str | None = None, viewer: Viewer = EVERYONE,
+        owner_id: str | None = None,
     ) -> list[ExperienceCapsule]:
-        stmt = select(SkillRow).order_by(SkillRow.created_at.desc())
+        stmt = _where_visible(select(SkillRow).order_by(SkillRow.created_at.desc()), SkillRow, viewer)
         if source_robot_id:
             stmt = stmt.where(SkillRow.source_robot_id == source_robot_id)
         if parent_skill_id:
             stmt = stmt.where(SkillRow.parent_skill_id == parent_skill_id)
+        if owner_id:
+            stmt = stmt.where(SkillRow.owner_id == owner_id)
         with self._session() as s:
-            return [ExperienceCapsule.model_validate(r.payload) for r in s.scalars(stmt)]
+            return [_skill(r) for r in s.scalars(stmt)]
 
     def save_library_report(self, report: LibraryReport) -> LibraryReport:
         with self._tx() as s:
@@ -264,9 +358,23 @@ class Registry:
                 s.add(FleetRow(robot_id=robot_id, added_by=added_by, added_at=utcnow()))
 
     # ---------------------------------------------------------------- users
-    def save_uploaded_robot(self, robot_id: str, decl_json: str) -> None:
+    def save_uploaded_robot(self, robot_id: str, decl_json: str, owner_id: str | None = None,
+                            visibility: Visibility = "public") -> None:
         with self._tx() as s:
-            s.merge(UploadedRobotRow(robot_id=robot_id, decl=decl_json, created_at=utcnow()))
+            s.merge(UploadedRobotRow(robot_id=robot_id, decl=decl_json, created_at=utcnow(), owner_id=owner_id,
+                                     visibility=visibility))
+
+    def robot_access(self) -> dict[str, tuple[str | None, str]]:
+        """Uploaded robot id -> (owner id, visibility). Catalog arms have no entry: they are public."""
+        with self._session() as s:
+            return {r.robot_id: (r.owner_id, r.visibility) for r in s.scalars(select(UploadedRobotRow))}
+
+    def set_robot_visibility(self, robot_id: str, visibility: Visibility) -> None:
+        with self._tx() as s:
+            row = s.get(UploadedRobotRow, robot_id)
+            if row is None:
+                raise KeyError(robot_id)
+            row.visibility = visibility
 
     def save_designed_task(self, family: str, goal_key: str, design_json: str) -> None:
         with self._tx() as s:
@@ -353,6 +461,16 @@ class Registry:
             update={"events": [*current.events, event], "status": event.status, **changes}
         )
         return self.save_run(updated)
+
+
+def _run(row: RunRow) -> RunRecord:
+    return RunRecord.model_validate(row.payload).model_copy(
+        update={"owner_id": row.owner_id, "visibility": row.visibility})
+
+
+def _skill(row: SkillRow) -> ExperienceCapsule:
+    return ExperienceCapsule.model_validate(row.payload).model_copy(
+        update={"owner_id": row.owner_id, "visibility": row.visibility})
 
 
 def utcnow() -> datetime:

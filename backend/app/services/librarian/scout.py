@@ -18,7 +18,7 @@ from datetime import UTC, date, datetime
 
 from app.config import META_MODEL_ID, MODEL_API_KEY, SCOUT_DAILY_MODEL_CALLS
 from app.models.robot import RobotSummary
-from app.models.scout import ScoutPick, ScoutPlan
+from app.models.scout import ScoutPick, ScoutPlan, TaskMatch, TaskOption
 from app.models.skill import ExperienceCapsule
 from app.services.librarian.muse import PHYSICAL_CLAIM, model_usage
 from app.services.reasoning.meta_client import Conversation, MetaChatClient, MetaReasoningError
@@ -47,10 +47,22 @@ KEYWORDS: dict[str, tuple[str, ...]] = {
     FENCE_FAMILY: ("fence", "long", "low", "floor", "ground", "railing"),
     SCENE_FAMILY: ("wall", "past", "barrier", "block", "partition", "divider", "over"),
 }
+MAX_ALTERNATIVES = 2
+MAX_QUESTION_CHARS = 200
+# Reasoning tokens count toward max_tokens; at the shared 1200 the answer was cut off mid-JSON.
+SCOUT_MAX_TOKENS = 4000
+# Title words that say nothing about a designed task type's layout.
+TITLE_STOPWORDS = frozenset({"reach", "the", "a", "an", "to", "of", "and", "with", "from", "for", "its", "into", "onto"})
+STEM = 5
 SYSTEM_PROMPT = (
     "You are the skill scout for Nimbotics, a shared library of simulation-verified robot reach skills. "
-    "A user describes what they want a robot (the learner) to do. Choose the one task type that best matches "
-    "the description, then choose up to three published skills of that task type, from other robots, that the "
+    "A user describes what they want a robot (the learner) to do. Choose the one existing task type that best "
+    "matches the description, and say how well it matches in 'match': 'confident' when it clearly is that task, "
+    "'unsure' when another task type could be meant too, 'none' when no task type fits. Prefer an existing task "
+    "type: a new one is only designed when the user confirms none fits, and duplicates clutter the library. List "
+    "in 'alternatives' up to two other task types the user might mean, closest first. When 'match' is not "
+    "'confident', ask one short, plain question in 'question' that would settle it (else leave it empty). Then "
+    "choose up to three published skills of that task type, from other robots, that the "
     "learner should try to learn from, best first. Prefer skills from robots whose bodies resemble the learner "
     "(similar joint count and reach) and skills with small endpoint error; prefer variety of routes. If no "
     "published skill of that task type exists, choose which fleet robot (not the learner) should learn the task "
@@ -58,8 +70,8 @@ SYSTEM_PROMPT = (
     "non-expert. Every result is a MuJoCo simulation: never say a skill works on hardware or real robots, and "
     "do not promise success; the simulator tests every pick. Only use ids from the message."
 )
-FINAL_INSTRUCTION = ("Reply now with only the JSON object with keys task_family, task_why, picks, teacher_robot_id, "
-                     "teacher_why and summary, and no other text.")
+FINAL_INSTRUCTION = ("Reply now with only the JSON object with keys task_family, match, alternatives, question, "
+                     "task_why, picks, teacher_robot_id, teacher_why and summary, and no other text.")
 MODEL_TEXT_NOTE = "The task choice, picks and reasons are model-written; every id was checked against the registry."
 OFFLINE_NOTE = "Offline scout: the task type comes from keywords in the goal; picks are ranked by endpoint error."
 
@@ -77,11 +89,43 @@ def route_text(s: ExperienceCapsule) -> str:
     return f"{s.strategy.route_class.replace('_', ' ')}, {s.strategy.clearance_m * 100:.0f} cm clear"
 
 
-def keyword_family(goal: str) -> tuple[str, list[str]]:
+def _stems(text: str) -> set[str]:
+    return {w[:STEM] for w in re.findall(r"[a-z]+", text.lower()) if w not in TITLE_STOPWORDS and len(w) > 2}
+
+
+def family_scores(goal: str) -> list[tuple[str, list[str]]]:
+    """Every task type with the goal words that point to it, best first. Designed types match on their title."""
     text = goal.lower()
     scores = {f: [k for k in words if re.search(rf"\b{re.escape(k)}", text)] for f, words in KEYWORDS.items()}
-    best = max(scores, key=lambda f: len(scores[f]))
-    return (best, scores[best]) if scores[best] else (SCENE_FAMILY, [])
+    goal_stems = _stems(goal)
+    for family, t in TASK_TYPES.items():
+        if family not in KEYWORDS:
+            scores[family] = sorted(w for w in re.findall(r"[a-z]+", t.title.lower())
+                                    if w not in TITLE_STOPWORDS and len(w) > 2 and w[:STEM] in goal_stems)
+    ranked = sorted(scores.items(), key=lambda kv: -len(kv[1]))  # stable: built-in order breaks ties
+    return [(f, m) for f, m in ranked if m]
+
+
+def keyword_family(goal: str) -> tuple[str, list[str]]:
+    ranked = family_scores(goal)
+    return ranked[0] if ranked else (SCENE_FAMILY, [])
+
+
+def _option(family: str) -> TaskOption:
+    return TaskOption(task_family=family, task_title=TASK_TYPES[family].title)
+
+
+def keyword_match(goal: str) -> tuple[TaskMatch, list[TaskOption], str | None]:
+    """How sure the keyword match is, the other close task types, and a question when it is not sure."""
+    ranked = family_scores(goal)
+    if not ranked:
+        return "none", [], ("What is in the way of the reach: a wall, a roof, a fence, a shelf, a gap between posts? "
+                            "Say a little more about it.")
+    rest = [_option(f) for f, _ in ranked[1:1 + MAX_ALTERNATIVES]]
+    if len(ranked) > 1 and len(ranked[1][1]) >= len(ranked[0][1]):
+        first, second = TASK_TYPES[ranked[0][0]].title, TASK_TYPES[ranked[1][0]].title
+        return "unsure", rest, f"Which is closer to what you mean: \u201c{first}\u201d or \u201c{second}\u201d?"
+    return "confident", rest, None
 
 
 def _rank(cands: list[ExperienceCapsule]) -> list[ExperienceCapsule]:
@@ -106,6 +150,7 @@ def offline_plan(goal: str, learner: str, robots: Sequence[RobotSummary], skills
                  requested: str = OFFLINE, error: MetaReasoningError | None = None, model_id: str | None = None,
                  extra_notes: Sequence[str] = ()) -> ScoutPlan:
     family, matched = keyword_family(goal)
+    match, alternatives, question = keyword_match(goal)
     names = {r.robot_id: r.short_name for r in robots}
     picks = [ScoutPick(skill_id=s.skill_id, source_robot_id=s.source_robot_id, route=route_text(s),
                        why=f"The {names.get(s.source_robot_id, s.source_robot_id)} passed this in simulation, "
@@ -123,7 +168,7 @@ def offline_plan(goal: str, learner: str, robots: Sequence[RobotSummary], skills
         usage=model_usage(error.calls, model_id) if error else None,
         fallback_error=str(error) if error else None,
         notes=[OFFLINE_NOTE, *extra_notes, *([f"Muse scout failed ({error}); offline plan shown."] if error else [])],
-        created_at=datetime.now(UTC),
+        created_at=datetime.now(UTC), match=match, alternatives=alternatives, question=question,
     )
 
 
@@ -132,9 +177,12 @@ def _schema(families: Sequence[str], skill_ids: Sequence[str], robot_ids: Sequen
         return {"type": "string", "enum": list(values)} if values else {"type": "string"}
     return {
         "type": "object", "additionalProperties": False,
-        "required": ["task_family", "task_why", "picks", "teacher_robot_id", "teacher_why", "summary"],
+        "required": ["task_family", "match", "alternatives", "question", "task_why", "picks", "teacher_robot_id",
+                     "teacher_why", "summary"],
         "properties": {
-            "task_family": enum(families), "task_why": {"type": "string"},
+            "task_family": enum(families), "match": enum(["confident", "unsure", "none"]),
+            "alternatives": {"type": "array", "items": enum(families)}, "question": {"type": "string"},
+            "task_why": {"type": "string"},
             "picks": {"type": "array", "items": {
                 "type": "object", "additionalProperties": False, "required": ["skill_id", "why"],
                 "properties": {"skill_id": enum(skill_ids), "why": {"type": "string"}}}},
@@ -176,6 +224,11 @@ def apply_answer(answer: dict, goal: str, learner: str, robots: Sequence[RobotSu
     if family not in TASK_TYPES:
         family = keyword_family(goal)[0]
         notes.append("Model task type was not a known type; the keyword match was used instead.")
+        answer = {**answer, "match": "unsure"}
+    match = answer.get("match") if answer.get("match") in ("confident", "unsure", "none") else "confident"
+    alternatives = [_option(f) for f in dict.fromkeys(answer.get("alternatives") or [])
+                    if isinstance(f, str) and f in TASK_TYPES and f != family][:MAX_ALTERNATIVES]
+    question = _text(answer.get("question"), MAX_QUESTION_CHARS, "question", notes) if match != "confident" else ""
     allowed = {s.skill_id: s for s in _verified(skills, family, learner)}
     picks: list[ScoutPick] = []
     for item in answer.get("picks") or []:
@@ -202,7 +255,7 @@ def apply_answer(answer: dict, goal: str, learner: str, robots: Sequence[RobotSu
         teacher_robot_id=teacher, teacher_why=teacher_why,
         summary=_text(answer.get("summary"), MAX_SUMMARY_CHARS, "summary", notes) or None,
         provider=PROVIDER, provider_requested=PROVIDER, model_id=model_id, usage=model_usage(calls, model_id),
-        notes=notes, created_at=datetime.now(UTC),
+        notes=notes, created_at=datetime.now(UTC), match=match, alternatives=alternatives, question=question or None,
     )
 
 
@@ -221,7 +274,7 @@ def scout(goal: str, learner: RobotSummary, robots: Sequence[RobotSummary], skil
     """A plan for `learner`. Same goal and library -> cached plan (no new model call)."""
     goal = " ".join(goal.split())
     use_model = provider == "meta" or (provider == "auto" and (client is not None or MODEL_API_KEY))
-    key = (goal.lower(), learner.robot_id, use_model, tuple(sorted(s.skill_id for s in skills)))
+    key = (goal.lower(), learner.robot_id, use_model, tuple(sorted(s.skill_id for s in skills)), tuple(TASK_TYPES))
     with _lock:
         if key in _cache:
             return _cache[key]
@@ -239,6 +292,7 @@ def scout(goal: str, learner: RobotSummary, robots: Sequence[RobotSummary], skil
             plan = apply_answer(answer, goal, learner.robot_id, robots, skills, chat.model_id, calls)
             log.info("Muse scout: %r -> %s, %d picks", goal, plan.task_family, len(plan.picks))
         except MetaReasoningError as exc:
+            log.warning("Muse scout failed for %r, offline scout used instead: %s", goal, exc)
             plan = offline_plan(goal, learner.robot_id, robots, skills, requested=PROVIDER, error=exc,
                                 model_id=chat.model_id)
     with _lock:
@@ -249,4 +303,4 @@ def scout(goal: str, learner: RobotSummary, robots: Sequence[RobotSummary], skil
 def _conversation(user: str, schema: dict) -> Conversation:
     return Conversation(system=SYSTEM_PROMPT, user=user, tools=[], run_tool=lambda _n, _a: {}, submit_tool="",
                         final_instruction=FINAL_INSTRUCTION, schema_name="scout_plan", schema=schema,
-                        kind="scout", max_rounds=0)
+                        kind="scout", max_rounds=0, max_tokens=SCOUT_MAX_TOKENS)

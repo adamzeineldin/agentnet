@@ -13,6 +13,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.sharing import Visibility
+
 PASSPORT_SCHEMA_VERSION = "1.1"
 
 Provenance = Literal["declared", "model", "measured"]
@@ -122,6 +124,9 @@ class RobotSummary(_Frozen):
     maker: str = ""
     # Real controller stack this arm's paths can also be sent to (e.g. "ursim"); None = simulation only.
     controller: str | None = None
+    # Uploaded arms can be private to their uploader (models/sharing.py); catalog arms are always public.
+    visibility: Visibility = "public"
+    mine: bool = False
 
 
 class CatalogEntry(_Frozen):
@@ -135,3 +140,6 @@ class CatalogEntry(_Frozen):
     in_fleet: bool
     default_fleet: bool
     added_by: str | None = None
+    # Uploaded arms can be private to their uploader (models/sharing.py); catalog arms are always public.
+    visibility: Visibility = "public"
+    mine: bool = False

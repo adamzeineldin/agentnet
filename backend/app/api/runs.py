@@ -8,12 +8,15 @@ from collections.abc import AsyncIterator
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import get_job_worker, get_registry, require_fleet_robot, require_user, started_by
+from app.api.deps import (
+    get_job_worker, get_registry, mark, owner_of, require_fleet_robot, require_run, require_user, started_by, viewer_id,
+)
 from app.models.user import User
 from app.models.run import TERMINAL_STATUSES, DiscoverRequest, RunRecord
-from app.services.jobs import SimulationWorker, create_run, run_guarded
+from app.services.jobs import RunContext, SimulationWorker, create_run, run_guarded
 from app.services.live import LIVE
 from app.services.skill_discovery import PLANNER_NAME, discover_skill
+from app.services.skill_registry import publish_when_verified
 from app.services.task_families import TASK_TYPES
 from app.services.registry import Registry, run_scene_id
 
@@ -23,13 +26,6 @@ POLL_SECONDS = 0.3
 KEEPALIVE_SECONDS = 15.0
 # Small result fields a run list needs (cards, "latest attempt" lookups); the rest comes from GET /api/runs/{id}.
 COMPACT_RESULT_KEYS = ("source_skill_id", "selected", "published", "adaptation", "episode_id")
-
-
-def _require_run(registry: Registry, run_id: str) -> RunRecord:
-    run = registry.get_run(run_id)
-    if run is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown run '{run_id}'")
-    return run
 
 
 def compact(run: RunRecord) -> RunRecord:
@@ -51,17 +47,23 @@ def list_runs(
     limit: int = 50,
     offset: int = 0,
     full: bool = True,
+    mine: bool = False,
     registry: Registry = Depends(get_registry),
+    viewer: str | None = Depends(viewer_id),
 ) -> list[RunRecord]:
-    """Newest first. run_status: a status, or "running" for every unfinished run. family / scene_id: a task type or
-    one layout. full=false returns compact runs, whose results carry the run's scene_id."""
+    """Newest first, only runs the viewer may see. run_status: a status, or "running" for every unfinished run.
+    family / scene_id: a task type or one layout. mine=true: only the viewer's own runs. full=false returns compact
+    runs, whose results carry the run's scene_id."""
+    if mine and viewer is None:
+        return []
     running = run_status == "running"
     runs = registry.list_runs(
         run_type=run_type, robot_id=robot_id, limit=min(max(limit, 1), 500), offset=max(offset, 0),
         statuses=[run_status] if run_status and not running else None,
         exclude_statuses=TERMINAL_STATUSES if running else None, family=family, scene_id=scene_id,
+        viewer=viewer, owner_id=viewer if mine else None,
     )
-    return runs if full else [compact(r) for r in runs]
+    return [mark(r if full else compact(r), viewer) for r in runs]
 
 
 @router.post("/discover", response_model=RunRecord, status_code=202)
@@ -71,7 +73,7 @@ def start_discover(
     worker: SimulationWorker = Depends(get_job_worker),
     user: User | None = Depends(require_user),
 ) -> RunRecord:
-    require_fleet_robot(registry, body.robot_id)
+    require_fleet_robot(registry, body.robot_id, owner_of(user))
     if body.task_family not in TASK_TYPES:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT,
                             f"Unknown task type {body.task_family!r}; choose one of {list(TASK_TYPES)}")
@@ -80,27 +82,34 @@ def start_discover(
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Passport not computed yet")
     run = create_run(
         registry, "discover", body.scene_seed, planner=PLANNER_NAME, source_robot_id=body.robot_id,
-        started_by=started_by(user),
+        started_by=started_by(user), owner_id=owner_of(user),
     )
-    worker.submit(
-        run_guarded, registry, run.run_id,
-        lambda ctx: discover_skill(ctx, body.robot_id, body.scene_seed, passport, body.task_family),
-    )
-    return run
+
+    def body_fn(ctx: RunContext) -> RunRecord:
+        if body.publish:
+            ctx.before_finish = publish_when_verified(registry, ctx.run_id)
+        return discover_skill(ctx, body.robot_id, body.scene_seed, passport, body.task_family)
+
+    worker.submit(run_guarded, registry, run.run_id, body_fn)
+    return mark(run, owner_of(user))
 
 
 @router.get("/{run_id}", response_model=RunRecord)
-def get_run(run_id: str, registry: Registry = Depends(get_registry)) -> RunRecord:
-    return _require_run(registry, run_id)
+def get_run(
+    run_id: str, registry: Registry = Depends(get_registry), viewer: str | None = Depends(viewer_id),
+) -> RunRecord:
+    return require_run(registry, run_id, viewer)
 
 
 @router.get("/{run_id}/live")
-def live_frame(run_id: str, after: int = 0, registry: Registry = Depends(get_registry)) -> Response:
+def live_frame(
+    run_id: str, after: int = 0, registry: Registry = Depends(get_registry), viewer: str | None = Depends(viewer_id),
+) -> Response:
     """Rendered frames of a running run newer than seq `after`, as {frames: [{seq, label, t, image}]}.
 
     `t` is seconds since the run's first frame, for even playback. 204 when there is nothing newer.
     """
-    _require_run(registry, run_id)
+    require_run(registry, run_id, viewer)
     frames = LIVE.since(run_id, after)
     if not frames:
         return Response(status_code=status.HTTP_204_NO_CONTENT, headers={"Cache-Control": "no-store"})
@@ -111,15 +120,19 @@ def live_frame(run_id: str, after: int = 0, registry: Registry = Depends(get_reg
 
 
 @router.get("/{run_id}/artifacts")
-def get_artifacts(run_id: str, registry: Registry = Depends(get_registry)) -> dict:
-    run = _require_run(registry, run_id)
+def get_artifacts(
+    run_id: str, registry: Registry = Depends(get_registry), viewer: str | None = Depends(viewer_id),
+) -> dict:
+    run = require_run(registry, run_id, viewer)
     return {"run_id": run.run_id, "status": run.status, "artifacts": run.artifacts}
 
 
 @router.get("/{run_id}/events")
-async def stream_events(run_id: str, registry: Registry = Depends(get_registry)) -> StreamingResponse:
+async def stream_events(
+    run_id: str, registry: Registry = Depends(get_registry), viewer: str | None = Depends(viewer_id),
+) -> StreamingResponse:
     """Server-sent events: one `event` per RunEvent, then `done` with the final record."""
-    _require_run(registry, run_id)
+    require_run(registry, run_id, viewer)
 
     async def gen() -> AsyncIterator[str]:
         sent = 0

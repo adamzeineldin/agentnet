@@ -12,7 +12,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.config import DB_PATH  # noqa: E402
+from app.config import DATABASE  # noqa: E402
 from app.services.fleet import ensure_passports  # noqa: E402
 from app.services.jobs import SimulationWorker, create_run, run_guarded  # noqa: E402
 from app.services.registry import Registry  # noqa: E402
@@ -27,7 +27,7 @@ def main() -> int:
     parser.add_argument("--publish", action="store_true")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    registry, worker = Registry(DB_PATH), SimulationWorker()
+    registry, worker = Registry(DATABASE), SimulationWorker()
     try:
         passports = {p.robot_id: p for p in worker.submit(ensure_passports, worker, registry).result()}
         run = create_run(registry, "discover", args.seed, PLANNER_NAME, source_robot_id=args.robot)

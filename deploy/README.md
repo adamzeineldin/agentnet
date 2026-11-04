@@ -100,6 +100,47 @@ Then restart the codespace and recreate the container as in step 4 above. The im
 `muse-spark-1.3-contributor` model and caps the skill scout at 200 model calls per day
 (`NIMBOTICS_SCOUT_DAILY_MODEL_CALLS`); repeated questions are answered from a cache.
 
+### Cloud Library (Neon Postgres + Cloudflare R2)
+
+By default the Library (runs, skills, robots, users, posts) is one SQLite file plus run videos and uploaded robot
+models on the `nimbotics-runtime` volume, so it lasts only as long as the codespace. With these settings the
+records live in Postgres and the files in an R2 bucket; the volume is then only a cache (DECISIONS.md D95).
+
+1. **Postgres**: create a free project at neon.tech and copy its connection string
+   (`postgresql://…/neondb?sslmode=require`).
+2. **R2**: in the Cloudflare dashboard, open **R2 → Create bucket** (name it `nimbotics`). Under
+   **R2 → Manage API tokens**, create a token with **Object Read & Write** on that bucket and copy the access key id,
+   the secret and the S3 endpoint (`https://<account id>.r2.cloudflarestorage.com`). Keep the bucket private (no
+   public domain): files then leave it only through short-lived signed links, which is what keeps private runs and
+   robots private. A public domain (`NIMBOTICS_S3_PUBLIC_URL`) would serve every file to anyone who knows its address.
+3. Store them as Codespaces secrets (each command prompts for the value):
+
+   ```bash
+   gh secret set DATABASE_URL --user --app codespaces --repos adamzeineldin/agentnet
+   ```
+
+   Repeat for `NIMBOTICS_S3_ENDPOINT`, `NIMBOTICS_S3_BUCKET`, `NIMBOTICS_S3_ACCESS_KEY_ID`,
+   and `NIMBOTICS_S3_SECRET_ACCESS_KEY`.
+4. Restart the codespace so it picks up the secrets, pull this branch there and rebuild the image (it now includes
+   the Postgres and S3 libraries):
+
+   ```bash
+   gh codespace ssh -c <codespace-name> -- 'bash -lc "cd /workspaces/agentnet && git pull && bash deploy/codespace.sh build"'
+   ```
+
+5. While the old site keeps running, copy its Library from the volume into Postgres and R2 with the new image. The
+   check first proves the R2 keys can write, list, read and delete; the copy keeps every id, skips rows already
+   there and can be re-run:
+
+   ```bash
+   gh codespace ssh -c <codespace-name> -- 'bash -lc "docker run --rm -v nimbotics-runtime:/app/runtime -e DATABASE_URL -e NIMBOTICS_S3_ENDPOINT -e NIMBOTICS_S3_BUCKET -e NIMBOTICS_S3_ACCESS_KEY_ID -e NIMBOTICS_S3_SECRET_ACCESS_KEY nimbotics-cloud bash -lc \"cd /app/backend && /app/venv/bin/python scripts/make_bucket.py --check && /app/venv/bin/python scripts/copy_to_cloud.py\""'
+   ```
+
+6. Recreate the site container so it starts on Postgres and R2 (as in step 4 of "Turning on sign-in").
+
+To try the same setup on your own computer, `deploy/cloud-dev.compose.yml` runs Postgres and an S3 stand-in in
+Docker. Its header lists the `.env` lines to use.
+
 ### Own domain (nimbotics.net)
 
 A codespace link can't take a custom domain, because GitHub's proxy only answers for its own hostname. A free

@@ -104,6 +104,23 @@ def family_id(title: str, layout: TaskLayout) -> str:
     return f"{FAMILY_PREFIX}{slug}_{hashlib.sha256(_layout_json(layout).encode()).hexdigest()[:6]}"
 
 
+# Two layouts closer than this everywhere are the same task for a robot: a new design that close is not added.
+SAME_LAYOUT_M = 0.03
+
+
+def _box_key(b: BoxSpec) -> tuple[float, ...]:
+    return (*b.center, *b.half_size)
+
+
+def same_layout(a: TaskLayout, b: TaskLayout, tol: float = SAME_LAYOUT_M) -> bool:
+    """Same start, target and boxes within `tol` (boxes matched by position, names ignored)."""
+    if len(a.obstacles) != len(b.obstacles):
+        return False
+    points = np.abs(np.subtract([*a.start, *a.target], [*b.start, *b.target]))
+    boxes = np.abs(np.subtract(sorted(map(_box_key, a.obstacles)), sorted(map(_box_key, b.obstacles))))
+    return bool(points.max() <= tol and (boxes.size == 0 or boxes.max() <= tol))
+
+
 def _shifted(p: Vec3, d: np.ndarray) -> Vec3:
     return (float(p[0] + d[0]), float(p[1] + d[1]), float(p[2] + d[2]))
 

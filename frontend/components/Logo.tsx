@@ -12,9 +12,11 @@ function ArmN() {
   </svg>;
 }
 
+/* line-height 1 pins the baseline 0.875em below the box top (Plex ascent 1.025, descent 0.275), so
+   top 0.12em centres the dot 0.678em above the baseline, level with Plex's own i dot at any leading. */
 function AccentI() {
-  return <span className="relative">ı<span aria-hidden="true" className="absolute left-1/2 rounded-full bg-accent"
-    style={{ top: "0.19em", width: "0.155em", height: "0.155em", marginLeft: "-0.0775em" }} /></span>;
+  return <span className="relative" style={{ lineHeight: 1 }}>ı<span aria-hidden="true" className="absolute left-1/2 rounded-full bg-accent"
+    style={{ top: "0.12em", width: "0.155em", height: "0.155em", marginLeft: "-0.0775em" }} /></span>;
 }
 
 export function Logo({ className = "" }: { className?: string }) {

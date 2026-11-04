@@ -15,6 +15,7 @@ backend/app/data/menagerie/
 backend/app/data/*.db
 backend/app/data/artifacts/
 backend/app/data/demo/
+backend/app/data/cloud-cache/
 
 # node
 frontend/node_modules/

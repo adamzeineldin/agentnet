@@ -1,6 +1,7 @@
 PY := backend/.venv/bin/python
 PYTHON ?= python3.13
-DEMO_ENV := NIMBOTICS_DB_PATH=$(CURDIR)/backend/app/data/demo/nimbotics.db NIMBOTICS_ARTIFACT_DIR=$(CURDIR)/backend/app/data/demo/artifacts
+DEMO_ENV := NIMBOTICS_DB_PATH=$(CURDIR)/backend/app/data/demo/nimbotics.db NIMBOTICS_ARTIFACT_DIR=$(CURDIR)/backend/app/data/demo/artifacts \
+	DATABASE_URL= NIMBOTICS_S3_BUCKET=
 
 .PHONY: setup models backend-deps frontend-deps dev test smoke discover transfer benchmark e2e demo-seed demo demo-check lint build ursim-up ursim-down
 

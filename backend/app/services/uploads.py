@@ -15,6 +15,7 @@ from __future__ import annotations
 import hashlib
 import io
 import json
+import logging
 import re
 import shutil
 import xml.etree.ElementTree as ET
@@ -26,6 +27,7 @@ import mujoco
 import numpy as np
 
 from app.config import UPLOAD_DIR
+from app.services import storage
 from app.services.robot_catalog import ROBOTS, EndEffectorDecl, RobotDecl, register, unregister
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
@@ -42,6 +44,8 @@ HOLD_DRIFT_LIMIT_M = 0.005
 ARM_JOINT_TYPES = (int(mujoco.mjtJoint.mjJNT_HINGE), int(mujoco.mjtJoint.mjJNT_SLIDE))
 FILE_ATTRS = {"file", "filename", "meshdir", "texturedir", "assetdir"}
 TCP_HINT = re.compile(r"tcp|attachment|flange|pinch|end_?effector|ee_site|grip", re.IGNORECASE)
+
+log = logging.getLogger(__name__)
 
 
 class UploadError(ValueError):
@@ -364,15 +368,31 @@ def new_upload_folder(data: bytes, name: str) -> tuple[str, Path]:
 
 
 def load_uploaded(decls_json: list[str]) -> list[str]:
-    """Register stored uploads at startup; returns ids whose files are missing (skipped)."""
+    """Register stored uploads at startup; returns ids whose files are missing (skipped).
+
+    Files missing from this machine's disk are fetched from the file store first (services/storage.py).
+    """
     missing = []
     for text in decls_json:
-        decl = decl_from_json(text)
+        # The stored folder may be another machine's; uploads always live in this machine's UPLOAD_DIR.
+        decl = replace(decl_from_json(text), model_root=UPLOAD_DIR)
+        if not decl.scene_path.exists():
+            _restore(decl.robot_id)
         if decl.scene_path.exists():
             register(decl)
         else:
             missing.append(decl.robot_id)
     return missing
+
+
+def _restore(robot_id: str) -> None:
+    try:
+        count = storage.pull_upload(robot_id)
+    except (storage.StoreError, ValueError):
+        log.exception("Could not fetch uploaded robot %s from the file store", robot_id)
+        return
+    if count:
+        log.info("Fetched uploaded robot %s from the file store (%d files)", robot_id, count)
 
 
 __all__ = ["UploadError", "check_xml", "decl_from_json", "decl_to_json", "find_model", "flatten_meshes",

@@ -23,6 +23,9 @@ export interface RobotSummary {
   created_at: string;
   maker: string;
   controller: string | null;
+  visibility: Visibility;
+  /** The signed-in viewer uploaded it. */
+  mine: boolean;
 }
 
 export interface JointInfo {
@@ -140,6 +143,9 @@ export interface RunRecord {
   events: RunEvent[];
   error: string | null;
   started_by: string | null;
+  visibility: Visibility;
+  /** The signed-in viewer started it. */
+  mine: boolean;
 }
 
 export const TERMINAL: ReadonlySet<RunStatus> = new Set(["succeeded", "failed"]);
@@ -204,6 +210,9 @@ export interface ExperienceCapsule {
     simulated_seconds: number; candidates_evaluated: number; candidates_verified: number; tolerance_m: number;
   };
   created_at: string;
+  visibility: Visibility;
+  /** The signed-in viewer saved it. */
+  mine: boolean;
 }
 
 export interface SkillDetail { capsule: ExperienceCapsule; ancestors: ExperienceCapsule[]; children: ExperienceCapsule[] }
@@ -385,8 +394,15 @@ export interface RealReplayResults {
 // ---- Fleet catalog and sign-in (backend/app/api/robots.py, auth.py)
 export interface CatalogEntry {
   robot_id: string; display_name: string; short_name: string; maker: string; model_source: string;
-  in_fleet: boolean; default_fleet: boolean;
+  in_fleet: boolean; default_fleet: boolean; visibility: Visibility; mine: boolean;
 }
+
+/** Private work is seen only by its owner; public work is in everyone's Library. Catalog arms are always public. */
+export type Visibility = "private" | "public";
+export type SharedKind = "run" | "skill" | "robot";
+export interface SharedItem { kind: SharedKind; id: string; label: string }
+/** A visibility change: the item, and everything that changes with it (`also`). */
+export interface VisibilityPlan { item: SharedItem; visibility: Visibility; also: SharedItem[]; applied: boolean }
 export type AuthProvider = "google" | "github";
 /** How an account signs in: an OAuth provider, or an email and password. */
 export type AccountKind = AuthProvider | "email";
@@ -405,6 +421,27 @@ export interface ScoutPlan {
   provider: "offline_scout" | "meta_muse_spark"; provider_requested: string; model_id: string | null;
   usage: { model_calls: number; prompt_tokens: number | null; completion_tokens: number | null; estimated_cost_usd: number | null } | null;
   fallback_error: string | null; notes: string[]; created_at: string;
+  /** How well the chosen existing task type fits; only "none" (or the user saying so) leads to designing a new one. */
+  match: "confident" | "unsure" | "none";
+  alternatives: { task_family: string; task_title: string }[];
+  question: string | null;
+}
+
+// ---- The librarian check (backend models/learning.py): what the library holds before anything learns.
+export type LearningCase = "known" | "adapt" | "learn";
+export interface SkillMetrics {
+  skill_id: string; robot_id: string; run_id: string | null; scene_id: string; route: string;
+  execution_s: number; path_length_m: number; endpoint_error_m: number; min_clearance_m: number; collisions: number;
+  learned_from: string | null;
+}
+export interface LearningCheck {
+  robot_id: string; task_family: string; task_title: string; case: LearningCase; reason: string;
+  existing: SkillMetrics | null; sources: SkillMetrics[]; improve_sources: SkillMetrics[]; already_tried: string[];
+  requested_robot_id: string | null; requested_note: string | null; provider: "librarian_rules";
+}
+export interface ImprovementVerdict {
+  existing: SkillMetrics; candidate: SkillMetrics | null; better: boolean; reasons: string[];
+  kept_skill_id: string; published_skill_id: string | null; basis: string;
 }
 
 /** A task type designed from a description (backend models/task_design.py). Only a layout: physics decides the rest. */

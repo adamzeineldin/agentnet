@@ -34,6 +34,15 @@ class ScoutPick(_Frozen):
     why: str
 
 
+# How well the best existing task type fits the goal. Only when none fits does the Lab offer to design a new one.
+TaskMatch = Literal["confident", "unsure", "none"]
+
+
+class TaskOption(_Frozen):
+    task_family: str
+    task_title: str
+
+
 class ScoutPlan(_Frozen):
     goal: str
     robot_id: str
@@ -52,3 +61,8 @@ class ScoutPlan(_Frozen):
     fallback_error: str | None = None
     notes: list[str]
     created_at: datetime
+    match: TaskMatch = "confident"
+    # Other existing task types that might be meant, closest first (never the chosen one).
+    alternatives: list[TaskOption] = Field(default_factory=list)
+    # One short question that would help pick, when the match is unsure or none.
+    question: str | None = None

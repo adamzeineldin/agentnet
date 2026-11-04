@@ -12,7 +12,7 @@ from app.models.user import User
 from app.services.librarian.designer import design_task
 from app.services.reasoning import meta_available
 from app.services.registry import Registry
-from app.services.task_design import MAX_DESIGNED_TASKS, designed_count, install
+from app.services.task_design import MAX_DESIGNED_TASKS, designed_count, install, same_layout
 from app.services.task_families import TASK_TYPES, family_of
 
 router = APIRouter(prefix="/api/tasks", tags=["tasks"])
@@ -36,9 +36,11 @@ def list_task_types(registry: Registry = Depends(get_registry)) -> list[TaskType
 
 
 def _learned_by(registry: Registry) -> dict[str, list[str]]:
-    """Task family -> robots with a saved, simulation-verified skill of it (evidence for the designer)."""
+    """Task family -> robots with a saved, simulation-verified skill of it (evidence for the designer).
+
+    Public skills only: designs are stored and shared, and the evidence goes into a model prompt."""
     out: dict[str, set[str]] = {}
-    for s in registry.list_skills():
+    for s in registry.list_skills(viewer=None):
         if s.validation.success:
             out.setdefault(family_of(s.task.scene_id), set()).add(s.source_robot_id)
     return {f: sorted(r) for f, r in out.items()}
@@ -67,10 +69,14 @@ def design(
     if designed_count() >= MAX_DESIGNED_TASKS:
         raise HTTPException(status.HTTP_409_CONFLICT, f"The task library is full ({MAX_DESIGNED_TASKS} designed types)")
     made = design_task(body.goal, body.provider, learned_by=_learned_by(registry)).model_copy(update={"created_by": started_by(user)})
-    reused = made.family in TASK_TYPES
-    if reused:  # the same layout was designed before (e.g. the same offline template)
-        made = next(d for d in map(TaskDesign.model_validate_json, registry.designed_tasks())
-                    if d.family == made.family)
+    stored = list(map(TaskDesign.model_validate_json, registry.designed_tasks()))
+    # The same layout, or one within a few centimetres of it, was designed before: no duplicate task type.
+    twin = next((d for d in stored if d.family == made.family), None) or next(
+        (d for d in stored if same_layout(d.layout, made.layout)), None)
+    reused = twin is not None
+    if twin is not None:
+        install(twin)
+        made = twin
     else:
         install(made)
         # Stored under the provider that answered, so a Muse failure is retried next time.

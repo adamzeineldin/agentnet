@@ -18,6 +18,8 @@ from typing import Any, TypeVar
 import mujoco
 
 from app.models.run import RunEvent, RunRecord, RunStatus, RunType
+from app.models.sharing import initial_visibility
+from app.services import storage
 from app.services.live import LIVE
 from app.services.registry import Registry, utcnow
 from app.services.render import FrameSink
@@ -77,6 +79,9 @@ class RunContext:
         self.registry = registry
         self.run_id = run_id
         self._t0 = time.perf_counter()
+        # Runs just before the terminal event is written: (success, changes) -> changes. Lets a caller save a skill
+        # or a verdict with the run, so anyone waiting for "done" sees it.
+        self.before_finish: Callable[[bool, dict[str, Any]], dict[str, Any]] | None = None
 
     def event(self, status: RunStatus, message: str, **data: Any) -> RunRecord:
         log.info("[%s] %s: %s", self.run_id, status, message)
@@ -95,6 +100,11 @@ class RunContext:
 
     def finish(self, success: bool, message: str, **changes: Any) -> RunRecord:
         status: RunStatus = "succeeded" if success else "failed"
+        if self.before_finish is not None:
+            try:
+                changes = self.before_finish(success, changes)
+            except Exception:  # noqa: BLE001 - the run still finishes honestly; the hook's work is missing
+                log.exception("Run %s: finishing hook failed", self.run_id)
         return self.registry.append_event(
             self.run_id,
             RunEvent(at=utcnow(), status=status, message=message),
@@ -117,7 +127,9 @@ def create_run(
     target_robot_id: str | None = None,
     skill_id: str | None = None,
     started_by: str | None = None,
+    owner_id: str | None = None,
 ) -> RunRecord:
+    """A queued run. With an owner (a signed-in user) it starts private to them (models/sharing.py)."""
     now = utcnow()
     return registry.save_run(
         RunRecord(
@@ -128,6 +140,8 @@ def create_run(
             target_robot_id=target_robot_id,
             skill_id=skill_id,
             started_by=started_by,
+            owner_id=owner_id,
+            visibility=initial_visibility(owner_id),
             task_seed=task_seed,
             planner=planner,
             simulator=f"MuJoCo {mujoco.__version__}",
@@ -150,3 +164,4 @@ def run_guarded(
         return ctx.finish(False, f"Run crashed: {type(exc).__name__}", error=str(exc))
     finally:
         LIVE.clear(run_id)
+        storage.push_run_files_later(run_id)

@@ -13,7 +13,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from app.config import DB_PATH, REPO_DIR  # noqa: E402
+from app.config import DATABASE, REPO_DIR  # noqa: E402
 from app.models.run import RunRecord  # noqa: E402
 from app.services.benchmark import run_benchmark  # noqa: E402
 from app.services.evaluation import VARIANTS  # noqa: E402
@@ -108,7 +108,7 @@ def main() -> int:
     args = ap.parse_args()
     logging.basicConfig(level=logging.WARNING)
     dev, ev = (list(range(3)), list(range(100, 103))) if args.quick else (list(range(10)), list(range(100, 110)))
-    registry, worker = Registry(DB_PATH), SimulationWorker()
+    registry, worker = Registry(DATABASE), SimulationWorker()
     try:
         worker.submit(ensure_passports, worker, registry).result()
         run = create_run(registry, "benchmark", ev[0], "evaluation_v1", source_robot_id="panda_01",

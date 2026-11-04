@@ -46,6 +46,8 @@ case "${1:-}" in
       docker run -d --name "$NAME" --restart unless-stopped -p 7860:7860 -v nimbotics-runtime:/app/runtime \
         -e GOOGLE_CLIENT_ID -e GOOGLE_CLIENT_SECRET -e GITHUB_CLIENT_ID -e GITHUB_CLIENT_SECRET \
         -e MODEL_API_KEY \
+        -e DATABASE_URL -e NIMBOTICS_S3_ENDPOINT -e NIMBOTICS_S3_BUCKET -e NIMBOTICS_S3_ACCESS_KEY_ID \
+        -e NIMBOTICS_S3_SECRET_ACCESS_KEY -e NIMBOTICS_S3_PUBLIC_URL \
         -e NIMBOTICS_SESSION_SECRET="${NIMBOTICS_SESSION_SECRET:-$(openssl rand -hex 32)}" \
         -e NIMBOTICS_PUBLIC_URL="$public_url" \
         "$IMAGE"

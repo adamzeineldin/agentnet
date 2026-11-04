@@ -13,6 +13,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.sharing import Visibility
+
 CAPSULE_SCHEMA_VERSION = "1.0"
 Vec3 = tuple[float, float, float]
 RouteClass = Literal["direct", "over", "near_side", "far_side"]
@@ -117,3 +119,7 @@ class ExperienceCapsule(_Frozen):
     provenance: dict
     validation: CapsuleValidation
     created_at: datetime
+    # Private workspaces: as on RunRecord (owner_id only in the registry column; `mine` filled per viewer).
+    visibility: Visibility = "public"
+    owner_id: str | None = Field(default=None, exclude=True)
+    mine: bool = False

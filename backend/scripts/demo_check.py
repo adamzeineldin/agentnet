@@ -18,6 +18,7 @@ from pathlib import Path
 _TMP = Path(tempfile.mkdtemp(prefix="nimbotics-democheck-"))
 os.environ["NIMBOTICS_DB_PATH"] = str(_TMP / "check.db")
 os.environ["NIMBOTICS_ARTIFACT_DIR"] = str(_TMP / "artifacts")
+os.environ["NIMBOTICS_S3_BUCKET"] = ""  # a throwaway check: never push its files to the cloud Library
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.services.demo_pipeline import run_chain  # noqa: E402

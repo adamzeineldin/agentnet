@@ -1,0 +1,28 @@
+# Local stand-ins for the cloud Library: Postgres (for Neon) and an S3-compatible server (for Cloudflare R2).
+#   docker compose -f deploy/cloud-dev.compose.yml up -d
+#   backend/.venv/bin/python backend/scripts/make_bucket.py   (once: creates the bucket)
+# Then, in .env:
+#   DATABASE_URL=postgresql://nimbotics:nimbotics@localhost:5433/nimbotics
+#   NIMBOTICS_S3_ENDPOINT=http://localhost:9000
+#   NIMBOTICS_S3_BUCKET=nimbotics
+#   NIMBOTICS_S3_ACCESS_KEY_ID=nimbotics
+#   NIMBOTICS_S3_SECRET_ACCESS_KEY=nimbotics-dev-secret
+# Postgres tests: CREATE DATABASE nimbotics_test, then
+#   NIMBOTICS_TEST_DATABASE_URL=postgresql://nimbotics:nimbotics@localhost:5433/nimbotics_test make test
+# Development credentials only; the real ones live in Codespaces secrets. The S3 stand-in is moto's server
+# (MinIO no longer publishes images); it keeps objects in memory and does not check signatures, so try the real R2
+# keys once with make_bucket.py --check before relying on them.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: nimbotics
+      POSTGRES_PASSWORD: nimbotics
+      POSTGRES_DB: nimbotics
+    ports: ["5433:5432"]
+    volumes: [nimbotics-pg:/var/lib/postgresql/data]
+  s3:
+    image: motoserver/moto:5.1.4
+    ports: ["9000:5000"]
+volumes:
+  nimbotics-pg:

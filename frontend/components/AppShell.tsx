@@ -56,8 +56,7 @@ function Shell({ pathname, children }: { pathname: string; children: ReactNode }
     <main key={pathname} data-soft={pathname === "/" ? undefined : ""}
       className="mx-auto w-full max-w-[1600px] min-w-0 flex-1 px-4 py-8 md:px-8">{children}</main>
     <footer className="border-t border-line px-6 py-4 text-center font-mono text-[11px] text-ink-3">
-      Results are MuJoCo simulation; real-robot paths are recorded by the DROID dataset; controller checks run on
-      URSim software. Nothing here ran on a physical arm. <Link href="/#how-it-works" className="underline">How it works</Link>
+      <Link href="/#how-it-works" className="underline">How it works</Link>
       {" · "}<Link href="/privacy" className="underline">Privacy</Link>
     </footer>
   </div>;

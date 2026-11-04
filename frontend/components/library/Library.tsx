@@ -1,99 +1,132 @@
 "use client";
 
 import Link from "next/link";
-import type { TaskTypeInfo } from "@/lib/tasks";
+import { useAuth } from "@/lib/auth";
+import { familyOf, type TaskTypeInfo } from "@/lib/tasks";
 import type { ExperienceCapsule, RobotSummary } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 import { RunDialog } from "../history/RunDialog";
-import { RUN_KIND } from "../history/runKinds";
-import { groupByTask } from "../skills/grouping";
-import { ErrorNote, Loading, PageHeader } from "../ui";
-import { FilterBar } from "./FilterBar";
-import { layoutTitle, type LibraryQuery, type LibraryView, type RunResult, type SkillOrigin } from "./query";
-import { RobotsView } from "./RobotsView";
-import { RunsView } from "./RunsView";
-import { SkillsView } from "./SkillsView";
+import { groupByTask, type TaskGroup } from "../skills/grouping";
+import { ErrorNote, Loading } from "../ui";
+import { Chips } from "./Chips";
+import {
+  layoutTitle, matchesSearch, taskTypeTitle, type LibraryQuery, type LibrarySort, type LibraryView, type LibraryWho,
+  type SkillSpread,
+} from "./query";
+import { RobotsView, sortRobots } from "./RobotsView";
+import { SearchBox, type Suggestion, type Token } from "./SearchBox";
+import { keepSkill, SkillsView, sortSkills } from "./SkillsView";
 import { useLibraryQuery } from "./useLibraryQuery";
 
 const SKILLS_REFRESH_MS = 10000;
-const ORIGINS: [SkillOrigin, string][] = [["all", "Any origin"], ["own", "Learned itself"], ["learned", "Learned from another robot"]];
-const RESULTS: [RunResult, string][] = [["all", "Any result"], ["running", "Running"], ["succeeded", "Passed"], ["failed", "Failed"]];
-const VIEWS: [LibraryView, string][] = [["skills", "Skills"], ["runs", "Runs"], ["robots", "Robots"]];
+const MAX_SUGGESTIONS = 4;
+const VIEWS: [LibraryView, string][] = [["skills", "Skills"], ["robots", "Robots"]];
+const PLACEHOLDER: Record<LibraryView, string> = {
+  skills: "Search skills, or type a robot or task type to filter…",
+  robots: "Search robots by name or maker, or type a task type…",
+};
+const SPREADS: [SkillSpread, string][] = [["all", "All"], ["shared", "Shared by several robots"], ["single", "One robot"]];
+const WHOS: [LibraryWho, string][] = [["everyone", "Everyone"], ["mine", "Mine"]];
+const SORTS: Record<LibraryView, [LibrarySort, string][]> = {
+  skills: [["newest", "Newest"], ["most", "Most robots"]],
+  robots: [["newest", "Newest"], ["most", "Most skills"]],
+};
 
-function Segmented<T extends string>({ label, options, value, onPick }: {
-  label: string; options: [T, string][]; value: T; onPick: (value: T) => void;
+/** Robots and task types whose names contain the text, the ones in use first. */
+function suggestionsFor(text: string, view: LibraryView, robots: RobotSummary[], tasks: TaskTypeInfo[], groups: TaskGroup[],
+  query: LibraryQuery): Suggestion[] {
+  const skillsIn = (family: string) => groups.filter((g) => familyOf(g.sceneId) === family).length;
+  const robotHits = view === "robots" ? [] : robots
+    .filter((r) => r.robot_id !== query.robot && matchesSearch(text, [r.short_name, r.display_name, r.maker]))
+    .slice(0, MAX_SUGGESTIONS)
+    .map((r): Suggestion => ({ kind: "robot", id: r.robot_id, label: r.short_name, hint: r.maker }));
+  const taskHits = tasks
+    .filter((t) => t.family !== query.task && matchesSearch(text, [t.title]))
+    .sort((a, b) => skillsIn(b.family) - skillsIn(a.family))
+    .slice(0, MAX_SUGGESTIONS)
+    .map((t): Suggestion => ({ kind: "task", id: t.family, label: t.title, hint: `${skillsIn(t.family)} skills` }));
+  return [...robotHits, ...taskHits];
+}
+
+/** The short, fixed choices for the current view, as chips rather than dropdowns. "Mine" needs an account. */
+function Facets({ query, update, signedIn }: {
+  query: LibraryQuery; update: (patch: Partial<LibraryQuery>) => void; signedIn: boolean;
 }) {
   return (
-    // One row that scrolls sideways on phones; a wrapped pill turns into a tall oval.
-    <div className="segmented max-w-full flex-nowrap! overflow-x-auto [scrollbar-width:none]" role="tablist" aria-label={label}>
-      {options.map(([v, text]) => <button key={v} role="tab" aria-selected={value === v} onClick={() => onPick(v)}
-        className="shrink-0 whitespace-nowrap">{text}</button>)}
+    <div className="flex min-w-0 flex-wrap items-center justify-between gap-x-4 gap-y-2">
+      {signedIn && <Chips label="Whose" options={WHOS} value={query.who} onPick={(who) => update({ who })} />}
+      {query.view === "skills" && <Chips label="Known by" options={SPREADS} value={query.spread} onPick={(spread) => update({ spread })} />}
+      <Chips label="Sort" options={SORTS[query.view]} value={query.sort} onPick={(sort) => update({ sort })} />
     </div>
   );
 }
 
-function ViewFilters({ query, update }: { query: LibraryQuery; update: (patch: Partial<LibraryQuery>) => void }) {
-  if (query.view === "skills") {
-    return <Segmented label="Where the skill came from" options={ORIGINS} value={query.origin} onPick={(origin) => update({ origin })} />;
-  }
-  const kinds: [string, string][] = [["all", "Every type"], ...Object.entries(RUN_KIND).map(([k, v]): [string, string] => [k, v.filter])];
-  return (
-    <>
-      <Segmented label="Run type" options={kinds} value={query.kind ?? "all"} onPick={(k) => update({ kind: k === "all" ? null : k })} />
-      <Segmented label="Run result" options={RESULTS} value={query.result} onPick={(result) => update({ result })} />
-    </>
-  );
-}
-
 /**
- * Skills, the runs behind them and the robots that made them, in one place: Skills and Runs share one set of filters,
- * every skill links to its runs and back, and picking a robot carries over as the robot filter.
+ * One shared library of skills and robots (runs open from a skill or robot page), built to stay usable at thousands of each: a single search that turns
+ * robots and task types into filter tokens, chips for the few fixed choices, and paged or collapsed lists everywhere.
  */
 export function Library() {
   const { query, update } = useLibraryQuery();
+  const { user } = useAuth();
   const robots = useApi<RobotSummary[]>("/api/robots");
   const skills = useApi<ExperienceCapsule[]>("/api/skills", SKILLS_REFRESH_MS);
   const tasks = useApi<TaskTypeInfo[]>("/api/tasks");
   const layoutName = (sceneId: string) => layoutTitle(sceneId, tasks.data);
-  const taskCount = skills.data && robots.data ? groupByTask(skills.data, robots.data).length : null;
   const error = robots.error || skills.error;
-  // Paging restarts whenever the backend filters change.
-  const runsKey = [query.kind, query.result, query.robot, query.task, query.layout].join("|");
+  // Every robot stays known for names; "Mine" narrows what is listed to the viewer's own skills and uploads.
+  const mineOnly = query.who === "mine" && user !== null;
+  const allRobots = robots.data ?? [];
+  const fleet = mineOnly ? allRobots.filter((r) => r.mine) : allRobots;
+  const name = (id: string) => allRobots.find((r) => r.robot_id === id)?.short_name ?? id;
+  const groups = skills.data ? groupByTask(mineOnly ? skills.data.filter((s) => s.mine) : skills.data, allRobots) : [];
+  const shownSkills = sortSkills(groups.filter((g) => keepSkill(g, query, tasks.data, name)), query.sort);
+  const knowsTask = (id: string) => !query.task
+    || groups.some((g) => familyOf(g.sceneId) === query.task && g.byRobot.some((b) => b.robotId === id));
+  const shownRobots = sortRobots(fleet.filter((r) => knowsTask(r.robot_id)
+    && matchesSearch(query.q, [r.short_name, r.display_name, r.maker])), groups, query.sort);
+  const counts: Partial<Record<LibraryView, number>> = skills.data && robots.data
+    ? { skills: shownSkills.length, robots: shownRobots.length } : {};
+
+  const tokens: Token[] = [
+    query.robot && query.view !== "robots" && { key: "robot", label: name(query.robot), onRemove: () => update({ robot: null }) },
+    query.task && { key: "task", label: taskTypeTitle(query.task, tasks.data), onRemove: () => update({ task: null }) },
+  ].filter((t): t is Token => !!t);
+  const pick = (s: Suggestion) => update(s.kind === "robot"
+    ? { robot: s.id, q: "", open: null }
+    : { task: s.id, q: "", open: null });
 
   return (
     <div className="space-y-5">
-      <PageHeader eyebrow="Shared memory" title="Library" actions={<Link href="/lab" className="button-primary">Open the Lab</Link>}>
-        Every robot, every skill it has learned, and every run behind them.
-      </PageHeader>
-      <div className="segmented w-fit" role="tablist" aria-label="Library view">
-        {VIEWS.map(([view, label]) => (
-          <button key={view} role="tab" aria-selected={query.view === view} onClick={() => update({ view })}>
-            {label}
-            {view === "skills" && taskCount !== null && <span className="ml-1.5 opacity-60">{taskCount}</span>}
-            {view === "robots" && robots.data && <span className="ml-1.5 opacity-60">{robots.data.length}</span>}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="text-[28px] font-normal tracking-[-0.02em]">Library</h1>
+        <Link href="/lab" className="button-primary">Open the Lab</Link>
+      </div>
+      <SearchBox value={query.q} placeholder={PLACEHOLDER[query.view]} tokens={tokens} onPick={pick}
+        onChange={(q) => update({ q, open: null })}
+        suggest={(text) => suggestionsFor(text, query.view, fleet, tasks.data ?? [], groups, query)} />
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-3">
+        <div className="segmented w-fit" role="tablist" aria-label="Library view">
+          {VIEWS.map(([view, label]) => (
+            <button key={view} role="tab" aria-selected={query.view === view} onClick={() => update({ view, open: null })}>
+              {label}{counts[view] !== undefined && <span className="ml-1.5 opacity-60">{counts[view]}</span>}
+            </button>
+          ))}
+        </div>
+        {!query.open && <div className="min-w-0 flex-1"><Facets query={query} update={update} signedIn={user !== null} /></div>}
       </div>
       {error && <ErrorNote message={error} />}
-      {robots.data && query.view !== "robots" && (
-        <FilterBar query={query} robots={robots.data} tasks={tasks.data} onChange={update}
-          placeholder={query.view === "skills" ? "Search tasks, robots, routes…" : "Search runs by task, robot or id…"}>
-          <ViewFilters query={query} update={update} />
-        </FilterBar>
-      )}
       {!robots.data && !error && <Loading />}
       {robots.data && query.view === "skills" && (skills.data
-        ? <SkillsView skills={skills.data} robots={robots.data} tasks={tasks.data} query={query} onChange={update} />
+        ? <SkillsView groups={groups} shown={shownSkills} robots={robots.data} tasks={tasks.data} query={query} onChange={update}
+            onShared={skills.reload} />
         : !error && <Loading label="Loading skills…" />)}
       {robots.data && query.view === "robots" && (
-        <RobotsView robots={robots.data} selected={query.robot} onChange={update} onFleetChanged={robots.reload} />
-      )}
-      {robots.data && query.view === "runs" && (
-        <RunsView key={runsKey} robots={robots.data} query={query} layoutName={layoutName} onOpen={(run) => update({ run })} />
+        <RobotsView robots={allRobots} shown={shownRobots} groups={groups} layoutName={layoutName} query={query}
+          onChange={update} onFleetChanged={robots.reload} />
       )}
       {query.run && (
         <RunDialog key={query.run} runId={query.run} robots={robots.data ?? []} onClose={() => update({ run: null })}
-          onShowSkill={(sceneId) => update({ view: "skills", layout: sceneId, run: null })} />
+          onShowSkill={(sceneId) => update({ view: "skills", open: sceneId, run: null })} />
       )}
     </div>
   );

@@ -20,6 +20,18 @@ ARTIFACT_DIR = Path(os.environ.get("NIMBOTICS_ARTIFACT_DIR", DATA_DIR / "artifac
 # Uploaded robot models; next to the artifacts so the cloud volume keeps them.
 UPLOAD_DIR = Path(os.environ.get("NIMBOTICS_UPLOAD_DIR", ARTIFACT_DIR.parent / "uploads"))
 
+# Cloud Library (both optional). DATABASE_URL (Postgres, e.g. Neon) replaces the SQLite file at DB_PATH.
+# The S3 settings (Cloudflare R2 or any S3-compatible store) keep run files and robot models off the machine's
+# disk: ARTIFACT_DIR and UPLOAD_DIR become local caches, and /artifacts falls back to the store.
+DATABASE_URL = os.environ.get("DATABASE_URL") or None
+DATABASE: str | Path = DATABASE_URL or DB_PATH
+S3_ENDPOINT = os.environ.get("NIMBOTICS_S3_ENDPOINT") or None
+S3_BUCKET = os.environ.get("NIMBOTICS_S3_BUCKET") or None
+S3_ACCESS_KEY_ID = os.environ.get("NIMBOTICS_S3_ACCESS_KEY_ID") or None
+S3_SECRET_ACCESS_KEY = os.environ.get("NIMBOTICS_S3_SECRET_ACCESS_KEY") or None
+# Public base URL of the bucket (an R2 custom domain or r2.dev address). Unset = short-lived signed links.
+S3_PUBLIC_URL = (os.environ.get("NIMBOTICS_S3_PUBLIC_URL") or "").rstrip("/") or None
+
 MODEL_API_KEY = os.environ.get("MODEL_API_KEY") or None
 META_MODEL_ID = os.environ.get("META_MODEL_ID", "muse-spark-1.3")
 # Spend cap for the public skill scout: model calls per UTC day; beyond it the offline scout answers.

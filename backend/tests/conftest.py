@@ -12,8 +12,11 @@ os.environ["NIMBOTICS_DB_PATH"] = str(_TMP / "test.db")
 os.environ["NIMBOTICS_ARTIFACT_DIR"] = str(_TMP / "artifacts")
 # Sign-in stays off unless a test turns it on: the repo's .env may hold real Google keys and a session secret,
 # and load_dotenv never overrides a variable that is already set (even to "").
+# Likewise the cloud Library: tests never write to a real Postgres or bucket from .env (DECISIONS.md D95).
 for _key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET",
-             "NIMBOTICS_SESSION_SECRET", "NIMBOTICS_APP_URL"):
+             "NIMBOTICS_SESSION_SECRET", "NIMBOTICS_APP_URL", "DATABASE_URL", "NIMBOTICS_S3_ENDPOINT",
+             "NIMBOTICS_S3_BUCKET", "NIMBOTICS_S3_ACCESS_KEY_ID", "NIMBOTICS_S3_SECRET_ACCESS_KEY",
+             "NIMBOTICS_S3_PUBLIC_URL"):
     os.environ[_key] = ""
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 

@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.models.sharing import Visibility
+
 RunStatus = Literal[
     "queued",
     "profiling",
@@ -61,6 +63,11 @@ class RunRecord(BaseModel):
     error: str | None = None
     # Display name of the signed-in user who started the run; None when sign-in is off.
     started_by: str | None = None
+    # Private workspaces (models/sharing.py). owner_id lives in the registry column, never in payloads or responses;
+    # `mine` is filled per viewer by the API. Records saved before accounts read as public.
+    visibility: Visibility = "public"
+    owner_id: str | None = Field(default=None, exclude=True)
+    mine: bool = False
 
 
 class MotionCheckRequest(BaseModel):
@@ -84,6 +91,8 @@ class DiscoverRequest(BaseModel):
     scene_seed: int = Field(default=42, ge=0, le=2**31 - 1)
     # A key of task_families.TASK_TYPES (built in or designed); checked by the endpoint so the error names the choices.
     task_family: str = Field(default="wall_reach_v1", max_length=64)
+    # Save the verified skill with the run (the Lab's direct-learning case); otherwise POST /api/skills saves it.
+    publish: bool = False
 
 
 class TransferRequest(BaseModel):
@@ -102,6 +111,7 @@ class TransferRequest(BaseModel):
         default="none",
         description="ursim = after MuJoCo verification, also stream the path to the URSim controller (not physical)",
     )
+    publish: bool = Field(default=False, description="Save the adapted skill with the run when it is verified")
 
 
 class BenchmarkRequest(BaseModel):

@@ -488,3 +488,86 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   `/privacy` and the old `/transfer`, `/robots` links answer 200; Google login returns to
   `https://nimbotics.net/api/auth/callback/google` and Google accepts the client.
 - ⬜ A first real sign-in on the live site is the owner's to try.
+
+## Library as a shared registry ✅ (2026-11-04)
+- ✅ Library header is just the title and "Open the Lab"; one search bar sits under it. Typing searches the view;
+  matching robots and task types are offered and become removable tokens. Fixed choices are chips (known by several
+  robots / one, sort, run result, run type); no dropdowns.
+- ✅ Skill cards: task from above plus teacher → learners (two names, then +N). A skill page lists who worked it out and
+  who learned it from whom (collapsed after 6), "Not yet" robots (collapsed after 8) with a Teach link each, and links to
+  every run on the layout. Robot pages show the arm, its counts, a paged grid of what it knows and the technical sheet.
+- ✅ Past 12 skills, browsing shows one sideways row per task type (6 at a time); search or a task token shows a
+  paged grid (24). Robots page 24 at a time; adding a robot sits behind one button.
+- ✅ Removed: the librarian's "What to teach next" strip (backend API kept), the site footer's simulation sentence
+  (footer keeps How it works · Privacy). Old `/robots?robot=` links open that robot's page.
+- ✅ Fixed a race where removing a filter and typing straight after brought the filter back.
+- ✅ Checked in the browser with real data, at phone width (no sideways scroll), and with the lists inflated 40× in the
+  page only (160 skills, 43 robots) to see rows, paging and collapsing. `make test` 379 passed, `make smoke` pass,
+  tsc + eslint clean, Playwright 19/19.
+
+## Library: lists, no Runs tab ✅ (2026-11-04)
+- ✅ Skills tab is a plain list (title, who taught whom, robot count); sections by task type once there are 13+.
+  Robot cards keep their pictures.
+- ✅ Runs tab removed. Runs now sit on the skill page (runs on that layout) and robot page (recent runs), collapsed to
+  5 each. `/history` and old `?layout=` links still land somewhere sensible.
+- ✅ Skill page: picture and robot list on the left, the picked robot's video/stats/lineage and the runs on the right.
+  Robot page: facts, skills it knows, recent runs, technical sheet. Kept the Lab session's "Open it in the Lab" and
+  "Teach the X" links.
+- ✅ tsc + eslint clean; Playwright 19/19 together with the Lab session's rewritten Lab tests.
+
+## Lab: librarian-first workflow and redesign ✅ (2026-11-04)
+- ✅ The Lab is rebuilt in the Library's style: title, robot avatars as chips, one describe bar, task-type chips,
+  one card that says what the library holds, and the run below it. Old four-step teacher/learner flow removed.
+- ✅ Librarian check first (`POST /api/library/check`): replay a known skill (no retraining), adapt another robot's
+  skill to this robot (best body match, saved when verified), or learn directly when nobody knows it (saved when
+  verified). A requested source robot without the skill is explained and direct learning offered.
+- ✅ "Improve this skill" adapts another robot's experience onto the same layout and keeps it only if it is verified,
+  safe and measurably faster or shorter; the verdict and the measured comparison are stored on the run and shown.
+- ✅ Task matching asks before creating: confident / unsure / none with alternatives and a question; designing a new
+  task is the last option; near-identical designed layouts reuse the existing type.
+- ✅ `make test` 391 passed (new: `test_learning_check.py`, `test_learning_api.py` with real MuJoCo runs of learn →
+  adapt → improve), `make smoke` pass, tsc + eslint clean. Checked in the browser on a copy of the dev registry:
+  replay, improve (kept, 2.82 s vs 2.82 s), adapt (UR5e onto a shelf, saved, card turned to "known"), learn (Panda
+  between two posts, saved), Muse's unsure match, phone width without sideways scroll.
+
+- 🐞 Live Muse scout answers were always cut off: reasoning tokens count toward `max_tokens`, and the shared 1200
+  left ~130 for the JSON (finish_reason `length`), so every call fell back to the offline scout ("answer is not
+  JSON" / "empty answer"). The scout now has its own `SCOUT_MAX_TOKENS = 4000` (like the designer) and logs each
+  fallback. Checked with one real call: Muse answered (1240 reasoning tokens), match "none". When nothing fits,
+  "Design a new task for this" is now the primary button (still a user click, never automatic).
+
+## Cloud Library, phase 1: Postgres + R2 storage 🟡 (2026-11-04)
+- ✅ `DATABASE_URL` puts the registry on Postgres (psycopg 3, pre-ping for Neon); SQLite stays the local default.
+- ✅ `NIMBOTICS_S3_*` file store (`services/storage.py`, R2 or any S3 bucket): run folders pushed after each run,
+  snapshots after each passport, uploaded robots before they are recorded (store down → 503, nothing added) and
+  pulled back at startup. `/artifacts` serves the disk copy, else redirects to the bucket.
+- ✅ `scripts/copy_to_cloud.py` (rows + files, re-runnable), `scripts/make_bucket.py [--check]`,
+  `deploy/cloud-dev.compose.yml` (Postgres 17 + moto S3 server), `backend-cloud-dev` launch config on :8010.
+- ✅ Checked locally: the dev Library (45 runs, 13 skills, 1 uploaded arm, 256 files) copied into Postgres + the S3
+  stand-in; an API started with an empty disk listed the same counts, fetched the uploaded arm, redirected an old
+  run video to the bucket (same 39 232 bytes) and pushed a new motion check's `motion.mp4` + `final.png`.
+- ✅ `make test` 411 passed (new `test_cloud_storage.py`: moto S3, /artifacts fallback, upload survives a lost disk,
+  store-down upload refused, copy re-run; the Postgres case ran against Docker Postgres), `make smoke` pass.
+- ⬜ Real Neon + R2 accounts (the user creates them; then `make_bucket.py --check` with the real keys and the copy
+  in deploy/README "Cloud Library"). Phases 2–4 (private workspaces, catalog arms in the store, more robot kinds).
+- ✅ Lab run view decluttered and in 3D (D96): the MuJoCo recording beside a three.js view of the stored task
+  (obstacles, start, target, robot base, every route; drag to turn), one line of counts, "watch a try" buttons, and
+  everything else in one closed "How it was found" section. The "Or pick" chip row is gone; the chosen task shows as
+  a "Task" chip with Clear. Designed tasks preview in 3D. Checked live (Panda learning a tall wall), on replay, at
+  phone width and in dark mode; e2e 20/20.
+
+## Cloud Library, phase 2: private workspaces ✅ (2026-11-04)
+- ✅ Owner + visibility on runs, skills and uploaded robots (DECISIONS D96). New signed-in work starts private; old and
+  signed-out work stays public; existing databases gain the columns at startup.
+- ✅ Every read is filtered by viewer: run/skill/robot lists and pages, live frames, event streams, transfers, improve,
+  library check and scout; shared reports, the demo story and the task designer use public work only. `/artifacts`
+  enforces the same rule and marks private files uncacheable; private bucket files get signed links only.
+- ✅ `POST /api/visibility` with dependency plans (409 + list until confirmed; refuses changes that would break
+  someone else's work). Library: "Everyone / Mine" chips (`?who=mine`), Private markers on skills, robots and runs,
+  a visibility control on skill, robot and run pages, and the Lab says when a saved skill is private.
+- ✅ `make test` 423 passed (new `test_sharing.py`: two accounts, private runs/skills/robots/files, publish with
+  dependencies, refusals, sign-in off, old schema upgrade), `make smoke` pass, tsc + eslint clean. Checked in the
+  browser on a copy of the dev registry: Ada's new skill showed only under Mine with a Private marker, its video
+  played for her and was 404 for a signed-out visitor; "Make this skill public" listed its run, and after confirming
+  the skill, run and video were public. Phone width: no sideways scroll.
+- ⬜ Not run: Playwright e2e. Phases 3–4 (catalog arms in the store, more robot kinds).

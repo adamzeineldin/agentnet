@@ -160,8 +160,6 @@ export function ParticleArm({ particles = 14000, armMotion = true, cursorMemory 
             const fall = 1 - Math.sqrt(d2) / RAD;
             ctx.globalAlpha = fade * fall * fall * .9; ctx.fillRect(sc[0], sc[1], 1.1, 1.1);
           }
-          const tip = proj(G.J[3]), dt = Math.hypot(tip[0] - mouse.x, tip[1] - mouse.y);
-          if (dt < RAD * .9) { ctx.globalAlpha = fade * (1 - dt / RAD); ctx.font = "10px 'IBM Plex Mono', monospace"; ctx.fillText('t+' + lag.toFixed(1) + 's', tip[0] + 6, tip[1] + 14); }
         });
       }
       ctx.fillStyle = c.acc;
