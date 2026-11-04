@@ -18,7 +18,49 @@ When the image is built, the following happen:
 When the container starts, it copies the registry to a writable location. New runs last until the container
 restarts.
 
-## GitHub Codespaces (free tier, the current host)
+## Always-on server (replaces the codespace)
+
+The codespace's free hours cover about 30 hours a month. Running it past that costs about $0.36 an hour (~$260 a
+month always on). A small server runs the same image all the time for a fraction of that (D103). It needs:
+
+- an **x86_64 (amd64)** machine (URSim has no ARM build) with **4+ vCPU and 16 GB RAM**, which keeps the codespace's
+  speed (the site idles at ~1.5 GB, but runs render video), and 40+ GB of disk. A Hetzner CX43 (8 vCPU, 16 GB) fits.
+- **Ubuntu 24.04**, with your ssh key added for `root` when you create it.
+
+The site keeps its address: the same Cloudflare Tunnel token carries nimbotics.net to whichever machine runs it. The
+Library is in Postgres and R2, so nothing else has to move. On the server the site listens on `127.0.0.1:7860` only and
+the firewall opens ssh alone; visitors arrive through the tunnel's outbound connection.
+
+From your computer, with the codespace still running (it holds the settings that get copied):
+
+```bash
+deploy/move_to_vps.sh prepare root@<server-ip>
+```
+
+This copies the committed code to `/opt/nimbotics`, installs Docker and the firewall (`deploy/vps.sh setup`), copies
+the live site's settings and tunnel token from the codespace's containers into the server's root-only
+`/etc/nimbotics/env` (never printed or stored on your computer), and builds the image (~15 minutes). The live site is
+untouched. Then switch over:
+
+```bash
+deploy/move_to_vps.sh cutover root@<server-ip>
+```
+
+It starts the site and tunnel on the server, waits for `/api/health`, stops the codespace, and checks the public
+address. For a moment both machines answer nimbotics.net; they share Postgres and R2, so visitors see one site. The
+codespace is stopped, not deleted: `gh codespace start` brings it back if something is wrong. Once the server has run
+well for a while, delete the codespace so its storage stops counting.
+
+Later deploys (copy the committed code, rebuild, recreate the containers):
+
+```bash
+deploy/move_to_vps.sh update root@<server-ip>
+```
+
+To change a setting (e.g. a new `MODEL_API_KEY`), edit `/etc/nimbotics/env` on the server, then run
+`bash /opt/nimbotics/deploy/vps.sh restart` there. Containers restart on their own after a reboot.
+
+## GitHub Codespaces (free tier, the previous host)
 
 `.devcontainer/devcontainer.json` asks for a 4-core, 16 GB machine with Docker. When the codespace is created,
 `deploy/codespace.sh build` builds the same image (about 15 minutes). Each time the codespace starts,
@@ -181,8 +223,8 @@ codespace, Cloudflare provides HTTPS, and visitors no longer see GitHub's "devel
    tunnel's logs, run `docker logs nimbotics-tunnel` in the codespace.
 
 The domain is only as available as the codespace. While the codespace is stopped (after 4 hours without activity,
-or when the monthly free hours run out), nimbotics.net shows a Cloudflare error page. If you move to an always-on
-server, run the same image and the same `cloudflared` command there. The domain setup stays the same.
+or when the monthly free hours run out), nimbotics.net shows a Cloudflare error page. "Always-on server" above moves
+the site, tunnel token included, to a server that stays up. The domain setup stays the same.
 
 ## Hugging Face Spaces (needs PRO)
 

@@ -619,3 +619,13 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Public sharing refuses duplicates (same robot + layout unless measurably better; the same robot model) and records
   who shared what (D102). `make test` 437 passed, `make smoke` pass, tsc + eslint clean; browser check: a robot made
   public shows "Shared by you" to its owner and "Shared by Ada" to signed-out visitors.
+
+## Always-on server scripts ✅ (2026-11-04)
+- ✅ The codespace used all 120 free core-hours (on since 2026-10-31); staying on it would cost ~$0.36 an hour. Added
+  `deploy/vps.sh` (server side) and `deploy/move_to_vps.sh prepare|cutover|update` (from your computer) to run the same
+  image on an amd64 server behind the same Cloudflare Tunnel (D103, deploy/README.md "Always-on server").
+- ✅ Checked against the live codespace: the settings reader returns exactly the 11 settings the site uses plus the
+  tunnel token (names and lengths only were shown); it first returned the 2 unset ones with their own names as values,
+  now skipped.
+- ⬜ Not yet run against a server: the owner creates it (amd64, Ubuntu 24.04, ssh key for root), then runs
+  `prepare` and `cutover`. Then delete the codespace.

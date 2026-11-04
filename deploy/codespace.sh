@@ -12,6 +12,8 @@ IMAGE=nimbotics-cloud
 NAME=nimbotics
 TUNNEL=nimbotics-tunnel
 TUNNEL_IMAGE=cloudflare/cloudflared:2026.10.0
+# deploy/vps.sh sets 127.0.0.1:7860:7860 so only the tunnel reaches the site (Docker's ports bypass the firewall).
+PUBLISH="${NIMBOTICS_PUBLISH:-7860:7860}"
 cd "$(dirname "$0")/.."
 
 for _ in $(seq 1 30); do docker info >/dev/null 2>&1 && break; sleep 2; done
@@ -43,7 +45,7 @@ case "${1:-}" in
       if [ -z "$public_url" ] && [ -n "${CODESPACE_NAME:-}" ]; then
         public_url="https://${CODESPACE_NAME}-7860.${GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN:-app.github.dev}"
       fi
-      docker run -d --name "$NAME" --restart unless-stopped -p 7860:7860 -v nimbotics-runtime:/app/runtime \
+      docker run -d --name "$NAME" --restart unless-stopped -p "$PUBLISH" -v nimbotics-runtime:/app/runtime \
         -e GOOGLE_CLIENT_ID -e GOOGLE_CLIENT_SECRET -e GITHUB_CLIENT_ID -e GITHUB_CLIENT_SECRET \
         -e MODEL_API_KEY \
         -e DATABASE_URL -e NIMBOTICS_S3_ENDPOINT -e NIMBOTICS_S3_BUCKET -e NIMBOTICS_S3_ACCESS_KEY_ID \
