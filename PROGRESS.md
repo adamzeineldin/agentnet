@@ -480,3 +480,11 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ `make test` 379 passed, `make smoke` pass, tsc + eslint clean, Playwright 19/19. Privacy page covers email accounts.
 - ⬜ No email verification or password reset yet (need an email sender). nimbotics.net still needs the Codespaces
   secrets and a deploy.
+
+## Deployed to nimbotics.net ✅ (2026-11-04)
+- ✅ Codespaces secrets: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET (copied from the local `.env` without printing them)
+  and a fresh fixed NIMBOTICS_SESSION_SECRET. Codespace restarted, `cddfbf8` pulled, image rebuilt, container swapped.
+- ✅ Live: `/api/auth/config` shows Google + email accounts on; `/`, `/library`, `/lab`, `/blog`, `/signin`, `/signup`,
+  `/privacy` and the old `/transfer`, `/robots` links answer 200; Google login returns to
+  `https://nimbotics.net/api/auth/callback/google` and Google accepts the client.
+- ⬜ A first real sign-in on the live site is the owner's to try.
