@@ -8,11 +8,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from sqlalchemy import insert, select
+from sqlalchemy import insert, inspect, select
 from sqlalchemy.dialects import postgresql, sqlite
 
 from app.services import storage
-from app.services.registry import Base, make_engine
+from app.services.registry import Base, make_engine, upgrade_schema
 
 _BATCH = 500
 
@@ -29,11 +29,19 @@ def copy_database(source: str | Path, target: str | Path) -> dict[str, int]:
     """Copy every registry table from source to target; returns the rows read per table."""
     src, dst = make_engine(source), make_engine(target)
     Base.metadata.create_all(dst)
+    upgrade_schema(dst)  # a target from before newer columns gains them first
     counts: dict[str, int] = {}
     try:
+        present = inspect(src)
         with src.connect() as reader, dst.begin() as writer:
             for table in Base.metadata.sorted_tables:
-                rows = [dict(r._mapping) for r in reader.execute(select(table))]
+                if not present.has_table(table.name):
+                    counts[table.name] = 0
+                    continue
+                # An older source lacks newer columns (e.g. owner_id, visibility): those take their defaults.
+                have = {c["name"] for c in present.get_columns(table.name)}
+                columns = [c for c in table.columns if c.name in have]
+                rows = [dict(r._mapping) for r in reader.execute(select(*columns))]
                 for start in range(0, len(rows), _BATCH):
                     writer.execute(_insert_ignoring_existing(table, dst.dialect.name), rows[start:start + _BATCH])
                 counts[table.name] = len(rows)

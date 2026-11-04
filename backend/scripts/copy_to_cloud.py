@@ -1,4 +1,4 @@
-"""Copy this machine's Library (SQLite registry, run files, uploaded robots) into Postgres and the file store.
+"""Copy this machine's Library (SQLite registry, run files, robot models) into Postgres and the file store.
 
 Usage (from backend/, with DATABASE_URL and the NIMBOTICS_S3_* variables set):
   .venv/bin/python scripts/copy_to_cloud.py [--sqlite app/data/nimbotics.db] [--skip-files]
@@ -16,6 +16,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from app.config import ARTIFACT_DIR, DATABASE_URL, DB_PATH, UPLOAD_DIR  # noqa: E402
 from app.services.cloud_copy import copy_database, push_files  # noqa: E402
+from app.services.model_store import push_catalog_models  # noqa: E402
 
 
 def main() -> int:
@@ -36,6 +37,9 @@ def main() -> int:
     if not args.skip_files:
         artifacts, robots = push_files(ARTIFACT_DIR, UPLOAD_DIR)
         log.info("Stored %d run/snapshot files and %d uploaded-robot files", artifacts, robots)
+        for result in push_catalog_models():
+            log.info("Catalog arm %-12s %4d files%s", result.robot_id, result.files,
+                     " (already stored)" if result.skipped else "")
     return 0
 
 

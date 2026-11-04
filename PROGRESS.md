@@ -571,3 +571,13 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   played for her and was 404 for a signed-out visitor; "Make this skill public" listed its run, and after confirming
   the skill, run and video were public. Phone width: no sideways scroll.
 - ⬜ Not run: Playwright e2e. Phases 3–4 (catalog arms in the store, more robot kinds).
+
+## Cloud Library, phase 3: catalog arms in the file store ✅ (2026-11-04)
+- ✅ `services/model_store.py`: each catalog arm stored under its Menagerie commit with a hash manifest; a server
+  without the files fetches and hash-checks them (fleet arms at startup, others when added). DECISIONS D97.
+- ✅ `copy_to_cloud.py` uploads the ten catalog arms (358 files); re-runs skip stored hashes. Fixed two copy bugs found
+  on the way: a source or a target from before the phase-2 columns.
+- ✅ Checked locally against Postgres + the S3 stand-in: an API started with an empty models folder fetched the Panda
+  and UR5e at startup, and adding the Lite 6 fetched it on demand; all three hashes equal the local checkout.
+- ✅ `make test` 429 passed (new `test_model_store.py`, two copy cases), `make smoke` pass.
+- ⬜ Phase 4: more robot kinds in uploads.

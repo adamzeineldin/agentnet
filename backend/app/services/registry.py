@@ -153,7 +153,8 @@ _ADDED_COLUMNS = {
 }
 
 
-def _upgrade_schema(engine: Engine) -> None:
+def upgrade_schema(engine: Engine) -> None:
+    """Add columns newer than the tables (Registry startup and cloud_copy targets)."""
     existing = inspect(engine)
     with engine.begin() as conn:
         for table, columns in _ADDED_COLUMNS.items():
@@ -205,7 +206,7 @@ class Registry:
         """database: a SQLite file path (local default) or a Postgres URL (DATABASE_URL)."""
         self.engine: Engine = make_engine(database)
         Base.metadata.create_all(self.engine)
-        _upgrade_schema(self.engine)
+        upgrade_schema(self.engine)
         self._session = sessionmaker(self.engine, expire_on_commit=False)
 
     def _tx(self) -> Session:

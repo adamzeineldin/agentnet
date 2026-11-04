@@ -105,6 +105,8 @@ Then restart the codespace and recreate the container as in step 4 above. The im
 By default the Library (runs, skills, robots, users, posts) is one SQLite file plus run videos and uploaded robot
 models on the `nimbotics-runtime` volume, so it lasts only as long as the codespace. With these settings the
 records live in Postgres and the files in an R2 bucket; the volume is then only a cache (DECISIONS.md D95).
+The bucket also holds every catalog arm's model under its pinned Menagerie commit, so a server without the
+models fetches them (hash-checked) instead of failing (D97).
 
 1. **Postgres**: create a free project at neon.tech and copy its connection string
    (`postgresql://…/neondb?sslmode=require`).
@@ -130,7 +132,7 @@ records live in Postgres and the files in an R2 bucket; the volume is then only 
 
 5. While the old site keeps running, copy its Library from the volume into Postgres and R2 with the new image. The
    check first proves the R2 keys can write, list, read and delete; the copy keeps every id, skips rows already
-   there and can be re-run:
+   there, uploads the catalog arm models with their hashes, and can be re-run:
 
    ```bash
    gh codespace ssh -c <codespace-name> -- 'bash -lc "docker run --rm -v nimbotics-runtime:/app/runtime -e DATABASE_URL -e NIMBOTICS_S3_ENDPOINT -e NIMBOTICS_S3_BUCKET -e NIMBOTICS_S3_ACCESS_KEY_ID -e NIMBOTICS_S3_SECRET_ACCESS_KEY nimbotics-cloud bash -lc \"cd /app/backend && /app/venv/bin/python scripts/make_bucket.py --check && /app/venv/bin/python scripts/copy_to_cloud.py\""'

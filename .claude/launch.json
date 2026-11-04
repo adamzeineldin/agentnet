@@ -75,6 +75,7 @@
         "NIMBOTICS_S3_SECRET_ACCESS_KEY=nimbotics-dev-secret",
         "NIMBOTICS_ARTIFACT_DIR=backend/app/data/cloud-cache/artifacts",
         "NIMBOTICS_UPLOAD_DIR=backend/app/data/cloud-cache/uploads",
+        "NIMBOTICS_MENAGERIE_DIR=backend/app/data/cloud-cache/menagerie",
         "backend/.venv/bin/uvicorn",
         "app.main:app",
         "--app-dir",

@@ -24,7 +24,7 @@ from app.services.passports import build_passport, model_dir_hash
 from app.services.registry import EVERYONE, Registry, Viewer
 from app.services.render import FrameRecorder
 from app.models.sharing import can_see, initial_visibility
-from app.services import storage, uploads
+from app.services import model_store, storage, uploads
 from app.services.robot_adapter import RobotAdapter
 from app.services.scene import build_model
 from app.services.simulation import execute_path
@@ -90,9 +90,17 @@ def ensure_passports(worker: SimulationWorker, registry: Registry) -> list[Robot
 
 
 def add_robot(worker: SimulationWorker, registry: Registry, robot_id: str, added_by: str | None) -> RobotPassport:
-    """Compute the arm's passport from its model, then list it in the fleet. Worker thread only."""
-    passport = registry.get_passport(robot_id)
+    """Compute the arm's passport from its model, then list it in the fleet. Worker thread only.
+
+    A catalog arm whose files are not on this server is fetched from the file store first (services/model_store.py).
+    """
     decl = get_robot_decl(robot_id)
+    try:
+        if not model_store.ensure_catalog_model(decl):
+            raise ValueError("its model files are not on this server")
+    except storage.StoreError as exc:
+        raise ValueError(str(exc)) from exc
+    passport = registry.get_passport(robot_id)
     if passport is None or passport.model_hash != model_dir_hash(decl.model_path) \
             or passport.schema_version != PASSPORT_SCHEMA_VERSION:
         passport = compute_passport(worker, registry, robot_id)

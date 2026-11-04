@@ -62,6 +62,22 @@ class ObjectStore:
         except Exception as exc:  # noqa: BLE001
             raise StoreError(f"Could not fetch {key}: {exc}") from exc
 
+    def put_bytes(self, key: str, data: bytes, content_type: str = "application/json") -> None:
+        try:
+            self._client.put_object(Bucket=self._bucket, Key=key, Body=data, ContentType=content_type)
+        except Exception as exc:  # noqa: BLE001
+            raise StoreError(f"Could not store {key}: {exc}") from exc
+
+    def get_bytes(self, key: str) -> bytes | None:
+        """The object's bytes, or None when the bucket has no such key."""
+        try:
+            return self._client.get_object(Bucket=self._bucket, Key=key)["Body"].read()
+        except Exception as exc:  # noqa: BLE001
+            code = getattr(exc, "response", {}).get("Error", {}).get("Code")
+            if code in ("NoSuchKey", "404"):
+                return None
+            raise StoreError(f"Could not fetch {key}: {exc}") from exc
+
     def keys(self, prefix: str) -> list[str]:
         try:
             pages = self._client.get_paginator("list_objects_v2").paginate(Bucket=self._bucket, Prefix=prefix)

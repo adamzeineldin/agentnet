@@ -204,6 +204,32 @@ def test_copy_moves_every_row_and_can_be_rerun(tmp_path):
     assert copied.added_robot_ids() == {"ur10e_01"}
 
 
+def test_copy_reads_a_source_from_before_the_newer_columns(tmp_path):
+    import sqlite3
+
+    src = tmp_path / "old.db"
+    with sqlite3.connect(src) as db:
+        db.execute("CREATE TABLE fleet (robot_id VARCHAR PRIMARY KEY, added_by VARCHAR, added_at DATETIME)")
+        db.execute("CREATE TABLE runs (run_id VARCHAR PRIMARY KEY, run_type VARCHAR, status VARCHAR, payload JSON, "
+                   "created_at DATETIME)")
+        db.execute("INSERT INTO fleet VALUES ('ur10e_01', NULL, '2026-10-01 00:00:00.000000')")
+    counts = copy_database(src, tmp_path / "new.db")
+    assert counts["fleet"] == 1 and counts["runs"] == 0 and counts["skills"] == 0
+    assert Registry(tmp_path / "new.db").added_robot_ids() == {"ur10e_01"}
+
+
+def test_copy_into_a_target_from_before_the_newer_columns(tmp_path):
+    import sqlite3
+
+    _filled_registry(tmp_path / "src.db")
+    old_target = tmp_path / "old_target.db"
+    with sqlite3.connect(old_target) as db:  # what a phase-1 Postgres looked like: no owner/visibility yet
+        db.execute("CREATE TABLE skills (skill_id VARCHAR PRIMARY KEY, source_robot_id VARCHAR, "
+                   "parent_skill_id VARCHAR, run_id VARCHAR UNIQUE, payload JSON, created_at DATETIME)")
+    assert copy_database(tmp_path / "src.db", old_target)["skills"] == 2
+    assert {s.visibility for s in Registry(old_target).list_skills()} == {"public"}
+
+
 @pytest.mark.skipif(not PG_URL, reason="set NIMBOTICS_TEST_DATABASE_URL to a scratch Postgres database")
 def test_registry_on_postgres(tmp_path):
     from sqlalchemy import text
