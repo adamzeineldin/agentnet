@@ -81,17 +81,12 @@ body {
 .hero-copy a { pointer-events: auto; }
 .hero-copy h1 { margin-top: 30px; font-size: clamp(44px, 5vw, 64px); line-height: 1.02; letter-spacing: -.035em; font-weight: 300; }
 .hero-description { margin-top: 30px; font-size: 18px; line-height: 1.55; color: var(--ink-2); }
-.hero-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px; margin-top: 42px; }
-.hero-steps > div { border-top: 1px solid var(--line-strong); padding-top: 14px; }
-.hero-steps h2 { font: 11px var(--font-plex-mono), monospace; text-transform: uppercase; }
-.hero-steps p { margin-top: 8px; font-size: 13px; line-height: 1.5; color: var(--ink-3); }
 .particle-arm { position: absolute; inset: 0 0 0 auto; width: 62%; overflow: hidden; z-index: 0; }
 @media (min-width: 768px) { .landing-hero { margin-left: -32px; margin-right: -32px; padding: 64px 48px; } }
 @media (max-width: 800px) {
   .landing-hero { padding-top: 40px; padding-bottom: 36px; min-height: auto; }
   .hero-copy { max-width: 100%; }
   .particle-arm { width: 100%; opacity: .32; }
-  .hero-steps { gap: 16px; }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: 0s !important; transition-duration: 0s !important; } }
 
@@ -106,7 +101,6 @@ input, select { accent-color: var(--accent); }
 .metric-grid { gap: 1px; background: var(--line); border: 1px solid var(--line); }
 .metric-grid > * { background: var(--panel); padding: 14px; }
 @media (max-width: 480px) {
-  .hero-steps { grid-template-columns: 1fr; gap: 18px; }
   .hero-copy h1 { font-size: 44px; }
   .hero-description { font-size: 16px; }
   .metric-grid > * { padding: 10px; }
