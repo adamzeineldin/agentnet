@@ -4,13 +4,13 @@ import type { Provenance, RunStatus } from "@/lib/types";
 
 /** Page title block: eyebrow, title, a plain intro, an optional How-it-works link, and actions. */
 export function PageHeader({ eyebrow, title, guide, actions, children }: {
-  eyebrow: string; title: string; guide?: string; actions?: ReactNode; children: ReactNode;
+  eyebrow?: string; title: string; guide?: string; actions?: ReactNode; children: ReactNode;
 }) {
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="min-w-0">
-          <p className="eyebrow mb-2">{eyebrow}</p>
+          {eyebrow && <p className="eyebrow mb-2">{eyebrow}</p>}
           <h1 className="text-[28px] font-normal tracking-[-0.02em]">{title}</h1>
           <p className="mt-1 max-w-3xl text-sm text-ink-2">
             {children}

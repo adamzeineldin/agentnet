@@ -87,6 +87,8 @@ def test_muse_plan_is_one_bounded_call_and_ids_are_checked():
     assert body["response_format"]["json_schema"]["strict"] and "tools" not in body
     # Reasoning tokens count toward max_tokens; the shared 1200 cut live answers off mid-JSON.
     assert body["max_tokens"] == scout_mod.SCOUT_MAX_TOKENS > 1200
+    # Picking a task type is quick: the scout asks for minimal reasoning (other Muse features keep "low").
+    assert body["reasoning_effort"] == scout_mod.SCOUT_REASONING_EFFORT == "minimal"
     sent = json.loads(body["messages"][1]["content"])
     assert {s["skill_id"] for s in sent["skills"]} == {"shelf_panda", "shelf_ur5e", "wall_panda"}
     assert plan.provider == "meta_muse_spark" and plan.task_family == "shelf_v1"

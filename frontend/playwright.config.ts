@@ -4,6 +4,7 @@ import { defineConfig, devices } from "@playwright/test";
 // built into .next-e2e. The dev servers (:8000/:3000) and the dev registry are never touched.
 // MODEL_API_KEY, NIMBOTICS_URSIM_BRIDGE_URL, the sign-in client ids and the session secret are blanked (an existing
 // env var wins over .env) so UI tests never spend model credits, move a controller or need an account.
+// The cloud Library (DATABASE_URL, the S3 bucket) is blanked too, so a .env pointing at Neon is never written to (D95).
 const API = "http://127.0.0.1:8011";
 const DATA = "../.e2e-data";
 
@@ -17,7 +18,7 @@ export default defineConfig({
   use: { baseURL: "http://127.0.0.1:3011", trace: "retain-on-failure", ...devices["Desktop Chrome"] },
   webServer: [
     {
-      command: `rm -rf ${DATA} && mkdir -p ${DATA} && cd ../backend && MODEL_API_KEY= NIMBOTICS_URSIM_BRIDGE_URL= GOOGLE_CLIENT_ID= GITHUB_CLIENT_ID= NIMBOTICS_SESSION_SECRET= NIMBOTICS_APP_URL= NIMBOTICS_DB_PATH=../.e2e-data/e2e.db NIMBOTICS_ARTIFACT_DIR=../.e2e-data/artifacts .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8011`,
+      command: `rm -rf ${DATA} && mkdir -p ${DATA} && cd ../backend && MODEL_API_KEY= NIMBOTICS_URSIM_BRIDGE_URL= GOOGLE_CLIENT_ID= GITHUB_CLIENT_ID= NIMBOTICS_SESSION_SECRET= NIMBOTICS_APP_URL= DATABASE_URL= DATABASE_URL_POOLED= NIMBOTICS_S3_ENDPOINT= NIMBOTICS_S3_BUCKET= NIMBOTICS_DB_PATH=../.e2e-data/e2e.db NIMBOTICS_ARTIFACT_DIR=../.e2e-data/artifacts .venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8011`,
       url: `${API}/api/health`,
       timeout: 120_000,
       reuseExistingServer: false,

@@ -3,7 +3,8 @@ import { expect, test, type Page } from "@playwright/test";
 const API = "http://127.0.0.1:8011";
 
 /** The Lab's choice for the picked robot and task: replay, adapt or learn directly. */
-const nextStep = (page: Page) => page.getByRole("list", { name: "What happens next" }).locator('[aria-current="step"]');
+// What the librarian decided: "known" (replay), "adapt" (from another robot) or "learn" (directly).
+const decision = (page: Page) => page.getByRole("region", { name: "What the librarian found" });
 
 // One shared, fresh backend: the story builds up across tests in order.
 test.describe.configure({ mode: "serial" });
@@ -31,10 +32,10 @@ test("robots page explains each robot plainly and keeps model-derived fields one
 
 test("lab: nobody knows the task, so the Panda learns it directly and it is saved", async ({ page }) => {
   await page.goto("/lab?robot=panda_01&task=wall_reach_v1");
-  await expect(page.getByRole("radio", { name: "Panda" })).toHaveAttribute("aria-checked", "true");
+  await expect(page.getByRole("button", { name: "Robot: Panda" })).toBeVisible();
   await expect(page.getByRole("group", { name: "Chosen task" })).toContainText("Reach past a wall");
-  await expect(nextStep(page)).toHaveText("Learn it directly");
-  await expect(page.getByText("No robot in the library knows this task yet.")).toBeVisible();
+  await expect(decision(page)).toHaveAttribute("data-case", "learn");
+  await expect(decision(page).getByRole("heading", { name: "No robot knows this yet." })).toBeVisible();
   await page.locator("summary", { hasText: "Repeat an exact layout" }).click();
   await page.getByRole("checkbox", { name: "Use an exact layout number" }).check();
   await page.getByRole("spinbutton", { name: "Layout number" }).fill("7");
@@ -42,9 +43,9 @@ test("lab: nobody knows the task, so the Panda learns it directly and it is save
   await expect(page.getByText("✓ Saved to the")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/The Panda found a way: /)).toBeVisible();
   await expect(page.locator("video").first()).toBeVisible();
-  // The run's own task, routes and robot base in 3D, beside the recording; the counts in one line.
-  await expect(page.getByRole("img", { name: /^The task in 3D: \d+ obstacles?, the start, the target and 10 routes\.$/ })).toBeVisible();
-  await expect(page.getByText(/^10 of 10 routes checked against its joints, \d+ possible; \d+ tried in physics, \d+ passed\.$/)).toBeVisible();
+  // Beside the recording: the measured result of the stored run and its final checks.
+  await expect(page.getByText("simulation-verified")).toBeVisible();
+  await expect(page.getByRole("list", { name: "Final checks" })).toContainText("✓ Touches nothing");
   await page.getByRole("group", { name: "Physics tries" }).getByRole("button", { name: /^Try 1 · / }).click();
   await expect(page.getByText(/^Physics try 1: /)).toBeVisible();
   await page.getByRole("button", { name: "← back to the final run" }).click();
@@ -54,7 +55,7 @@ test("lab: nobody knows the task, so the Panda learns it directly and it is save
   await page.locator("summary", { hasText: "How it was found" }).click();
   await expect(steps.getByText("Check each route against the Panda's joints")).toBeVisible();
   // Saved with the run, so the librarian now says the Panda knows it: nothing to retrain.
-  await expect(nextStep(page)).toHaveText("Replay its skill");
+  await expect(decision(page)).toHaveAttribute("data-case", "known");
   await expect(page.getByRole("button", { name: "▶ Replay its simulation" })).toBeVisible();
 });
 
@@ -62,21 +63,24 @@ test("lab: the UR5e adapts the Panda's skill (URSim stays off), and then only re
   const status = await (await request.get(`${API}/api/controller/status`)).json();
   expect(status.configured).toBe(false);
   await page.goto("/lab?robot=ur5e_01&task=wall_reach_v1");
-  await expect(nextStep(page)).toHaveText("Adapt another robot's skill");
-  await expect(page.getByText(/hasn't learned this yet, but the Panda has/)).toBeVisible();
+  await expect(decision(page)).toHaveAttribute("data-case", "adapt");
+  await expect(decision(page).getByRole("heading", { name: "New to the UR5e. The Panda knows it." })).toBeVisible();
   await page.locator("summary", { hasText: "More options" }).click();
   await expect(page.getByRole("checkbox", { name: "Also run on the URSim controller (not physical)" })).toBeDisabled();
   await expect(page.getByText("· not configured")).toBeVisible();
   await page.getByRole("button", { name: "Adapt it to the UR5e" }).click();
   await expect(page.getByText("✓ Saved to the")).toBeVisible({ timeout: 60_000 });
   await expect(page.getByText(/The UR5e used the Panda's idea|didn't work for the UR5e/)).toBeVisible();
+  // The result beside the recording is set against the skill it came from, measured from both stored capsules.
+  await expect(page.getByRole("columnheader", { name: "The Panda" })).toBeVisible();
+  await expect(page.getByRole("columnheader", { name: "The UR5e" })).toBeVisible();
   await page.locator("summary", { hasText: "How it was found" }).click();
   await expect(page.getByText("Read the Panda's saved skill")).toBeVisible();
   await expect(page.getByText(/The Panda has 7 joints and the UR5e has 6/)).toBeVisible();
   await expect(page.getByText("Collective Imagination · predicted futures")).toBeVisible();
   await expect(page.getByText("Offline deterministic planner").first()).toBeVisible();
 
-  await expect(nextStep(page)).toHaveText("Replay its skill");
+  await expect(decision(page)).toHaveAttribute("data-case", "known");
   // The Panda's skill was just used, so there is nothing new to improve it with and nothing is retrained.
   await expect(page.getByText("No other robot has an untried skill of this task to improve it with.")).toBeVisible();
   await page.getByRole("button", { name: "▶ Replay its simulation" }).click();
@@ -154,14 +158,14 @@ test("a robot's page lists its runs and shows a failed one honestly with its rea
   await expect(dialog).toBeHidden();
 });
 
-test("lab: replaying a known skill shows its stored run in 3D, with the transfer detail folded away", async ({ page, request }) => {
+test("lab: replaying a known skill shows its stored run and result, with the transfer detail folded away", async ({ page, request }) => {
   const [transfer] = (await (await request.get(`${API}/api/runs?run_type=transfer&limit=50`)).json())
     .filter((r: { status: string }) => r.status === "succeeded");
   expect(transfer).toBeTruthy();
   await page.goto("/lab?robot=ur5e_01&task=wall_reach_v1");
   await page.getByRole("button", { name: "▶ Replay its simulation" }).click();
   await expect(page.getByText("Recorded run, replayed. Nothing was retrained.")).toBeVisible();
-  await expect(page.getByRole("img", { name: /^The task in 3D: / })).toBeVisible();
+  await expect(page.getByText("simulation-verified")).toBeVisible();
   // No 2D sketches or separate technical sections: one closed section holds the stages and the log.
   await expect(page.locator("summary", { hasText: "How the skill was mapped" })).toHaveCount(0);
   await expect(page.locator("summary", { hasText: "Technical detail" })).toHaveCount(0);
@@ -177,11 +181,13 @@ test("a catalog arm can be added to the fleet and picked as the learner", async 
   await expect(page).toHaveURL(/open=xarm7_01/, { timeout: 30_000 });
   await expect(page.getByRole("heading", { name: "UFACTORY xArm 7" })).toBeVisible();
   await page.goto("/lab?task=wall_reach_v1");
-  await page.getByRole("radiogroup", { name: "Robot" }).getByRole("radio", { name: "xArm 7" }).click();
-  await expect(nextStep(page)).toHaveText("Adapt another robot's skill");
-  const from = page.getByRole("radiogroup", { name: "Learn from" });
-  await expect(from.getByRole("radio", { checked: true })).toContainText("best match");
-  await expect(from.getByRole("radio")).toHaveCount(2);
+  await page.getByRole("button", { name: /^Robot: / }).click();
+  await page.getByRole("listbox", { name: "Robot" }).getByRole("option", { name: /xArm 7/ }).click();
+  await expect(decision(page)).toHaveAttribute("data-case", "adapt");
+  const from = page.getByRole("button", { name: /^Learn from: / });
+  await expect(from).toContainText("best match");
+  await from.click();
+  await expect(page.getByRole("listbox", { name: "Learn from" }).getByRole("option")).toHaveCount(2);
 });
 
 test("backend outage shows the offline banner", async ({ page }) => {
@@ -253,13 +259,13 @@ test("lab: a described goal is matched to an existing task type, which the user 
   await page.getByPlaceholder(/Describe a task for the UR5e/).fill("Put a cup on a high shelf");
   await page.getByRole("button", { name: "Find a match" }).click();
   const suggestion = page.getByRole("region", { name: "Suggested task type" });
-  await expect(suggestion.getByText("Offline scout · no model call")).toBeVisible();
-  await expect(suggestion.getByText("The offline scout thinks you mean")).toBeVisible();
+  // The keyword scout answered (no model key on the e2e server), and the card says so in one word.
+  await expect(suggestion.getByText("Best match · offline")).toBeVisible();
   await expect(suggestion.getByText("Reach onto a shelf", { exact: true })).toBeVisible();
-  await suggestion.getByRole("button", { name: "Yes, use this task" }).click();
+  await suggestion.getByRole("button", { name: "Use this task" }).click();
   await expect(page).toHaveURL(/task=shelf_v1/);
   await expect(page.getByRole("group", { name: "Chosen task" })).toContainText("Reach onto a shelf");
-  await expect(nextStep(page)).toHaveText("Learn it directly");
+  await expect(decision(page)).toHaveAttribute("data-case", "learn");
 });
 
 test("lab: when no task type fits, designing one is the main action and the user still clicks it", async ({ page }) => {
@@ -267,11 +273,13 @@ test("lab: when no task type fits, designing one is the main action and the user
   await page.getByPlaceholder(/Describe a task for the UR5e/).fill("Wipe a whiteboard with a sponge");
   await page.getByRole("button", { name: "Find a match" }).click();
   const suggestion = page.getByRole("region", { name: "Suggested task type" });
-  await expect(suggestion.getByText("The offline scout found no task type that fits.")).toBeVisible();
-  await expect(suggestion.getByRole("button", { name: "Yes, use this task" })).toHaveCount(0);
+  await expect(suggestion.getByText("No close match · offline")).toBeVisible();
+  await expect(suggestion.getByRole("button", { name: "Use this task" })).toHaveCount(0);
   // Nothing is designed until the user asks for it.
-  await expect(page.getByText(/New task type:/)).toHaveCount(0);
-  await expect(suggestion.getByRole("button", { name: "Design a new task for this" })).toBeVisible();
+  await expect(page.getByText("New task type")).toHaveCount(0);
+  await expect(suggestion.getByRole("button", { name: "Design a new task" })).toBeVisible();
+  await suggestion.getByRole("button", { name: "Dismiss the suggestion" }).click();
+  await expect(suggestion).toHaveCount(0);
 });
 
 test("lab: a new task is designed only when none fits, and asking again finds it instead of a duplicate", async ({ page }) => {
@@ -280,23 +288,27 @@ test("lab: a new task is designed only when none fits, and asking again finds it
   await describe.fill("Reach under a low beam");
   await page.getByRole("button", { name: "Find a match" }).click();
   const suggestion = page.getByRole("region", { name: "Suggested task type" });
-  await expect(suggestion.getByText(/isn't sure/)).toBeVisible();
-  await expect(suggestion.getByText(/Which is closer to what you mean/)).toBeVisible();
-  await suggestion.getByRole("button", { name: "none of these fit: design a new task" }).click();
-  await expect(page.getByText("Offline designer · no model call")).toBeVisible();
-  await expect(page.getByText("New task type: Reach under a beam")).toBeVisible();
+  await expect(suggestion.getByText("Closest match · offline")).toBeVisible();
+  // The question is answered in place, which searches again with the answer added to the description.
+  await expect(suggestion.getByLabel(/Which is closer to what you mean/)).toBeVisible();
+  await suggestion.getByLabel(/Which is closer to what you mean/).fill("it is a beam overhead");
+  await suggestion.getByRole("button", { name: "Search again" }).click();
+  await expect(describe).toHaveValue("Reach under a low beam. it is a beam overhead");
+  await suggestion.getByRole("button", { name: "Design a new task" }).click();
+  await expect(suggestion.getByText("New task type · offline template")).toBeVisible();
+  await expect(suggestion.getByText("Reach under a beam", { exact: true })).toBeVisible();
   await expect(page.getByRole("img", { name: /^Reach under a beam in 3D: / })).toBeVisible();
-  await page.getByText("What Nimbotics checked").click();
+  await page.getByText("What was checked").click();
   await expect(page.getByText(/Start and target are 0\.48 m apart/)).toBeVisible();
   await page.getByRole("button", { name: "Use this task" }).click();
   await expect(page).toHaveURL(/task=custom_reach_under_a_beam_/);
   await expect(page.getByRole("group", { name: "Chosen task" })).toContainText("Reach under a beam");
-  await expect(nextStep(page)).toHaveText("Learn it directly");
+  await expect(decision(page)).toHaveAttribute("data-case", "learn");
 
   await describe.fill("reach under the low beam");
   await page.getByRole("button", { name: "Find a match" }).click();
   await expect(suggestion.getByText("Reach under a beam", { exact: true })).toBeVisible();
-  await expect(suggestion.getByRole("button", { name: "Yes, use this task" })).toBeVisible();
+  await expect(suggestion.getByRole("button", { name: "Use this task" })).toBeVisible();
 });
 
 test("robots: the example arm uploads, is completed by Nimbotics and joins the fleet", async ({ page }) => {

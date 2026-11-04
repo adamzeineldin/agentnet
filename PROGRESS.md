@@ -549,11 +549,6 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ `make test` 411 passed (new `test_cloud_storage.py`: moto S3, /artifacts fallback, upload survives a lost disk,
   store-down upload refused, copy re-run; the Postgres case ran against Docker Postgres), `make smoke` pass.
 - ✅ Real Neon + R2 in use on nimbotics.net since 2026-11-04 (see "Cloud Library live" below).
-- ✅ Lab run view decluttered and in 3D (D96): the MuJoCo recording beside a three.js view of the stored task
-  (obstacles, start, target, robot base, every route; drag to turn), one line of counts, "watch a try" buttons, and
-  everything else in one closed "How it was found" section. The "Or pick" chip row is gone; the chosen task shows as
-  a "Task" chip with Clear. Designed tasks preview in 3D. Checked live (Panda learning a tall wall), on replay, at
-  phone width and in dark mode; e2e 20/20.
 
 ## Cloud Library, phase 2: private workspaces ✅ (2026-11-04)
 - ✅ Owner + visibility on runs, skills and uploaded robots (DECISIONS D101). New signed-in work starts private; old and
@@ -599,6 +594,21 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   "All · My library" toggle (signed in), one Filters panel (known by, robot, task type, clear; a count badge when any
   is on) and a Sort menu. A "known by" choice now also shows as a removable token in the search bar. Checked in the
   browser at 1280 px and 375 px (panels open over the list, no sideways scroll, Escape returns focus).
+
+## Lab and Library polish ✅ (2026-11-04)
+- ✅ Lab decluttered (D96): robot and teacher are dropdowns (search from 7 robots), the decision card is task →
+  one-line headline → stored metrics → one primary button, and the run shows the video beside a progress/result panel
+  (result compared with the teacher's or old skill, final checks) instead of a 3D route picture. The 3D route view
+  was dropped after review; designed tasks keep a 3D layout preview. Checked live (Capsule arm adapting the UR5e's
+  shelf skill: 1.79 s vs 2.36 s, saved), at phone width; e2e 20/20.
+- ✅ Library filters calmed (D99): the row of black chips (Everyone/Mine, Known by, Sort) became a quiet
+  "All · My library" toggle (signed in), one Filters panel (known by, robot, task type, clear; a count badge when any
+  is on) and a Sort menu. A "known by" choice now also shows as a removable token in the search bar. Checked in the
+  browser at 1280 px and 375 px (panels open over the list, no sideways scroll, Escape returns focus).
+- ✅ Faster, cleaner task matching: the scout uses minimal reasoning (5–9 s instead of 11–21 s on the live API,
+  same answers after a layout-matching hint in the prompt). The suggestion card is one line with "Use this task", the
+  alternatives, Muse's question with an answer box ("Search again"), and "Design a new task" last; the model name is
+  no longer shown (offline answers still say "offline"). Example chips search straight away.
 
 ## Cloud Library live, no duplicate sharing, "Shared by" ✅ (2026-11-04)
 - ✅ nimbotics.net runs on Neon Postgres + private R2 (checked from inside the container: postgresql, store configured).

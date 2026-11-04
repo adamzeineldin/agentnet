@@ -4,14 +4,14 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { checkLearning, startDiscover, startImprove, startTransfer } from "@/lib/api";
 import { randomLayout, type TaskTypeInfo } from "@/lib/tasks";
-import type { LearningCheck, RobotSummary } from "@/lib/types";
+import type { LearningCheck, RobotSummary, SkillMetrics } from "@/lib/types";
 import { useApi } from "@/lib/useApi";
 import { useRunStream } from "@/lib/useRunStream";
 import { SignInGate } from "../auth/SignInGate";
 import { ErrorNote, Loading } from "../ui";
 import { Decision, type DecisionActions } from "./Decision";
 import { useLabQuery } from "./labQuery";
-import { RobotPicker } from "./RobotPicker";
+import { RobotMenu } from "./RobotMenu";
 import { RunPanel, type Activity } from "./RunPanel";
 import { TaskPicker } from "./TaskPicker";
 
@@ -67,9 +67,10 @@ function Workbench({ robots, tasks, tasksError, reloadTasks }: {
   const stream = useRunStream();
   // The run on screen belongs to one robot and task; choosing another (or going Back) hides it.
   const scope = `${robotId}|${family}`;
-  const [shown, setShown] = useState<{ scope: string; activity: Activity } | null>(null);
+  // `teacher` is the skill an adapt run started from, kept so the result can be compared with it.
+  const [shown, setShown] = useState<{ scope: string; activity: Activity; teacher?: SkillMetrics } | null>(null);
   const activity = shown?.scope === scope ? shown.activity : null;
-  const setActivity = (a: Activity) => setShown({ scope, activity: a });
+  const setActivity = (a: Activity, teacher?: SkillMetrics) => setShown({ scope, activity: a, teacher });
   const finished = stream.run && !stream.busy ? stream.run.run_id : null;
   const choose = (patch: Parameters<typeof update>[0]) => {
     stream.clear();
@@ -82,8 +83,8 @@ function Workbench({ robots, tasks, tasksError, reloadTasks }: {
     if (finished) reloadCheck();
   }, [finished, reloadCheck]);
 
-  const run = (a: Activity, starter: Parameters<typeof stream.start>[0]) => {
-    setActivity(a);
+  const run = (a: Activity, starter: Parameters<typeof stream.start>[0], teacher?: SkillMetrics) => {
+    setActivity(a, teacher);
     void stream.start(starter);
   };
   const actions: DecisionActions = {
@@ -93,7 +94,7 @@ function Workbench({ robots, tasks, tasksError, reloadTasks }: {
       void stream.load(check.existing.run_id);
     },
     onImprove: (source) => check?.existing && run("improve", () => startImprove(check.existing!.skill_id, source.skill_id)),
-    onAdapt: (source, c) => run("adapt", () => startTransfer(source.skill_id, robotId, null, c.mode, c.executeOn, true)),
+    onAdapt: (source, c) => run("adapt", () => startTransfer(source.skill_id, robotId, null, c.mode, c.executeOn, true), source),
     onLearn: (layout) => family && run("learn", () => startDiscover(robotId, layout ?? randomLayout(), family, true)),
   };
 
@@ -103,25 +104,19 @@ function Workbench({ robots, tasks, tasksError, reloadTasks }: {
         <div className="min-w-0">
           <h1 className="text-[28px] font-normal tracking-[-0.02em]">Lab</h1>
           <p className="mt-1 max-w-2xl text-sm text-ink-3">
-            Pick a robot and a task. The librarian checks the library first, so a robot never relearns what it already knows.
+            Pick a robot and describe a task. The library is checked first, so a robot never relearns what it already knows.
           </p>
         </div>
         <Link href="/library" className="button-secondary">Open the Library</Link>
       </div>
-      <RobotPicker robots={robots} value={robotId} disabled={stream.busy} onPick={(id) => choose({ robot: id, from: null })} />
       {tasksError && <ErrorNote message={tasksError} />}
       {tasks && (
         <TaskPicker robotId={robotId} robotName={robot.short_name} disabled={stream.busy}
+          robotMenu={<RobotMenu label="Robot" value={robotId} disabled={stream.busy} onPick={(id) => choose({ robot: id, from: null })}
+            options={robots.map((r) => ({ id: r.robot_id, robot: r, label: r.short_name, detail: `${r.dof} joints` }))}
+            footer={<Link href="/library?view=robots" className="text-accent hover:underline">+ Add a robot</Link>} />}
           onPick={(f) => choose({ task: f, from: null })}
           onDesigned={(f) => { reloadTasks(); choose({ task: f, from: null }); }} />
-      )}
-      {family && (
-        <div role="group" aria-label="Chosen task" className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="text-ink-3">Task</span>
-          <span className="rounded-full bg-ink px-3 py-1 text-panel">{tasks?.find((t) => t.family === family)?.title ?? check?.task_title ?? family}</span>
-          <button type="button" disabled={stream.busy} onClick={() => choose({ task: null, from: null })}
-            className="text-xs text-ink-3 hover:text-ink disabled:opacity-40">Clear</button>
-        </div>
       )}
       {[checkError, stream.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
       {!family && (
@@ -130,8 +125,10 @@ function Workbench({ robots, tasks, tasksError, reloadTasks }: {
         </p>
       )}
       {family && !check && !checkError && <Loading label="Checking the library…" />}
-      {check && <Decision key={scope} check={check} robot={robot} robots={robots} busy={stream.busy} {...actions} />}
-      {activity && <RunPanel activity={activity} stream={stream} robot={robot} robots={robots} />}
+      {check && <Decision key={scope} check={check} robot={robot} robots={robots} busy={stream.busy}
+        onClearTask={() => choose({ task: null, from: null })} {...actions} />}
+      {activity && <RunPanel activity={activity} stream={stream} robot={robot} robots={robots} teacher={shown?.teacher}
+        saved={check?.existing && check.existing.run_id === stream.run?.run_id ? check.existing : null} />}
     </div>
   );
 }

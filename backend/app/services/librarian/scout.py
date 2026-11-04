@@ -51,6 +51,8 @@ MAX_ALTERNATIVES = 2
 MAX_QUESTION_CHARS = 200
 # Reasoning tokens count toward max_tokens; at the shared 1200 the answer was cut off mid-JSON.
 SCOUT_MAX_TOKENS = 4000
+# Picking a task type is a lookup, not a puzzle: minimal reasoning answers in about a third of the time.
+SCOUT_REASONING_EFFORT = "minimal"
 # Title words that say nothing about a designed task type's layout.
 TITLE_STOPWORDS = frozenset({"reach", "the", "a", "an", "to", "of", "and", "with", "from", "for", "its", "into", "onto"})
 STEM = 5
@@ -58,7 +60,9 @@ SYSTEM_PROMPT = (
     "You are the skill scout for Nimbotics, a shared library of simulation-verified robot reach skills. "
     "A user describes what they want a robot (the learner) to do. Choose the one existing task type that best "
     "matches the description, and say how well it matches in 'match': 'confident' when it clearly is that task, "
-    "'unsure' when another task type could be meant too, 'none' when no task type fits. Prefer an existing task "
+    "'unsure' when another task type could be meant too, 'none' when no task type fits. Match on the layout "
+    "(what is in the way and whether the hand goes over, under, around or between it), not on exact words: a low "
+    "beam to reach under is the same layout as a roof to reach under. Prefer an existing task "
     "type: a new one is only designed when the user confirms none fits, and duplicates clutter the library. List "
     "in 'alternatives' up to two other task types the user might mean, closest first. When 'match' is not "
     "'confident', ask one short, plain question in 'question' that would settle it (else leave it empty). Then "
@@ -303,4 +307,5 @@ def scout(goal: str, learner: RobotSummary, robots: Sequence[RobotSummary], skil
 def _conversation(user: str, schema: dict) -> Conversation:
     return Conversation(system=SYSTEM_PROMPT, user=user, tools=[], run_tool=lambda _n, _a: {}, submit_tool="",
                         final_instruction=FINAL_INSTRUCTION, schema_name="scout_plan", schema=schema,
-                        kind="scout", max_rounds=0, max_tokens=SCOUT_MAX_TOKENS)
+                        kind="scout", max_rounds=0, max_tokens=SCOUT_MAX_TOKENS,
+                        reasoning_effort=SCOUT_REASONING_EFFORT)

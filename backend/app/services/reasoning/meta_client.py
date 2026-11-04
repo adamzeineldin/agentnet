@@ -72,6 +72,8 @@ class Conversation:
     max_rounds: int
     # Output budget per call, reasoning included. Layout design reasons about geometry and needs more.
     max_tokens: int = MAX_TOKENS
+    # How hard the model thinks before answering. Matching a goal to a task type is quick at "minimal".
+    reasoning_effort: str = REASONING_EFFORT
 
 
 def tool_spec(name: str, description: str, properties: dict, required: list[str]) -> dict:
@@ -109,7 +111,7 @@ class MetaChatClient:
         for round_idx in range(conv.max_rounds + 1):
             final_round = round_idx == conv.max_rounds
             body = {"model": self.model_id, "messages": messages, "max_tokens": conv.max_tokens,
-                    "reasoning_effort": REASONING_EFFORT}
+                    "reasoning_effort": conv.reasoning_effort}
             if final_round:
                 body["messages"] = [*messages, {"role": "user", "content": conv.final_instruction}]
                 body["response_format"] = {"type": "json_schema", "json_schema": {

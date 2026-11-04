@@ -4,7 +4,7 @@ import { useEffect, useRef, useSyncExternalStore } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import type { Vec3 } from "@/lib/types";
-import { bounds, buildScene, dispose, readPalette, type RouteTone, type SceneContent } from "./build";
+import { bounds, buildScene, dispose, readPalette, type SceneContent } from "./build";
 
 interface Scene3DProps extends SceneContent {
   /** What the scene shows, for screen readers (the canvas itself has no text). */
@@ -45,16 +45,8 @@ function canUseWebGL(): boolean {
 }
 const useWebGL = () => useSyncExternalStore(() => () => {}, canUseWebGL, () => true);
 
-const LEGEND: Record<RouteTone, string> = {
-  chosen: "chosen route", passed: "passed in physics", possible: "possible for its joints", failed: "failed or ruled out",
-  pending: "not checked yet",
-};
-const SWATCH: Record<RouteTone, string> = {
-  chosen: "h-[3px] bg-good", passed: "h-0.5 bg-good/70", possible: "h-px bg-ink-3/60", failed: "h-px bg-bad/70", pending: "h-px bg-ink-3/30",
-};
-
 /**
- * The task in 3D, drawn from the stored task geometry: obstacles, start, target, the robot base and the routes.
+ * A task layout in 3D, drawn from its stored geometry: obstacles, start, target and (when known) the robot base.
  * Drag to turn it. It renders only when something changes, so an idle scene costs nothing.
  */
 export function Scene3D({ label, baseLabel, className = "", ...content }: Scene3DProps) {
@@ -125,7 +117,7 @@ export function Scene3D({ label, baseLabel, className = "", ...content }: Scene3
       render();
     };
     const set = (next: SceneContent) => {
-      // New task geometry re-frames the camera; new routes on the same task (a live run) keep the user's angle.
+      // New task geometry re-frames the camera; the same task again keeps the user's angle.
       fitPending ||= !content || taskKey(content) !== taskKey(next);
       if (group) {
         scene.remove(group);
@@ -156,7 +148,6 @@ export function Scene3D({ label, baseLabel, className = "", ...content }: Scene3
     view.current?.frame();
   }, [key, theme]);
 
-  const tones = [...new Set((content.routes ?? []).map((r) => r.tone))];
   return (
     <figure className={`min-w-0 ${className}`}>
       <div ref={host} role="img" aria-label={label}
@@ -170,14 +161,6 @@ export function Scene3D({ label, baseLabel, className = "", ...content }: Scene3
         ))}
         {!failed && <span aria-hidden="true" className="pointer-events-none absolute bottom-2 right-3 text-[10px] text-ink-3">drag to turn</span>}
       </div>
-      {tones.length > 0 && (
-        <figcaption className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-3">
-          {(Object.keys(LEGEND) as RouteTone[]).filter((t) => tones.includes(t)).map((t) => (
-            <span key={t} className="flex items-center gap-1.5"><span aria-hidden="true" className={`w-4 rounded-full ${SWATCH[t]}`} />{LEGEND[t]}</span>
-          ))}
-          <span className="flex items-center gap-1.5"><span aria-hidden="true" className="size-2.5 rounded-sm bg-ink-3/40" />obstacle</span>
-        </figcaption>
-      )}
     </figure>
   );
 }

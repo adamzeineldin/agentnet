@@ -23,7 +23,7 @@ export function PostList({ author }: { author: string | null }) {
   const name = author && posts.data?.[0]?.author_name;
   return (
     <div className="mx-auto max-w-5xl space-y-6">
-      <PageHeader eyebrow="Blog" title={name ? `Posts by ${name}` : "Blog"}
+      <PageHeader title={name ? `Posts by ${name}` : "Blog"}
         actions={<Link href="/blog?write=1" className="button-primary">Write a post</Link>}>
         {author ? <Link href="/blog" className="text-accent hover:underline">← All posts</Link>
           : "What people taught their robots, what failed, and what they learned."}
