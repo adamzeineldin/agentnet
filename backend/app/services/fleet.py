@@ -9,20 +9,22 @@ import logging
 import shutil
 from pathlib import Path
 
+import mujoco
 import numpy as np
 
-from app.config import ARTIFACT_DIR
+from app.config import ARTIFACT_DIR, RENDER_HEIGHT, RENDER_WIDTH
 from app.models.robot import (
     PASSPORT_SCHEMA_VERSION,
     CapabilityEvidence,
     RobotPassport,
     RobotSummary,
+    StoredModel,
 )
 from app.models.skill import ExperienceCapsule
 from app.services.jobs import SimulationWorker
 from app.services.passports import build_passport, model_dir_hash
-from app.services.registry import EVERYONE, Registry, Viewer
-from app.services.render import FrameRecorder
+from app.services.registry import EVERYONE, Registry, Viewer, utcnow
+from app.services.render import CameraView, FrameRecorder
 from app.models.sharing import can_see, initial_visibility
 from app.services import model_store, storage, uploads
 from app.services.robot_adapter import RobotAdapter
@@ -181,13 +183,62 @@ def upload_robot(worker: SimulationWorker, registry: Registry, filename: str, da
         registry.save_uploaded_robot(robot_id, uploads.decl_to_json(decl), owner_id, initial_visibility(owner_id))
         registry.add_to_fleet(robot_id, uploaded_by)
         log.info("Uploaded robot %s registered (%d joints)", robot_id, passport.dof)
-        return passport, [*norm.notes, f"Task placed {decl.task_distance_m:.2f} m in front of the base "
+        where = "its mount" if decl.mount else "the base"
+        return passport, [*norm.notes, f"Task placed {decl.task_distance_m:.2f} m in front of {where} "
                           f"(half its measured reach of {passport.workspace.max_reach_m:.2f} m).", *notes]
     except Exception:
         uploads.unregister(robot_id)
         worker.forget(robot_id)
         shutil.rmtree(folder, ignore_errors=True)
         raise
+
+
+def store_model(worker: SimulationWorker, registry: Registry, filename: str, data: bytes, name: str,
+                uploaded_by: str | None, owner_id: str | None = None) -> StoredModel:
+    """Keep an upload as a model only: checked like any upload, stored with a picture, never run. Worker thread only."""
+    robot_id, folder = uploads.new_upload_folder(data, name, stored_models=len(registry.stored_models()))
+    try:
+        notes = uploads.unpack(filename, data, folder)
+        uploads.check_xml(folder)
+        model_file = uploads.find_model(folder)
+        if model_file.suffix.lower() == ".urdf":
+            uploads.flatten_meshes(model_file.parent)
+        model, described = uploads.describe_model(model_file, folder)
+        _whole_robot_snapshot(model, snapshot_path(robot_id))
+        stored = StoredModel(robot_id=robot_id, name=name, joints=uploads.moving_joints(model), bodies=model.nbody - 1,
+                             notes=[*described, *notes], snapshot_url=snapshot_url(robot_id), created_at=utcnow(),
+                             uploaded_by=uploaded_by)
+        storage.push_upload(robot_id)
+        storage.push_artifact_later(snapshot_path(robot_id))
+        registry.save_uploaded_robot(robot_id, stored.model_dump_json(exclude={"visibility", "mine"}), owner_id,
+                                     initial_visibility(owner_id), kind="model_only")
+        log.info("Stored model-only upload %s (%d joints)", robot_id, stored.joints)
+        return stored.model_copy(update={"visibility": initial_visibility(owner_id), "mine": owner_id is not None})
+    except Exception:
+        shutil.rmtree(folder, ignore_errors=True)
+        snapshot_path(robot_id).unlink(missing_ok=True)
+        raise
+
+
+def stored_models(registry: Registry, viewer: Viewer) -> list[StoredModel]:
+    return [StoredModel.model_validate_json(facts).model_copy(
+                update={"visibility": visibility, "mine": owner is not None and owner == viewer})
+            for facts, owner, visibility in registry.stored_models(viewer)]
+
+
+def _whole_robot_snapshot(model: mujoco.MjModel, path: Path) -> None:
+    """A picture of the whole robot at its home pose (or its model pose), framed from the model's own extent."""
+    model.vis.global_.offwidth = max(model.vis.global_.offwidth, RENDER_WIDTH)
+    model.vis.global_.offheight = max(model.vis.global_.offheight, RENDER_HEIGHT)
+    data = mujoco.MjData(model)
+    key = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_KEY, "home")
+    if key >= 0:
+        mujoco.mj_resetDataKeyframe(model, data, key)
+    mujoco.mj_forward(model, data)
+    view = CameraView(lookat=tuple(float(v) for v in model.stat.center),
+                      distance=float(max(1.0, 2.4 * model.stat.extent)), azimuth=145.0, elevation=-18.0)
+    with FrameRecorder(model, view) as rec:
+        rec.save_png(rec.capture(data), path)
 
 
 def _normalized_decl(robot_id: str, name: str, model_file: Path, tool_hint: str | None, uploaded_by: str | None,

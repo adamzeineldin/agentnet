@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { fmtM, fmtMetres } from "@/lib/format";
+import { inFront } from "@/lib/placement";
 import { useApi } from "@/lib/useApi";
 import type {
   CandidateSummary, Placement, ReasoningTrace, RobotSummary, RunRecord, SearchMetrics, SkillDetail, TaskSpec,
@@ -89,8 +90,8 @@ export function RunStory({ run, robots }: { run: RunRecord; robots: RobotSummary
         </p>
         {teacher && learner && (
           <PlacementSketch task={task} seats={[
-            { name: `${tName}: task ${fmtMetres(capsule.placement.translation[0])} in front`, placement: capsule.placement, reach: teacher.max_reach_m },
-            { name: `${lName}: task ${fmtMetres(placement.translation[0])} in front`, placement, reach: learner.max_reach_m },
+            { name: `${tName}: task ${fmtMetres(inFront(capsule.placement))} in front`, placement: capsule.placement, reach: teacher.max_reach_m },
+            { name: `${lName}: task ${fmtMetres(inFront(placement))} in front`, placement, reach: learner.max_reach_m },
           ]} />
         )}
       </Part>

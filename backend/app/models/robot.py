@@ -129,6 +129,22 @@ class RobotSummary(_Frozen):
     mine: bool = False
 
 
+class StoredModel(_Frozen):
+    """An uploaded robot kept as a model only: stored and shown in the Library, but it cannot run tasks
+    (no usable arm, or the uploader chose not to pick one). Every number is read from the compiled model."""
+
+    robot_id: str
+    name: str
+    joints: int
+    bodies: int
+    notes: list[str] = Field(default_factory=list)
+    snapshot_url: str
+    created_at: datetime
+    uploaded_by: str | None = None
+    visibility: Visibility = "public"
+    mine: bool = False
+
+
 class CatalogEntry(_Frozen):
     """A catalog arm. Declared fields only; reach and joints come from its passport once in the fleet."""
 

@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 import { apiUrl } from "@/lib/api";
 import { fmtM, fmtMetres } from "@/lib/format";
+import { inFront } from "@/lib/placement";
 import { routePhrase } from "../transfer/describe";
 import { routeName } from "../transfer/skillName";
 import { Badge } from "../ui";
@@ -118,8 +119,8 @@ function detail(key: StageKey, props: RunStepsProps): ReactNode {
         <div className="space-y-2">
           {kind === "discover" && <p className="text-ink-3">Layout {pic.task.seed}: {pic.task.description}</p>}
           <Chips items={[
-            `${fmtMetres(pic.placement.translation[0])} in front of the ${robot}`,
-            pic.source && teacher && `${teacher}: ${fmtMetres(pic.source.placement.translation[0])}`,
+            `${fmtMetres(inFront(pic.placement))} in front of the ${robot}`,
+            pic.source && teacher && `${teacher}: ${fmtMetres(inFront(pic.source.placement))}`,
             reachPct && `route uses ${reachPct}% of its reach`,
             kind === "transfer" && names.teacherDof && names.robotDof && (names.teacherDof !== names.robotDof
               ? `The ${teacher} has ${names.teacherDof} joints and the ${robot} has ${names.robotDof}: angles can't be copied`

@@ -86,8 +86,12 @@ export function startImprove(skillId: string, sourceSkillId: string): Promise<Ru
 }
 
 /** Upload your own arm: the file itself is the request body (.xml, .urdf or .zip). */
-export function uploadRobot(file: File, name: string, tool?: string): Promise<UploadResult> {
-  const q = new URLSearchParams({ name, filename: file.name, ...(tool ? { tool } : {}) });
+/** Upload a robot. Several possible arms: 409 with `ApiError.detail.options`; repeat with one as `tool`, or with
+ * `modelOnly` to keep it without an arm. */
+export function uploadRobot(file: File, name: string, opts: { tool?: string; modelOnly?: boolean } = {}): Promise<UploadResult> {
+  const q = new URLSearchParams({
+    name, filename: file.name, ...(opts.tool ? { tool: opts.tool } : {}), ...(opts.modelOnly ? { mode: "model_only" } : {}),
+  });
   return apiFetch<UploadResult>(`/api/robots/upload?${q}`, {
     method: "POST", body: file, headers: { "content-type": "application/octet-stream" },
   });

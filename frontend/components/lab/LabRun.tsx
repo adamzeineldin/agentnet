@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { baseInTask } from "@/lib/placement";
 import type { Placement, RunEvent, RunRecord, Vec3 } from "@/lib/types";
 import { pictureFromEvents, pictureFromRun, triesOf, type RouteRow, type RunPicture, type TryInfo } from "../run/picture";
 import { RunScreen, type ScreenView } from "../run/RunScreen";
@@ -39,12 +40,9 @@ const sceneRoutes = (pic: RunPicture): SceneRoute[] => pic.routes.map((r) => ({
   id: r.id, tone: toneOf(r, pic.selected), points: r.tried?.trace?.length ? r.tried.trace : r.waypoints,
 }));
 
-/** The robot base in the task frame: the placement maps task -> base (yaw about +z, then translate), so invert it. */
+/** The robot base (or an uploaded arm's mount) in the task frame. */
 function baseOf(p: Placement | undefined): Vec3 | null {
-  if (!p) return null;
-  const [tx, ty] = p.translation;
-  const c = Math.cos(p.yaw_rad), s = Math.sin(p.yaw_rad);
-  return [-(c * tx + s * ty), -(-s * tx + c * ty), 0];
+  return p ? baseInTask(p) : null;
 }
 
 /** One sentence with the counts, instead of a stage-by-stage list. */

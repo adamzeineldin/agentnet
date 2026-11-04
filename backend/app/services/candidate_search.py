@@ -47,8 +47,8 @@ class SearchSetup:
 
 
 def task_view(placement: Placement) -> CameraView:
-    x, y, _ = placement.translation
-    return CameraView(lookat=(x - 0.08, y, 0.22), distance=1.55, azimuth=135.0, elevation=-20.0)
+    x, y, z = placement.translation
+    return CameraView(lookat=(x - 0.08, y, z + 0.22), distance=1.55, azimuth=135.0, elevation=-20.0)
 
 
 def prepare(decl: RobotDecl, task: TaskSpec, placement: Placement, seed: int) -> SearchSetup | None:

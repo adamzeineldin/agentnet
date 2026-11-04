@@ -580,4 +580,19 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
 - ✅ Checked locally against Postgres + the S3 stand-in: an API started with an empty models folder fetched the Panda
   and UR5e at startup, and adding the Lite 6 fetched it on demand; all three hashes equal the local checkout.
 - ✅ `make test` 429 passed (new `test_model_store.py`, two copy cases), `make smoke` pass.
-- ⬜ Phase 4: more robot kinds in uploads.
+
+## Cloud Library, phase 4: more robot kinds in uploads ✅ (2026-11-04)
+- ✅ Any robot that carries an arm: limbs of 3–10 joints are offered (409 + list when there are several), the rest is
+  held still (joints and what drives them removed, a floating base fixed at its home pose), every change listed in the
+  report. Tasks and the motion check are placed in front of the arm's mount (`services/hold_still.py`, D98).
+- ✅ Model-only uploads: any robot stored with a picture under "Stored models", private until shared, never run.
+- ✅ Upload page: an arm picker and "keep it as a model only"; pages measure "in front" from the mount
+  (`lib/placement.ts`).
+- ✅ Real Menagerie robots at the pinned commit: ALOHA, Unitree G1, Unitree Go2 (model only) and TidyBot uploaded;
+  G1 and TidyBot pass the motion check (0.6 mm, 0.2 mm). Wall reach layout 42 failed on G1, ALOHA and TidyBot with
+  recorded physics reasons (self-contact, the held second arm, wall clearance).
+- ✅ `make test` 434 passed (new `test_robot_kinds.py`), `make smoke` pass, tsc + eslint clean. Browser check on a copy
+  of the dev registry: the ALOHA upload offered both arms and joined the fleet as private; the Go2 kept as a model only
+  showed under Stored models, hidden from signed-out visitors until made public. Phone width: no sideways scroll.
+- ⬜ Not done: rotated boxes for mounts that are not quarter turns (headings are rounded, and the placement says so);
+  a whole-robot view in snapshots of uploaded arms (they use the arm camera).

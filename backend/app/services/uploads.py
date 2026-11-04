@@ -1,12 +1,18 @@
-"""Robot uploads: a user's MJCF or URDF (or a zip with its meshes) becomes a fleet arm.
+"""Robot uploads: a user's MJCF or URDF (or a zip with its meshes) becomes a fleet arm, or a stored model.
 
 Pipeline (worker thread for everything that touches MuJoCo):
   1. unpack: size, file-count and extension limits; zip paths must stay inside the upload folder.
   2. check_xml: no DOCTYPE/entities, no plugins, every file reference relative and inside the folder.
-  3. normalize: find the arm chain and its tool body, add what Nimbotics needs and record each addition:
+  3. normalize: find the arm and its tool body, add what Nimbotics needs and record each addition:
      a tool site, one position servo per arm joint (only if the model has none), a "home" keyframe, a floor.
+     Any robot may carry an arm: a humanoid, a dual-arm torso, a mobile base. The arm options are the limbs of
+     MIN_DOF..MAX_DOF joints (branches below that, like fingers or a head, belong to the tool); with several the
+     uploader picks one. Everything else is held still: its joints are removed (with the motors, tendons,
+     sensors and constraints that use them), a free-floating base is fixed at its home pose, and each change is
+     listed.
   4. verify: the RobotAdapter must accept it and the arm must hold its home pose in physics; then the
      passport is computed from the model like any catalog arm.
+A robot with no usable arm (a quadruped, a wheeled base) can be kept as a model only: stored and shown, not run.
 Nothing about the robot is assumed beyond what the upload declares (its name) and what is read from the model.
 """
 
@@ -27,7 +33,7 @@ import mujoco
 import numpy as np
 
 from app.config import UPLOAD_DIR
-from app.services import storage
+from app.services import hold_still, storage
 from app.services.robot_catalog import ROBOTS, EndEffectorDecl, RobotDecl, register, unregister
 
 MAX_UPLOAD_BYTES = 20 * 1024 * 1024
@@ -53,10 +59,28 @@ class UploadError(ValueError):
 
 
 @dataclass(frozen=True)
+class ArmOption:
+    """One limb the uploader may use as the arm: pass `tool` back to choose it."""
+
+    tool: str
+    joints: int
+
+
+class ArmChoiceNeeded(UploadError):
+    """The robot has several limbs that could be the arm; the uploader picks one (or keeps it as a model only)."""
+
+    def __init__(self, options: list[ArmOption]) -> None:
+        super().__init__(f"This robot has {len(options)} limbs that could be the arm. Pick one, "
+                         "or keep it as a model only.")
+        self.options = options
+
+
+@dataclass(frozen=True)
 class Normalized:
     ee_site: str
     ee_body: str
     notes: tuple[str, ...]
+    mount: tuple[float, float, float, float] | None = None
 
 
 # ---------------------------------------------------------------- 1. unpack
@@ -175,16 +199,39 @@ def _subtree_joints(model: mujoco.MjModel) -> np.ndarray:
     return counts
 
 
-def find_tool_body(model: mujoco.MjModel) -> int:
-    """Follow the arm from its base into the child holding the most joints; stop at a fork (a gripper's fingers)."""
-    roots = [b for b in range(1, model.nbody) if model.body_parentid[b] == 0]
+def arm_ends(model: mujoco.MjModel) -> list[int]:
+    """Tool bodies of every limb that could be the arm, in model order.
+
+    Walk down from each base: a single moving child continues the limb; at a fork, every branch holding at least
+    MIN_DOF joints is a limb of its own (two arms, legs) and smaller branches belong to the tool (fingers, a head).
+    A limb ends where it stops moving or forks into small branches; it counts if MIN_DOF..MAX_DOF joints lead to it.
+    """
     sub = _subtree_joints(model)
-    body = max(roots, key=lambda b: sub[b])
-    while True:
-        moving = [c for c in range(1, model.nbody) if model.body_parentid[c] == body and sub[c] > 0]
-        if len(moving) != 1:
-            return body
-        body = moving[0]
+    children: dict[int, list[int]] = {}
+    for c in range(1, model.nbody):
+        if sub[c] > 0:
+            children.setdefault(int(model.body_parentid[c]), []).append(c)
+    ends: list[int] = []
+    todo = [b for b in children.get(0, [])]
+    while todo:
+        body = todo.pop(0)
+        moving = children.get(body, [])
+        limbs = [c for c in moving if sub[c] >= MIN_DOF]
+        if len(moving) == 1:
+            todo.insert(0, moving[0])
+        elif not limbs:
+            ends.append(body)
+        else:
+            todo[:0] = limbs
+    return [b for b in ends if MIN_DOF <= len(_arm_joints(model, b)) <= MAX_DOF]
+
+
+def _longest_limb(model: mujoco.MjModel) -> int:
+    return max((len(_arm_joints(model, b)) for b in range(1, model.nbody)), default=0)
+
+
+def arm_options(model: mujoco.MjModel) -> list[ArmOption]:
+    return [ArmOption(tool=model.body(b).name, joints=len(_arm_joints(model, b))) for b in arm_ends(model)]
 
 
 def _chain(model: mujoco.MjModel, body: int) -> list[int]:
@@ -199,6 +246,32 @@ def _arm_joints(model: mujoco.MjModel, tool_body: int) -> list[int]:
     return [j for b in _chain(model, tool_body)
             for j in range(model.body_jntadr[b], model.body_jntadr[b] + model.body_jntnum[b])
             if int(model.jnt_type[j]) in ARM_JOINT_TYPES]
+
+
+def _in_subtree(model: mujoco.MjModel, body: int, root: int) -> bool:
+    while body != 0:
+        if body == root:
+            return True
+        body = int(model.body_parentid[body])
+    return False
+
+
+def _hold_still(spec: mujoco.MjSpec, model: mujoco.MjModel, tool: int) -> hold_still.Held | None:
+    """Keep the arm and whatever rides on its tool (fingers); hold the rest of the robot still."""
+    keep = set(_arm_joints(model, tool)) | {
+        j for j in range(model.njnt)
+        if int(model.jnt_type[j]) in ARM_JOINT_TYPES and _in_subtree(model, int(model.jnt_bodyid[j]), tool)}
+    try:
+        return hold_still.freeze(spec, model, keep)
+    except hold_still.HoldStillError as exc:
+        raise UploadError(str(exc)) from exc
+
+
+def _add_home(spec: mujoco.MjSpec, held: hold_still.Held) -> None:
+    try:
+        hold_still.add_home(spec, held)
+    except Exception as exc:  # noqa: BLE001 - a compile problem in the simplified model is the upload's
+        raise UploadError(f"MuJoCo could not load the simplified model: {exc}") from exc
 
 
 def _has_servos(model: mujoco.MjModel, joints: list[int]) -> bool:
@@ -223,7 +296,15 @@ def _resolve_tool(model: mujoco.MjModel, hint: str | None) -> tuple[int, str | N
         if bid > 0:
             return bid, None
         raise UploadError(f"No site or body named {hint!r} in the model.")
-    tool = find_tool_body(model)
+    ends = arm_ends(model)
+    if not ends:
+        raise UploadError(f"No arm of {MIN_DOF} to {MAX_DOF} joints was found (the longest limb has "
+                          f"{_longest_limb(model)}). You can keep it as a model only.")
+    if len(ends) > 1:
+        if any(not model.body(b).name for b in ends):
+            raise UploadError("Every limb that could be the arm needs a body name in the model.")
+        raise ArmChoiceNeeded(arm_options(model))
+    tool = ends[0]
     on_chain = set(_chain(model, tool))
     for s in range(model.nsite):
         if TCP_HINT.search(model.site(s).name) and int(model.site_bodyid[s]) in on_chain | {tool}:
@@ -270,25 +351,31 @@ def normalize(model_file: Path, dest: Path, tool_hint: str | None, replace_servo
 
     replace_servos swaps the model's own arm actuators for Nimbotics servos (used when they cannot hold the arm).
     """
-    try:
-        spec = mujoco.MjSpec.from_file(str(model_file))
-        model = spec.compile()
-    except Exception as exc:  # MuJoCo raises ValueError for any compile problem; show it to the uploader
-        raise UploadError(f"MuJoCo could not load the model: {exc}") from exc
-    if any(int(model.jnt_type[j]) == int(mujoco.mjtJoint.mjJNT_FREE) for j in range(model.njnt)):
-        raise UploadError("The robot has a free-floating base. Upload a fixed-base arm (no freejoint).")
+    spec = _load_spec(model_file)
+    model = _compile(spec)
     tool, site = _resolve_tool(model, tool_hint)
     joints = _arm_joints(model, tool)
     if not MIN_DOF <= len(joints) <= MAX_DOF:
         raise UploadError(f"The arm from its base to {model.body(tool).name!r} has {len(joints)} joints; "
                           f"Nimbotics needs {MIN_DOF} to {MAX_DOF}.")
+    if not model.body(tool).name:
+        raise UploadError("The arm's tool body needs a name in the model.")
     notes = [f"Tool point: {'site ' + repr(site) if site else 'added at the origin of ' + repr(model.body(tool).name)}."]
+    held = _hold_still(spec, model, tool)
+    if held is not None:
+        notes += held.notes
+        tool_name = model.body(tool).name
+        model = _compile(spec)
+        tool = model.body(tool_name).id
+        joints = _arm_joints(model, tool)
     if site is None:
         spec.body(model.body(tool).name).add_site(name=TCP_SITE, size=[0.008, 0, 0], rgba=[0.1, 0.9, 1.0, 0.9], group=2)
         site = TCP_SITE
     names = [model.joint(j).name for j in joints]
     if any(not n for n in names):
         raise UploadError("Every arm joint needs a name in the model.")
+    # Said plainly because a limb may start on a moving base (a mobile manipulator's drive joints are then arm joints).
+    notes.append(f"Arm joints ({len(names)}), base to tool: {', '.join(names)}.")
     own_servos = _has_servos(model, joints)
     if replace_servos or not own_servos:
         for act in list(spec.actuators):
@@ -302,7 +389,9 @@ def normalize(model_file: Path, dest: Path, tool_hint: str | None, replace_servo
                 act.ctrllimited = mujoco.mjtLimited.mjLIMITED_TRUE
         notes.append(f"Added {len(joints)} position servos ({SERVO_HZ:.0f} Hz, critically damped); "
                      + ("the model's own could not hold the arm still in simulation." if own_servos else "the model had none."))
-    if not any(k.name == "home" for k in spec.keys):
+    if held is not None:
+        _add_home(spec, held)
+    elif not any(k.name == "home" for k in spec.keys):
         spec.add_key(name="home", qpos=list(model.qpos0))
         notes.append("Home pose: the model's zero pose (no 'home' keyframe in the upload).")
     if not any(g.name == "floor" for g in spec.worldbody.geoms):
@@ -311,7 +400,67 @@ def normalize(model_file: Path, dest: Path, tool_hint: str | None, replace_servo
     spec.meshdir = _relative_dir(spec.meshdir, model_file.parent, dest)
     spec.texturedir = _relative_dir(spec.texturedir, model_file.parent, dest)
     (dest / SCENE_FILE).write_text(spec.to_xml())
-    return Normalized(ee_site=site, ee_body=model.body(tool).name, notes=tuple(notes))
+    tool_name = model.body(tool).name
+    mount = _mount(_compile(_load_spec(dest / SCENE_FILE)), tool_name)
+    if mount is not None:
+        notes.append(f"The arm is mounted on {mount[0]!r} at {mount[1][2]:.2f} m; tasks are placed in front of it.")
+    return Normalized(ee_site=site, ee_body=tool_name, notes=tuple(notes), mount=mount[1] if mount else None)
+
+
+MOUNT_AT_ORIGIN_M = 1e-3
+
+
+def _mount(model: mujoco.MjModel, tool_name: str) -> tuple[str, tuple[float, float, float, float]] | None:
+    """The body carrying the arm (parent of the first body with an arm joint) and its (x, y, z, yaw) at home.
+
+    None when it is the world or sits at the origin facing +x, like every catalog arm: placement is unchanged then.
+    """
+    chain = _chain(model, model.body(tool_name).id)
+    first = next(b for b in chain if _joint_count(model, b))
+    carrier = int(model.body_parentid[first])
+    if carrier == 0:
+        return None
+    data = mujoco.MjData(model)
+    mujoco.mj_resetDataKeyframe(model, data, model.key("home").id)
+    mujoco.mj_forward(model, data)
+    x, y, z = (float(v) for v in data.xpos[carrier])
+    rot = data.xmat[carrier].reshape(3, 3)
+    yaw = float(np.arctan2(rot[1, 0], rot[0, 0]))
+    if max(abs(x), abs(y), abs(z), abs(yaw)) < MOUNT_AT_ORIGIN_M:
+        return None
+    return model.body(carrier).name, (round(x, 4), round(y, 4), round(z, 4), round(yaw, 4))
+
+
+def describe_model(model_file: Path, dest: Path) -> tuple[mujoco.MjModel, list[str]]:
+    """Model-only uploads: write dest/SCENE_FILE (the model plus a floor and lights) and return the compiled model."""
+    spec = _load_spec(model_file)
+    _compile(spec)
+    notes = ["Kept as a model only: it is stored and shown, but it cannot run tasks."]
+    if not any(g.name == "floor" for g in spec.worldbody.geoms):
+        _add_floor(spec)
+        notes.append("Added a floor and lights for its picture.")
+    spec.meshdir = _relative_dir(spec.meshdir, model_file.parent, dest)
+    spec.texturedir = _relative_dir(spec.texturedir, model_file.parent, dest)
+    (dest / SCENE_FILE).write_text(spec.to_xml())
+    return _compile(_load_spec(dest / SCENE_FILE)), notes
+
+
+def moving_joints(model: mujoco.MjModel) -> int:
+    return sum(1 for j in range(model.njnt) if int(model.jnt_type[j]) in ARM_JOINT_TYPES)
+
+
+def _load_spec(model_file: Path) -> mujoco.MjSpec:
+    try:
+        return mujoco.MjSpec.from_file(str(model_file))
+    except Exception as exc:  # MuJoCo raises ValueError for any load problem; show it to the uploader
+        raise UploadError(f"MuJoCo could not load the model: {exc}") from exc
+
+
+def _compile(spec: mujoco.MjSpec) -> mujoco.MjModel:
+    try:
+        return spec.compile()
+    except Exception as exc:  # noqa: BLE001 - any compile problem is the upload's
+        raise UploadError(f"MuJoCo could not load the model: {exc}") from exc
 
 
 def _relative_dir(value: str, model_dir: Path, dest: Path) -> str:
@@ -334,7 +483,7 @@ def make_decl(robot_id: str, name: str, folder: Path, norm: Normalized, uploaded
         end_effector=EndEffectorDecl(site_name=norm.ee_site, exists_in_model=True,
                                      note=" ".join(norm.notes)),
         tool_type="as uploaded", maker="Uploaded", source="upload", model_root=folder.parent,
-        uploaded_by=uploaded_by,
+        uploaded_by=uploaded_by, mount=norm.mount,
     )
 
 
@@ -348,6 +497,7 @@ def decl_from_json(text: str) -> RobotDecl:
     d = json.loads(text)
     d["end_effector"] = EndEffectorDecl(**{**d["end_effector"], "offset_m": tuple(d["end_effector"]["offset_m"])})
     d["model_root"] = Path(d["model_root"]) if d["model_root"] else None
+    d["mount"] = tuple(d["mount"]) if d.get("mount") else None
     d.pop("controller", None)
     return RobotDecl(**d)
 
@@ -357,13 +507,14 @@ def with_task_distance(decl: RobotDecl, max_reach_m: float) -> RobotDecl:
     return replace(decl, task_distance_m=round(float(np.clip(0.5 * max_reach_m, 0.25, 0.70)), 2))
 
 
-def new_upload_folder(data: bytes, name: str) -> tuple[str, Path]:
+def new_upload_folder(data: bytes, name: str, stored_models: int = 0) -> tuple[str, Path]:
+    """Id and folder for a new upload; refuses a duplicate and a full Library (arms and model-only uploads)."""
     digest = hashlib.sha256(data).hexdigest()[:8]
     robot_id = f"up_{slug(name)}_{digest}"
-    if robot_id in ROBOTS:
-        raise UploadError("This exact model is already in the fleet.")
-    if sum(1 for d in ROBOTS.values() if d.source == "upload") >= MAX_UPLOADED_ROBOTS:
-        raise UploadError(f"The fleet already holds {MAX_UPLOADED_ROBOTS} uploaded robots.")
+    if robot_id in ROBOTS or (UPLOAD_DIR / robot_id).exists():
+        raise UploadError("This exact model is already stored under this name.")
+    if sum(1 for d in ROBOTS.values() if d.source == "upload") + stored_models >= MAX_UPLOADED_ROBOTS:
+        raise UploadError(f"The Library already holds {MAX_UPLOADED_ROBOTS} uploaded robots.")
     return robot_id, UPLOAD_DIR / robot_id
 
 

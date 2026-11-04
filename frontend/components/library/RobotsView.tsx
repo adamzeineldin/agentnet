@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { apiUrl, enableRobot } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
-import type { CatalogEntry, RobotSummary } from "@/lib/types";
+import type { CatalogEntry, RobotSummary, StoredModel } from "@/lib/types";
 import { ActButton } from "../auth/SignIn";
 import { UploadRobot } from "../robots/UploadRobot";
 import type { TaskGroup } from "../skills/grouping";
 import { ErrorNote } from "../ui";
-import type { LibraryQuery, LibrarySort } from "./query";
+import { matchesSearch, type LibraryQuery, type LibrarySort } from "./query";
+import { ModelCard } from "./ModelCard";
 import { Paged } from "./Paged";
 import { RobotPage } from "./RobotPage";
 import { robotSkillCounts } from "./spread";
@@ -95,12 +96,17 @@ interface RobotsViewProps {
   onChange: (patch: Partial<LibraryQuery>) => void;
   /** A robot joined the fleet: reload the shared robot list. */
   onFleetChanged: () => void;
+  /** Only the viewer's own uploads ("Mine"). */
+  mineOnly: boolean;
 }
 
 /** The fleet as paged cards; opening one shows the robot's page. Adding a robot sits behind one button. */
-export function RobotsView({ robots, shown, groups, layoutName, query, onChange, onFleetChanged }: RobotsViewProps) {
+export function RobotsView({ robots, shown, groups, layoutName, query, onChange, onFleetChanged, mineOnly }: RobotsViewProps) {
   const [adding, setAdding] = useState(false);
   const catalog = useApi<CatalogEntry[]>(adding ? "/api/robots/catalog" : null);
+  const models = useApi<StoredModel[]>("/api/robots/models");
+  // Stored models know no skills, so a task filter hides them.
+  const shownModels = query.task ? [] : (models.data ?? []).filter((m) => (!mineOnly || m.mine) && matchesSearch(query.q, [m.name]));
   const opened = query.open ? robots.find((r) => r.robot_id === query.open) : undefined;
   if (opened) {
     return <RobotPage robot={opened} robots={robots} groups={groups} layoutName={layoutName} onChange={onChange}
@@ -132,13 +138,22 @@ export function RobotsView({ robots, shown, groups, layoutName, query, onChange,
         <section aria-label="Add a robot" className="space-y-3">
           {catalog.error && <ErrorNote message={catalog.error} />}
           {catalog.data && <Catalog entries={catalog.data} onAdded={added} />}
-          <UploadRobot onAdded={onFleetChanged} />
+          <UploadRobot onAdded={() => { onFleetChanged(); models.reload(); }} />
         </section>
       )}
-      {shown.length === 0 ? <p className="soft-card p-8 text-center text-sm text-ink-3">No robots match.</p> : (
+      {shown.length === 0 && shownModels.length === 0 ? <p className="soft-card p-8 text-center text-sm text-ink-3">No robots match.</p> : shown.length > 0 && (
         <section aria-label="Fleet">
           <Paged key={listKey} items={shown} page={PAGE} className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] gap-4"
             render={(r) => <FleetCard key={r.robot_id} robot={r} skills={count(r.robot_id)} onOpen={() => onChange({ open: r.robot_id })} />} />
+        </section>
+      )}
+      {shownModels.length > 0 && (
+        <section aria-label="Stored models">
+          <h3 className="mb-1 text-sm font-medium">Stored models <span className="ml-1 font-normal text-ink-3">{shownModels.length}</span></h3>
+          <p className="mb-3 text-xs text-ink-3">Uploaded robots kept as models: they are in the Library but cannot run tasks.</p>
+          <Paged key={`models|${listKey}`} items={shownModels} page={PAGE}
+            className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,200px),1fr))] items-start gap-4"
+            render={(m) => <ModelCard key={m.robot_id} model={m} onShared={models.reload} />} />
         </section>
       )}
     </div>

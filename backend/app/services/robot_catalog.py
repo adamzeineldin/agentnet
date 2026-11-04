@@ -62,6 +62,9 @@ class RobotDecl:
     source: Literal["menagerie", "upload"] = "menagerie"
     model_root: Path | None = None
     uploaded_by: str | None = None
+    # Uploads only: the body carrying the arm, as (x, y, z, yaw) in the model's world at its home pose, when that is
+    # not the origin facing +x (a humanoid's pelvis, one arm of a two-armed robot). Tasks are placed in front of it.
+    mount: tuple[float, float, float, float] | None = None
 
     @property
     def model_path(self) -> Path:

@@ -19,6 +19,18 @@ from app.services.scene import SceneSpec, build_model
 from app.services.simulation import execute_path, screen_path
 
 DEFAULT_TARGET = (0.40, 0.25, 0.30)
+
+
+def default_target(robot_id: str) -> tuple[float, float, float]:
+    """DEFAULT_TARGET from the arm's base, or from an uploaded arm's mount (task_scene.default_placement)."""
+    decl = get_robot_decl(robot_id)
+    if decl.mount is None:
+        return DEFAULT_TARGET
+    x, y, z, yaw = decl.mount
+    facing = round(yaw / (np.pi / 2)) % 4 * (np.pi / 2)
+    c, s = np.cos(facing), np.sin(facing)
+    tx, ty, tz = DEFAULT_TARGET
+    return (float(x + c * tx - s * ty), float(y + s * tx + c * ty), float(z + tz))
 JOG_RAD = 0.35
 JOG_TOLERANCE_RAD = 2e-3
 IK_SEEDS = 8

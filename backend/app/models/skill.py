@@ -55,6 +55,9 @@ class Placement(_Frozen):
     translation: Vec3
     yaw_rad: float = 0.0
     rationale: str = ""
+    # Where the arm is mounted, in the base frame, when that is not the origin (an uploaded humanoid's pelvis, one
+    # arm of a two-armed robot). Pages measure "in front of the robot" from here. None = the origin.
+    mount: Vec3 | None = None
 
 
 class StrategySpec(_Frozen):

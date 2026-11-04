@@ -122,7 +122,7 @@ export function Library() {
         : !error && <Loading label="Loading skills…" />)}
       {robots.data && query.view === "robots" && (
         <RobotsView robots={allRobots} shown={shownRobots} groups={groups} layoutName={layoutName} query={query}
-          onChange={update} onFleetChanged={robots.reload} />
+          onChange={update} onFleetChanged={robots.reload} mineOnly={mineOnly} />
       )}
       {query.run && (
         <RunDialog key={query.run} runId={query.run} robots={robots.data ?? []} onClose={() => update({ run: null })}

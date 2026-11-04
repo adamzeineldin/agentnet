@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel
@@ -8,16 +9,16 @@ from pydantic import BaseModel
 from app.api.deps import (
     get_job_worker, get_registry, mark, owner_of, require_fleet_robot, require_user, started_by, viewer_id,
 )
-from app.models.robot import CatalogEntry, RobotPassport, RobotSummary
+from app.models.robot import CatalogEntry, RobotPassport, RobotSummary, StoredModel
 from app.models.run import MotionCheckRequest, RunRecord
 from app.models.user import User
 from app.services import fleet
 from app.services.jobs import SimulationWorker, create_run, run_guarded
-from app.services.motion_check import DEFAULT_TARGET, motion_check
+from app.services.motion_check import default_target, motion_check
 from app.services.registry import Registry
 from app.services.robot_catalog import ROBOTS
 from app.services.storage import StoreError
-from app.services.uploads import MAX_UPLOAD_BYTES, UploadError
+from app.services.uploads import MAX_UPLOAD_BYTES, ArmChoiceNeeded, UploadError
 
 log = logging.getLogger(__name__)
 
@@ -54,8 +55,20 @@ def catalog(registry: Registry = Depends(get_registry), viewer: str | None = Dep
     return entries
 
 
+@router.get("/models", response_model=list[StoredModel])
+def list_stored_models(
+    mine: bool = False, registry: Registry = Depends(get_registry), viewer: str | None = Depends(viewer_id),
+) -> list[StoredModel]:
+    """Uploads kept as a model only (they cannot run tasks), newest first; mine=true: only the viewer's."""
+    models = fleet.stored_models(registry, viewer)
+    return [m for m in models if m.mine] if mine else models
+
+
 class UploadResult(BaseModel):
-    robot: RobotSummary
+    """An arm joins the fleet (`robot`); a model-only upload is stored (`model`)."""
+
+    robot: RobotSummary | None = None
+    model: StoredModel | None = None
     notes: list[str]
 
 
@@ -79,15 +92,27 @@ async def upload_robot(
     name: str = Query(min_length=1, max_length=40, pattern=r"^[\w .()+-]+$"),
     filename: str = Query(min_length=1, max_length=120),
     tool: str | None = Query(default=None, max_length=64, pattern=r"^[\w./-]+$"),
+    mode: Literal["arm", "model_only"] = "arm",
     registry: Registry = Depends(get_registry),
     worker: SimulationWorker = Depends(get_job_worker),
     user: User | None = Depends(require_user),
 ) -> UploadResult:
-    """Add your own arm: the request body is the .xml, .urdf or .zip file (see services/uploads.py)."""
+    """Add your own robot: the request body is the .xml, .urdf or .zip file (see services/uploads.py).
+
+    mode=arm runs tasks with one arm of it; when several limbs could be the arm, the answer is 409 with
+    `detail.options` and the upload is repeated with `tool` set to one. mode=model_only stores it without an arm.
+    """
     data = await _read_body(request)
     try:
+        if mode == "model_only":
+            stored = await worker.call(fleet.store_model, worker, registry, filename, data, name.strip(),
+                                       started_by(user), owner_of(user))
+            return UploadResult(model=stored, notes=stored.notes)
         passport, notes = await worker.call(fleet.upload_robot, worker, registry, filename, data, name.strip(),
                                             tool or None, started_by(user), owner_of(user))
+    except ArmChoiceNeeded as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, {
+            "message": str(exc), "options": [{"tool": o.tool, "joints": o.joints} for o in exc.options]}) from exc
     except UploadError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     except StoreError as exc:
@@ -146,7 +171,7 @@ def start_motion_check(
 ) -> RunRecord:
     require_fleet_robot(registry, robot_id, owner_of(user))
     try:
-        target = body.validated_target(DEFAULT_TARGET)
+        target = body.validated_target(default_target(robot_id))
     except ValueError as exc:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, str(exc)) from exc
     run = create_run(

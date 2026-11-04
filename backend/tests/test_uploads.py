@@ -83,7 +83,7 @@ def test_example_arm_joins_the_fleet_and_learns_a_task(client):
 
 def test_same_model_twice_is_refused(client):
     r = _upload(client, "Capsule arm", EXAMPLE.name, EXAMPLE.read_bytes())
-    assert r.status_code == 422 and "already in the fleet" in r.json()["detail"]
+    assert r.status_code == 422 and "already stored" in r.json()["detail"]
 
 
 def test_urdf_upload_gets_servos_and_a_floor(client):
@@ -106,12 +106,13 @@ def test_unsafe_or_empty_zips_are_refused(client, files, message):
     assert r.status_code == 422 and message in r.json()["detail"], r.text
 
 
-def test_free_floating_and_too_short_models_are_refused(client):
+def test_models_without_an_arm_are_refused_as_arms(client):
     free = b"<mujoco><worldbody><body><freejoint/><geom size='0.1'/></body></worldbody></mujoco>"
-    assert "free-floating" in _upload(client, "Free", "f.xml", free).json()["detail"]
+    detail = _upload(client, "Free", "f.xml", free).json()["detail"]
+    assert "No arm of 3 to 10 joints" in detail and "model only" in detail
     one = (b"<mujoco><worldbody><body><joint name='a' axis='0 0 1'/><geom size='0.05' fromto='0 0 0 0 0 0.3' "
            b"type='capsule'/></body></worldbody></mujoco>")
-    assert "has 1 joints" in _upload(client, "One", "o.xml", one).json()["detail"]
+    assert "the longest limb has 1" in _upload(client, "One", "o.xml", one).json()["detail"]
 
 
 def test_wrong_file_type_and_bad_name_are_refused(client):

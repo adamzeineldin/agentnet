@@ -160,7 +160,8 @@ export interface BoxSpec { name: string; center: Vec3; half_size: Vec3 }
 export interface TaskSpec {
   scene_id: string; seed: number; start: Vec3; target: Vec3; obstacles: BoxSpec[]; description: string;
 }
-export interface Placement { translation: Vec3; yaw_rad: number; rationale: string }
+/** Task frame -> robot base frame. `mount`: where an uploaded arm is mounted when that is not the base origin. */
+export interface Placement { translation: Vec3; yaw_rad: number; rationale: string; mount?: Vec3 | null }
 
 export interface CandidateSummary {
   candidate_id: string;
@@ -412,7 +413,15 @@ export const PASSWORD_MIN = 8;
 export const PASSWORD_MAX = 128;
 export const NAME_MAX = 60;
 
-export interface UploadResult { robot: RobotSummary; notes: string[] }
+/** An arm joins the fleet (`robot`); a model-only upload is stored (`model`). */
+export interface UploadResult { robot: RobotSummary | null; model: StoredModel | null; notes: string[] }
+/** An uploaded robot kept as a model only: stored and shown, but it cannot run tasks. */
+export interface StoredModel {
+  robot_id: string; name: string; joints: number; bodies: number; notes: string[]; snapshot_url: string;
+  created_at: string; uploaded_by: string | null; visibility: Visibility; mine: boolean;
+}
+/** One limb that could be the arm; send `tool` back to pick it. */
+export interface ArmOption { tool: string; joints: number }
 
 export interface ScoutPick { skill_id: string; source_robot_id: string; route: string; why: string }
 export interface ScoutPlan {

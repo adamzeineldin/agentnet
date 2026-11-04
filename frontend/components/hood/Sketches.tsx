@@ -1,3 +1,4 @@
+import { inFront, taskOffset } from "@/lib/placement";
 import type { Placement, TaskSpec, Vec3 } from "@/lib/types";
 
 export interface Trace { points: Vec3[]; label: string; color: string; dashed?: boolean }
@@ -75,16 +76,17 @@ export interface Seat { name: string; placement: Placement; reach: number }
 
 /** Top-down: each arm's base, its measured reach, and where the task sits in front of it, drawn to one shared scale. */
 export function PlacementSketch({ task, seats }: { task: TaskSpec; seats: Seat[] }) {
-  const span = Math.max(...seats.map((s) => Math.max(s.reach, s.placement.translation[0] + 0.3)));
+  const span = Math.max(...seats.map((s) => Math.max(s.reach, inFront(s.placement) + 0.3)));
   const scale = (W / 2 - PAD) / span;
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {seats.map((seat) => {
         const cx = W / 2;
         const cy = H - 18;
-        const px = (p: Vec3) => cx + (p[1] + seat.placement.translation[1]) * scale;
-        const py = (p: Vec3) => cy - (p[0] + seat.placement.translation[0]) * scale;
-        const d = seat.placement.translation[0];
+        const [ox, oy] = taskOffset(seat.placement);
+        const px = (p: Vec3) => cx + (p[1] + oy) * scale;
+        const py = (p: Vec3) => cy - (p[0] + ox) * scale;
+        const d = ox;
         return (
           <figure key={seat.name} className="min-w-0">
             <svg viewBox={`0 0 ${W} ${H}`} role="img" className="w-full rounded-xl bg-panel-2/60"

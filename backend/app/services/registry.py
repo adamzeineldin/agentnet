@@ -98,6 +98,7 @@ class UploadedRobotRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     owner_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     visibility: Mapped[str] = mapped_column(String, index=True, default="public")
+    kind: Mapped[str] = mapped_column(String, default="arm")
 
 
 class DesignedTaskRow(Base):
@@ -147,9 +148,12 @@ def database_url(database: str | Path) -> str:
 
 # Columns added after a table first shipped: create_all never alters existing tables, so they are added here.
 # Rows that predate them read as public with no owner (models/sharing.py).
+_SHARING_COLUMNS = {"owner_id": "VARCHAR", "visibility": "VARCHAR NOT NULL DEFAULT 'public'"}
 _ADDED_COLUMNS = {
-    table: {"owner_id": "VARCHAR", "visibility": "VARCHAR NOT NULL DEFAULT 'public'"}
-    for table in ("runs", "skills", "uploaded_robots")
+    "runs": _SHARING_COLUMNS,
+    "skills": _SHARING_COLUMNS,
+    # kind: "arm" (a fleet robot) or "model_only" (stored and shown, cannot run tasks).
+    "uploaded_robots": {**_SHARING_COLUMNS, "kind": "VARCHAR NOT NULL DEFAULT 'arm'"},
 }
 
 
@@ -360,10 +364,18 @@ class Registry:
 
     # ---------------------------------------------------------------- users
     def save_uploaded_robot(self, robot_id: str, decl_json: str, owner_id: str | None = None,
-                            visibility: Visibility = "public") -> None:
+                            visibility: Visibility = "public", kind: str = "arm") -> None:
+        """An uploaded robot: an arm's declared facts (RobotDecl JSON), or a stored model's facts (kind model_only)."""
         with self._tx() as s:
             s.merge(UploadedRobotRow(robot_id=robot_id, decl=decl_json, created_at=utcnow(), owner_id=owner_id,
-                                     visibility=visibility))
+                                     visibility=visibility, kind=kind))
+
+    def stored_models(self, viewer: Viewer = EVERYONE) -> list[tuple[str, str | None, str]]:
+        """(facts JSON, owner id, visibility) of every model-only upload viewer may see, newest first."""
+        stmt = _where_visible(select(UploadedRobotRow).where(UploadedRobotRow.kind == "model_only")
+                              .order_by(UploadedRobotRow.created_at.desc()), UploadedRobotRow, viewer)
+        with self._session() as s:
+            return [(r.decl, r.owner_id, r.visibility) for r in s.scalars(stmt)]
 
     def robot_access(self) -> dict[str, tuple[str | None, str]]:
         """Uploaded robot id -> (owner id, visibility). Catalog arms have no entry: they are public."""
@@ -394,9 +406,10 @@ class Registry:
             return row.design if row else None
 
     def uploaded_robots(self) -> list[str]:
-        """Declared-facts JSON of every uploaded arm, oldest first."""
+        """Declared-facts JSON of every uploaded arm (not model-only uploads), oldest first."""
         with self._session() as s:
-            rows = s.scalars(select(UploadedRobotRow).order_by(UploadedRobotRow.created_at)).all()
+            rows = s.scalars(select(UploadedRobotRow).where(UploadedRobotRow.kind == "arm")
+                             .order_by(UploadedRobotRow.created_at)).all()
             return [r.decl for r in rows]
 
     def save_user(self, user: User) -> User:
