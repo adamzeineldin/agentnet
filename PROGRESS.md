@@ -361,3 +361,9 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   with measured limits and learning evidence in the prompt, "Reach into a bin that sits behind a low fence" → 2 calls (Muse fixed a
   broken first layout), $0.0012; the UR5e learned it (over the fence, 8 cm clearance, 0.6 mm), the Panda did not.
 - ✅ Tests: 350 backend (task design 36), smoke 10/10, Playwright 20/20.
+
+## Header: only the logo, nav and sign-in ✅ (2026-11-03)
+- ✅ Removed the backend status dot, the reasoning-provider label, the Dark/Light toggle and the Present button from
+  the header; the offline banner still appears when the backend is unreachable. The site always renders light (the
+  stored-theme script is gone, so no one is stuck in dark). `/present` still works by URL.
+- ✅ Playwright: dropped the "backend live" check and the theme test.

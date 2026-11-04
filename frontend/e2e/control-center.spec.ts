@@ -7,7 +7,6 @@ test.describe.configure({ mode: "serial" });
 
 test("home shows the hero and, below it, how it works", async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByText("backend live")).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("One robot learns it.");
   await expect(page.getByRole("heading", { name: "Teach one robot arm a task. Let a different arm do it too." })).toBeVisible();
   await expect(page.getByRole("navigation", { name: "Main navigation" }).getByRole("link")).toHaveCount(7);
@@ -194,19 +193,6 @@ test("backend outage shows the offline banner", async ({ page }) => {
   await page.route(`${API}/api/health`, (route) => route.abort());
   await page.goto("/");
   await expect(page.getByText("Backend unreachable at")).toBeVisible({ timeout: 15_000 });
-});
-
-
-test("theme choice survives navigation and reload", async ({ page }) => {
-  await page.goto("/");
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
-  await page.getByRole("button", { name: "Switch to dark theme" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByRole("navigation", { name: "Main navigation" }).getByRole("link", { name: "Robots" }).click();
-  await page.reload();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
-  await page.getByRole("button", { name: "Switch to light theme" }).click();
-  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
 });
 
 

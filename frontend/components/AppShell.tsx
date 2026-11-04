@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useSyncExternalStore, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { API_BASE } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import { AuthProvider } from "@/lib/auth";
@@ -20,46 +20,6 @@ export const NAV = [
   { href: "/evaluation", label: "Results", what: "Does sharing help? Measured, with every run" },
   { href: "/history", label: "All runs", what: "Every simulation, running or finished: watch it step by step" },
 ];
-
-function subscribeTheme(onChange: () => void) {
-  const sync = (event: StorageEvent) => {
-    if (event.key !== "nimbotics-theme" && event.key !== null) return;
-    document.documentElement.dataset.theme = event.newValue === "dark" ? "dark" : "light";
-    onChange();
-  };
-  window.addEventListener("nimbotics-theme", onChange);
-  window.addEventListener("storage", sync);
-  return () => {
-    window.removeEventListener("nimbotics-theme", onChange);
-    window.removeEventListener("storage", sync);
-  };
-}
-
-function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribeTheme,
-    () => document.documentElement.dataset.theme === "dark" ? "dark" : "light", () => "light");
-  return <button type="button" aria-label={`Switch to ${theme === "light" ? "dark" : "light"} theme`}
-    className="border-l border-line px-3 py-2 text-xs text-ink-2 hover:text-ink"
-    onClick={() => {
-      const next = theme === "light" ? "dark" : "light";
-      document.documentElement.dataset.theme = next;
-      try { localStorage.setItem("nimbotics-theme", next); } catch { /* Theme still works without storage. */ }
-      window.dispatchEvent(new Event("nimbotics-theme"));
-    }}>{theme === "light" ? "Dark" : "Light"}</button>;
-}
-
-function HealthIndicator() {
-  const { data, error } = useApi<Health>("/api/health", 5000);
-  const tone = error ? "bg-bad" : data ? "bg-good" : "bg-ink-3";
-  return <div className="flex items-center gap-2 font-mono text-[11px] text-ink-3" role="status">
-    <span className={`size-1.5 shrink-0 rounded-full ${tone}`} aria-hidden="true" />
-    <span title={data ? `MuJoCo ${data.versions.mujoco} · Python ${data.versions.python}` : undefined}>
-      {error ? "backend offline" : data ? "backend live" : "connecting"}
-    </span>
-    {data && <span className="hidden max-w-48 truncate border-l border-line pl-2 xl:inline"
-      title="Strategy reasoning provider. Offline = deterministic planner, no model calls.">{data.reasoning.label}</span>}
-  </div>;
-}
 
 function OfflineBanner() {
   const { error } = useApi<Health>("/api/health", 5000);
@@ -93,8 +53,7 @@ function Shell({ pathname, children }: { pathname: string; children: ReactNode }
           })}
         </nav>
         <div className="ml-auto flex items-center gap-2">
-          <HealthIndicator /><UserMenu /><ThemeToggle />
-          <Link href="/present" className="hidden border border-line-strong px-3 py-1.5 text-xs hover:border-ink sm:block">▶ Present</Link>
+          <UserMenu />
         </div>
       </div>
     </header>

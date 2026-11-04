@@ -14,9 +14,6 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning className={`${plexSans.variable} ${plexMono.variable} h-full antialiased`}>
-      <head>
-        <script dangerouslySetInnerHTML={{ __html: `try { document.documentElement.dataset.theme = localStorage.getItem('nimbotics-theme') === 'dark' ? 'dark' : 'light'; } catch {}` }} />
-      </head>
       <body className="min-h-full font-sans">
         <AppShell>{children}</AppShell>
       </body>
