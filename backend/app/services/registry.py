@@ -1,4 +1,4 @@
-"""SQLite registry (SQLAlchemy 2.x) for passports, runs, skills, library reports, fleet and users.
+"""SQLite registry (SQLAlchemy 2.x) for passports, runs, skills, library reports, fleet, users and blog posts.
 
 Rows store validated Pydantic JSON; the repository functions return Pydantic
 objects so callers never touch ORM state.
@@ -14,11 +14,12 @@ from sqlalchemy import JSON, DateTime, String, Text, create_engine, select
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
+from app.models.blog import BlogPost
 from app.models.library import LibraryReport
 from app.models.robot import RobotPassport
 from app.models.run import RunEvent, RunRecord
 from app.models.skill import ExperienceCapsule
-from app.models.user import User
+from app.models.user import Credential, User
 
 
 class Base(DeclarativeBase):
@@ -31,6 +32,21 @@ class PassportRow(Base):
     model_hash: Mapped[str] = mapped_column(String)
     payload: Mapped[dict] = mapped_column(JSON)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+def run_scene_id(run: RunRecord) -> str | None:
+    """The layout a run worked on ("shelf_v1_s3"), when it got far enough to build one."""
+    task = run.results.get("task")
+    return task.get("scene_id") if isinstance(task, dict) else None
+
+
+def _run_matches(run: RunRecord, robot_id: str | None, family: str | None, scene_id: str | None) -> bool:
+    if robot_id and robot_id not in (run.source_robot_id, run.target_robot_id):
+        return False
+    scene = run_scene_id(run)
+    if scene_id and scene != scene_id:
+        return False
+    return not family or (scene is not None and scene.rpartition("_s")[0] == family)
 
 
 class RunRow(Base):
@@ -94,6 +110,24 @@ class UserRow(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
 
 
+class CredentialRow(Base):
+    """Email + password sign-in: one row per normalised email, pointing at its user."""
+
+    __tablename__ = "credentials"
+    email: Mapped[str] = mapped_column(String, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, index=True)
+    password_hash: Mapped[str] = mapped_column(String)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class BlogPostRow(Base):
+    __tablename__ = "blog_posts"
+    post_id: Mapped[str] = mapped_column(String, primary_key=True)
+    author_id: Mapped[str] = mapped_column(String, index=True)
+    payload: Mapped[dict] = mapped_column(JSON)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
 class Registry:
     def __init__(self, db_path: Path) -> None:
         db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -146,19 +180,25 @@ class Registry:
     def list_runs(
         self, run_type: str | None = None, robot_id: str | None = None, limit: int = 100, offset: int = 0,
         statuses: Collection[str] | None = None, exclude_statuses: Collection[str] | None = None,
+        family: str | None = None, scene_id: str | None = None,
     ) -> list[RunRecord]:
-        stmt = select(RunRow).order_by(RunRow.created_at.desc()).offset(offset).limit(limit)
+        """Newest first. robot_id, family (task type) and scene_id (one layout) are matched before paging."""
+        stmt = select(RunRow).order_by(RunRow.created_at.desc())
         if run_type:
             stmt = stmt.where(RunRow.run_type == run_type)
         if statuses:
             stmt = stmt.where(RunRow.status.in_(statuses))
         if exclude_statuses:
             stmt = stmt.where(RunRow.status.not_in(exclude_statuses))
+        in_python = bool(robot_id or family or scene_id)
+        if not in_python:
+            stmt = stmt.offset(offset).limit(limit)
         with self._session() as s:
             runs = [RunRecord.model_validate(r.payload) for r in s.scalars(stmt)]
-        if robot_id:
-            runs = [r for r in runs if robot_id in (r.source_robot_id, r.target_robot_id)]
-        return runs
+        if not in_python:
+            return runs
+        matching = [r for r in runs if _run_matches(r, robot_id, family, scene_id)]
+        return matching[offset:offset + limit]
 
     # ---------------------------------------------------------------- skills
     def save_skill(self, capsule: ExperienceCapsule) -> ExperienceCapsule:
@@ -259,6 +299,50 @@ class Registry:
         with self._session() as s:
             row = s.get(UserRow, user_id)
             return User.model_validate(row.payload) if row else None
+
+    def add_credential(self, credential: Credential) -> bool:
+        """Store a new email sign-in; False when that email already has an account."""
+        with self._tx() as s:
+            if s.get(CredentialRow, credential.email):
+                return False
+            s.add(CredentialRow(**credential.model_dump()))
+        return True
+
+    def get_credential(self, email: str) -> Credential | None:
+        with self._session() as s:
+            row = s.get(CredentialRow, email)
+            return Credential(email=row.email, user_id=row.user_id, password_hash=row.password_hash,
+                              created_at=row.created_at) if row else None
+
+    # ---------------------------------------------------------------- blog
+    def save_post(self, post: BlogPost) -> BlogPost:
+        with self._tx() as s:
+            s.merge(BlogPostRow(post_id=post.post_id, author_id=post.author_id,
+                                payload=post.model_dump(mode="json"), created_at=post.created_at))
+        return post
+
+    def get_post(self, post_id: str) -> BlogPost | None:
+        with self._session() as s:
+            row = s.get(BlogPostRow, post_id)
+            return BlogPost.model_validate(row.payload) if row else None
+
+    def list_posts(self, limit: int = 50, offset: int = 0, author_id: str | None = None) -> list[BlogPost]:
+        stmt = select(BlogPostRow).order_by(BlogPostRow.created_at.desc()).offset(offset).limit(limit)
+        if author_id:
+            stmt = stmt.where(BlogPostRow.author_id == author_id)
+        with self._session() as s:
+            return [BlogPost.model_validate(r.payload) for r in s.scalars(stmt)]
+
+    def count_posts_since(self, author_id: str, since: datetime) -> int:
+        stmt = select(BlogPostRow.post_id).where(BlogPostRow.author_id == author_id, BlogPostRow.created_at >= since)
+        with self._session() as s:
+            return len(s.scalars(stmt).all())
+
+    def delete_post(self, post_id: str) -> None:
+        with self._tx() as s:
+            row = s.get(BlogPostRow, post_id)
+            if row:
+                s.delete(row)
 
     def append_event(self, run_id: str, event: RunEvent, **changes: object) -> RunRecord:
         """Return a new RunRecord with the event appended (and fields changed), persisted."""

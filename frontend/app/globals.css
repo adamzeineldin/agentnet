@@ -76,13 +76,14 @@ body {
 .button-primary:hover { background: var(--accent); border-color: var(--accent); color: var(--bg); }
 .button-secondary { border: 1px solid var(--line-strong); color: var(--ink); }
 .button-secondary:hover { border-color: var(--ink); }
-.landing-hero { position: relative; isolation: isolate; min-height: min(820px, calc(100svh - 88px)); display: flex; align-items: center; margin: -32px -16px 32px; padding: 64px 32px; overflow: hidden; border-bottom: 1px solid var(--line); }
+.landing-hero { position: relative; isolation: isolate; min-height: min(820px, calc(100svh - 88px)); display: flex; align-items: center; margin: -32px -16px 32px; padding: 64px 16px; overflow: hidden; border-bottom: 1px solid var(--line); }
 .hero-copy { position: relative; z-index: 1; max-width: 540px; pointer-events: none; }
 .hero-copy a { pointer-events: auto; }
 .hero-copy h1 { margin-top: 30px; font-size: clamp(44px, 5vw, 64px); line-height: 1.02; letter-spacing: -.035em; font-weight: 300; }
 .hero-description { margin-top: 30px; font-size: 18px; line-height: 1.55; color: var(--ink-2); }
 .particle-arm { position: absolute; inset: 0 0 0 auto; width: 62%; overflow: hidden; z-index: 0; }
-@media (min-width: 768px) { .landing-hero { margin-left: -32px; margin-right: -32px; padding: 64px 48px; } }
+/* Side padding equals the page gutter, so the hero copy lines up with the logo and the rest of the page. */
+@media (min-width: 768px) { .landing-hero { margin-left: -32px; margin-right: -32px; padding: 64px 32px; } }
 @media (max-width: 800px) {
   .landing-hero { padding-top: 40px; padding-bottom: 36px; min-height: auto; }
   .hero-copy { max-width: 100%; }
@@ -153,5 +154,22 @@ details.disclosure > .disclosure-body { padding: 0 16px 16px; animation: fade .3
 details.faq::details-content { block-size: 0; overflow: clip;
   transition: block-size .35s var(--ease-out), content-visibility .35s allow-discrete; }
 details.faq[open]::details-content { block-size: auto; }
-.nav-link { transition: color .2s, box-shadow .3s var(--ease-out); }
+.nav-link { transition: color .2s; }
 .menu-pop { animation: rise .2s var(--ease-out) both; }
+
+/* ---- Header: logo on its own, nav in a recessed neumorphic track, raised controls. */
+:root { --neu-hi: rgba(255,255,255,.95); --neu-lo: rgba(40,36,30,.13); }
+html[data-theme="dark"] { --neu-hi: rgba(255,255,255,.05); --neu-lo: rgba(0,0,0,.55); }
+.site-header { background: color-mix(in srgb, var(--bg) 82%, transparent); backdrop-filter: blur(14px) saturate(1.2); }
+.neu-track { padding: 5px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+  box-shadow: inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi); }
+.neu-thumb { border-radius: 999px; background: var(--panel);
+  box-shadow: 3px 3px 8px var(--neu-lo), -2px -2px 6px var(--neu-hi), inset 0 1px 0 var(--neu-hi);
+  transition: left .45s var(--ease-out), width .45s var(--ease-out); }
+.neu-button { display: inline-flex; align-items: center; border-radius: 999px; background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line); box-shadow: 4px 4px 10px var(--neu-lo), -4px -4px 10px var(--neu-hi);
+  transition: box-shadow .25s var(--ease-out), transform .25s var(--ease-out); }
+.neu-button:hover { transform: translateY(-1px); }
+.neu-button:active, .neu-button[aria-expanded="true"] { transform: none;
+  box-shadow: inset 3px 3px 7px var(--neu-lo), inset -3px -3px 7px var(--neu-hi); }
+@media (prefers-reduced-motion: reduce) { .neu-thumb, .neu-button { transition: none; } }

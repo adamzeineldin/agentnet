@@ -9,3 +9,5 @@ export const fmtDateTime = (iso: string) =>
 export const shortHash = (h: string) => h.slice(0, 12);
 /** Plain metres for long distances (robot reach), where millimetres read as noise. */
 export const fmtMetres = (m: number | null | undefined) => (m == null ? "—" : `${m.toFixed(2)} m`);
+export const fmtDate = (iso: string) =>
+  new Date(iso).toLocaleDateString([], { year: "numeric", month: "short", day: "numeric" });

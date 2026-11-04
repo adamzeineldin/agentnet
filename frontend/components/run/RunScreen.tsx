@@ -31,7 +31,7 @@ function plainLabel(label: string): string {
 function waitingText(status: RunStatus | null): string {
   if (!status || status === "queued") return "Waiting for its turn on the simulator…";
   if (status === "checking" || status === "proposing" || status === "retrieving")
-    return "Working out the arm's joint motion. This is geometry only: nothing moves yet, so there is nothing to film.";
+    return "Working out the joint motion (geometry only, nothing to film yet)…";
   if (status === "simulating" || status === "selecting" || status === "executing" || status === "verifying")
     return "Starting the camera…";
   return "Setting up the scene…";
@@ -57,7 +57,7 @@ function LiveScreen({ runId, busy, lastStatus }: { runId: string | null; busy: b
   const frame = useLiveFrame(runId, busy);
   if (!frame) {
     return (
-      <Frame caption={<span className="text-ink-3">The picture appears as soon as MuJoCo starts moving the arm.</span>}>
+      <Frame caption={<span className="text-ink-3">Waiting for MuJoCo to move the arm</span>}>
         <div className="grid size-full place-items-center bg-panel-2 px-6 text-center text-sm text-ink-2">
           <span><span aria-hidden="true" className="mr-2 inline-block size-2 animate-pulse rounded-full bg-accent" />{waitingText(lastStatus)}</span>
         </div>
@@ -94,7 +94,7 @@ export function RunScreen({ runId, run, busy, view, lastStatus, hasTries, onBack
   if (busy || view.kind === "live") return <LiveScreen runId={runId} busy={busy} lastStatus={lastStatus} />;
   if (run?.artifacts.video) {
     return (
-      <Frame caption={`Recorded run of the chosen route: ${routePhrase(run.results.selected as string | undefined)}. Played at real speed.`}>
+      <Frame caption={<span className="flex flex-wrap items-center gap-2"><span className="rounded-full bg-good/10 px-2 py-0.5 text-[11px] text-good">final run · real speed</span>{routePhrase(run.results.selected as string | undefined)}</span>}>
         <Clip src={run.artifacts.video} poster={run.artifacts.poster} />
       </Frame>
     );

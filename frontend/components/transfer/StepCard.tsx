@@ -10,7 +10,7 @@ interface StepCardProps {
   children: ReactNode;
 }
 
-/** One numbered step of the Teach flow. Locked steps say what to do first. */
+/** One numbered step of the Lab's teach flow. Locked steps say what to do first. */
 export function StepCard({ n, title, state, lockedNote, children }: StepCardProps) {
   return (
     <section aria-labelledby={`step-${n}-h`} aria-disabled={state === "locked" || undefined}

@@ -34,7 +34,7 @@ export function HowItWorks() {
         <div className="mx-auto max-w-5xl">
           <h3 className="text-[28px] font-light tracking-[-0.02em]">Try it yourself</h3>
           <p className="mt-3 text-ink-2">Pick two robots, let one learn, and watch the other adapt.</p>
-          <Link href="/transfer" className="button-primary mt-7">Try it now →</Link>
+          <Link href="/lab" className="button-primary mt-7">Try it now →</Link>
         </div>
       </div>
     </section>

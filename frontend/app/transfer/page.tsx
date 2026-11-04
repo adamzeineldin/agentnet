@@ -1,7 +1,5 @@
-import { Suspense } from "react";
-import { TransferLab } from "@/components/TransferLab";
-import { Loading } from "@/components/ui";
+import { Forward } from "@/components/Forward";
 
 export default function Page() {
-  return <Suspense fallback={<Loading label="Loading transfer lab…" />}><TransferLab /></Suspense>;
+  return <Forward to="/lab" />;
 }

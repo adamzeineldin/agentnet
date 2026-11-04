@@ -1,5 +1,5 @@
-import { RunHistory } from "@/components/RunHistory";
+import { Forward } from "@/components/Forward";
 
 export default function Page() {
-  return <RunHistory />;
+  return <Forward to="/library" set={{ view: "runs" }} />;
 }

@@ -38,14 +38,13 @@ export function UploadRobot({ onAdded }: { onAdded: (robotId: string) => void })
     <div className="soft-card space-y-3 p-5">
       <div>
         <h3 className="text-base font-medium">Upload your own robot</h3>
-        <p className="mt-1 max-w-3xl text-sm text-ink-2">
-          Any fixed-base arm with 3 to 10 joints: a MuJoCo <span className="font-mono">.xml</span>, a{" "}
-          <span className="font-mono">.urdf</span>, or a <span className="font-mono">.zip</span> holding the model and its
-          mesh files (up to 20 MB). Nimbotics finds the arm&apos;s joints and its tool, adds motors and a resting pose if the
-          model has none, checks that it can hold itself still in physics, and measures its reach. Then it can learn
-          every task like the other arms. No file? <a href={EXAMPLE} download className="text-accent underline">Download an
-          example arm</a> and upload it.
-        </p>
+        <ul className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-ink-2" aria-label="What it accepts"
+          title="Nimbotics finds the joints and tool, adds motors and a resting pose if missing, checks it holds still in physics and measures its reach.">
+          {[".xml", ".urdf", ".zip with meshes", "3–10 joints", "up to 20 MB"].map((t) => (
+            <li key={t} className="rounded-full bg-panel-2 px-2.5 py-1 font-mono">{t}</li>
+          ))}
+          <li><a href={EXAMPLE} download className="ml-1 text-accent hover:underline">Example arm ↓</a></li>
+        </ul>
       </div>
       <div className="flex flex-wrap items-end gap-3">
         <label className="flex min-w-0 flex-col gap-1 text-xs text-ink-3">
@@ -74,7 +73,7 @@ export function UploadRobot({ onAdded }: { onAdded: (robotId: string) => void })
       {result && (
         <div className="rounded-xl border border-good/40 bg-panel px-4 py-3 text-sm" aria-live="polite">
           <p className="text-good">✓ The {result.robot.short_name} ({result.robot.dof} joints, reaches {result.robot.max_reach_m.toFixed(2)} m)
-            is in the fleet. Pick it on the Teach page.</p>
+            is in the fleet. Pick it in the Lab.</p>
           <ul className="mt-2 list-disc space-y-0.5 pl-5 text-xs text-ink-2">
             {result.notes.map((n) => <li key={n}>{n}</li>)}
           </ul>

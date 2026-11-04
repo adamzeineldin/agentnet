@@ -7,6 +7,7 @@ import { apiFetch, publishSkill, startDiscover, startTransfer } from "@/lib/api"
 import { useApi } from "@/lib/useApi";
 import { useRunStream } from "@/lib/useRunStream";
 import type { ExperienceCapsule, RobotSummary, RunRecord } from "@/lib/types";
+import { SignInGate } from "./auth/SignInGate";
 import { LearnerStep } from "./transfer/LearnerStep";
 import { RobotPair } from "./transfer/RobotPair";
 import { StepCard } from "./transfer/StepCard";
@@ -26,7 +27,18 @@ function pickPair(robots: RobotSummary[], source: string | null, target: string 
   return [s, t];
 }
 
+const GATE_POINTS = ["Teach a robot a task in physics", "Let another arm learn it", "Save skills to the shared Library"];
+
+/** The Lab: open to signed-in visitors (or to everyone when sign-in is off on this server). */
 export function TransferLab() {
+  return (
+    <SignInGate title="The Lab is where robots learn" points={GATE_POINTS}>
+      <Lab />
+    </SignInGate>
+  );
+}
+
+function Lab() {
   const robots = useApi<RobotSummary[]>("/api/robots");
   if (robots.error) return <ErrorNote message={robots.error} />;
   if (!robots.data) return <Loading label="Loading the robots…" />;
@@ -64,7 +76,7 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
     clearSource();
     clearTarget();
     const q = new URLSearchParams({ source: s, target: t, task, ...(skill ? { skill } : {}) });
-    router.replace(`/transfer?${q}`, { scroll: false });
+    router.replace(`/lab?${q}`, { scroll: false });
   }
   const choosePair = (s: string, t: string) => go(s, t, family);
 
@@ -119,9 +131,8 @@ function TryIt({ robots }: { robots: RobotSummary[] }) {
 
   return (
     <div className="mx-auto max-w-5xl space-y-5">
-      <PageHeader eyebrow="Teach" title="Teach one robot, watch another learn" guide="steps">
-        Pick a task (or describe one and let Muse choose), let one robot arm learn it in the physics simulator, then see
-        whether a second arm, with a different body, can learn it from the first.
+      <PageHeader eyebrow="Lab" title="Teach one robot, watch another learn" guide="steps">
+        One arm learns a task in physics. A different arm learns it from the first.
       </PageHeader>
       {[source.error, target.error, skillsApi.error, tasks.error].filter(Boolean).map((e) => <ErrorNote key={e} message={e!} />)}
 

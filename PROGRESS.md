@@ -362,12 +362,6 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   broken first layout), $0.0012; the UR5e learned it (over the fence, 8 cm clearance, 0.6 mm), the Panda did not.
 - ✅ Tests: 350 backend (task design 36), smoke 10/10, Playwright 20/20.
 
-## Header: only the logo, nav and sign-in ✅ (2026-11-03)
-- ✅ Removed the backend status dot, the reasoning-provider label, the Dark/Light toggle and the Present button from
-  the header; the offline banner still appears when the backend is unreachable. The site always renders light (the
-  stored-theme script is gone, so no one is stuck in dark). `/present` still works by URL.
-- ✅ Playwright: dropped the "backend live" check and the theme test.
-
 ## Landing page: How it works as a scroll story ✅ (2026-11-03)
 - ✅ Below the hero, a pinned scroll-driven 3D illustration in the site theme tells the idea in four one-line beats
   (Learn, Remember, Adapt, Prove), caption centred above the scene and progress below it. The camera orbits as you
@@ -385,3 +379,104 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   status panel are gone from the home page; the simulation-only note is the "real robot" answer and the footer. On phones the stage shrinks
   to the scene with numbered progress.
 - ✅ Tests: 350 backend, smoke 10/10, Playwright home + how-it-works tests updated and passing.
+
+## Header: neumorphic nav pill ✅ (2026-11-03)
+- ✅ The logo stands on its own at the left, sized to the nav pill (32px, 26px on phones) and aligned with the page edge; the nav sits centred in a recessed pill track with a raised thumb that
+  slides to the current page (`components/NavPill.tsx`); Sign in / the user chip are raised soft buttons that press in.
+  The header has no bar or border, just a light blur over the page. On phones the track scrolls to the current page.
+- ✅ Playwright control-center 19/19. Frontend-only change, so backend `make test` / `make smoke` were not rerun.
+
+## Console pages: less text, more at-a-glance visuals ✅ (2026-11-03)
+- ✅ Robots, Skills, Teach, Real data, Results and All runs: page intros cut to one line; explanations that were
+  paragraphs moved to hover hints (`title`) or became chips. Numbers are unchanged and still come from stored runs.
+- ✅ Robots: facts are big-number tiles (joints, reach, learned itself, learned from others); upload rules are chips.
+- ✅ Teach: the run steps show chips (placement, joints, route checks, final checks) instead of sentences; the learner
+  step shows what it does as chips and the layout choice is a toggle. Offline / Muse labels are kept.
+- ✅ Real data: pick the replay robot from thumbnail cards. Results: by-layout cards show where sharing helped or
+  hurt; the generated sentences fold under "What the numbers say". All runs: cards use robot names (a replay
+  showed "null → panda_01") and compact stat chips.
+- ✅ `make test` 350 passed, `make smoke` pass, tsc + eslint clean; Playwright passes (see Library below).
+
+## Library: skills and runs in one place ✅ (2026-11-03)
+- ✅ Nav is now Home · Robots · Teach · Library. Real data and Results pages are gone; Skills and All runs became the
+  Library's two views (`components/library/`). Old links (`/skills`, `/history`, `/real`, `/evaluation`) forward
+  to the Library with their query.
+- ✅ Shared filters across both views: search, robot, task type and one layout, plus where a skill came from (Skills)
+  or run type and result (Runs). Everything is in the URL, including the open run.
+- ✅ Links both ways: a task card → "Every run on this layout"; a skill → "Open the run that made it"; a run that
+  saved a skill → "Its saved skill". Run cards name their task ("Reach past a wall · layout 7") and mark saved runs.
+- ✅ Backend: `GET /api/runs?family=&scene_id=` filters by task type or layout; robot / task filters apply before
+  paging (robot used to filter after the limit); compact runs carry `results.scene_id`. 3 new tests.
+- ✅ `make test` 353 passed, `make smoke` pass, tsc + eslint clean, Playwright control-center 17/17 (real-data and
+  results tests removed with their pages; a new test walks skill → runs → run → skill).
+- Note: the dev backend on :8000 started before this change and has no auto-reload, so the layout filter and task
+  names on run cards show only after it restarts.
+
+## Home · Lab · Library ✅ (2026-11-03)
+- ✅ Nav has three places. Teach is renamed Lab and lives at `/lab`; the Robots page is the Library's Robots view
+  (fleet cards, at-a-glance tiles, technical sheet, add / upload). Picking an arm there sets the robot filter, and
+  "See its skills" / "See its runs" switch view with that robot kept.
+- ✅ `/transfer`, `/robots` (and the earlier `/skills`, `/history`, `/real`, `/evaluation`) forward with their query
+  through `components/Forward.tsx`. Links across the app and `docs/ARCHITECTURE.md` point at the new places.
+- ✅ `make test` 353 passed, `make smoke` pass, tsc + eslint clean, Playwright control-center 17/17 (tests now
+  also check that `/robots` and `/transfer` forward).
+
+## Library · Lab · Blog, and sign-in for the Lab ✅ (2026-11-03)
+- ✅ Nav is Home · Library · Lab · Blog. The account control is always top right: a "Sign in" button (with the
+  Google mark when Google is set up), or the user's picture and name with a profile menu (Open the Lab, Your posts,
+  Write a post, Sign out). If sign-in isn't set up on the server, the dialog says so instead of hiding the button.
+- ✅ Lab: signed-out visitors get one card ("The Lab is where robots learn", Continue with Google, browse the
+  Library). The Library stays open; adding or uploading robots and saving skills ask for sign-in (server-enforced).
+- ✅ Blog: list (newest first, featured first card), read, write with a preview, edit and delete your own posts.
+  `backend/app/api/blog.py`, `models/blog.py`, `blog_posts` table; 9 backend tests.
+- ✅ Checked in the browser against a temporary backend with placeholder Google settings: gate, the Google redirect
+  (`accounts.google.com`, scope openid email profile, back to `/lab`), a signed-in test user writing a post,
+  markup shown as text, profile menu, sign-out bringing the gate back, phone width.
+- ✅ `make test` 362 passed, `make smoke` pass, tsc + eslint clean, Playwright 19/19 (new: sign-in placement and the
+  "not switched on" dialog, and a blog write → edit → delete flow).
+- ⬜ Real Google sign-in needs `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and `NIMBOTICS_SESSION_SECRET` on the
+  server, and the redirect URI `https://nimbotics.net/api/auth/callback/google` registered with Google
+  (deploy/README.md, "Turning on sign-in"). Not set locally, so the Lab is open in local dev.
+
+## Header: no Home item, bigger nav, black sign-in ✅ (2026-11-03)
+- ✅ Nav is Library · Lab · Blog (the logo is the way home). Nav links are 44 px tall (track 56 px); the sign-in
+  button is solid ink, 56 px, with the Google mark on a white disc; the signed-in chip matches its height.
+- ✅ Measured at 1440 px: nav track and button both span y 16–72 (centre 44); the logo's letters measure 29.6–58.5
+  (centre 44); logo left and button right sit on the page gutter (32 px). At 375 px logo and button share the top
+  row on one centre line with 16 px gutters, nav centred below, no horizontal scroll.
+- ✅ Restarted the dev backend on :8000 (nothing was running) so the blog API and run filters are live.
+- ✅ `make test` 362 passed, `make smoke` pass, tsc + eslint clean, Playwright 19/19.
+
+## Sign-in: why it didn't work, and the local fixes ✅ / ⬜ (2026-11-03)
+- Cause: no Google client is configured anywhere (`/api/auth/config` shows no providers locally and on
+  nimbotics.net), so the Sign in button could only say sign-in is off.
+- ✅ Fixed two local-dev bugs that would have broken it even with keys: after Google, people were sent to the API
+  origin (`:8000/lab`, a 404 in dev); now `NIMBOTICS_APP_URL` sends them to the pages (`:3000`). And the pages on
+  `localhost:3000` called the API on `127.0.0.1:8000`, a different site, so the Lax session cookie was never sent;
+  the default API base is now `http://localhost:8000`. Checked in the browser with a temporary user (removed).
+- ✅ Local `.env` now has a generated `NIMBOTICS_SESSION_SECRET`, `NIMBOTICS_APP_URL` and empty Google fields.
+- ⬜ Needs the owner: a Google OAuth client (redirect URIs `http://localhost:8000/api/auth/callback/google` and
+  `https://nimbotics.net/api/auth/callback/google`), its id and secret in `.env` locally and as Codespaces secrets
+  for nimbotics.net, then a backend / container restart (deploy/README.md, "Turning on sign-in").
+
+## Google sign-in client created ✅ / ⬜ (2026-11-04)
+- ✅ Google Cloud project `nimbotics` (account azeineld1@gmail.com): consent screen "Nimbotics", External, authorized
+  domain nimbotics.net, home page https://nimbotics.net, privacy policy https://nimbotics.net/privacy; web client
+  "Nimbotics web" with redirect URIs `https://nimbotics.net/api/auth/callback/google` and
+  `http://localhost:8000/api/auth/callback/google`; published "In production" (basic scopes, no logo: no review).
+- ✅ `/privacy` page added (linked from the footer), written from what the backend stores.
+- ⬜ The client id and secret go into `.env` (local) and Codespaces secrets (nimbotics.net) by the owner; then restart.
+
+## Sign in with email or Google ✅ (2026-11-04)
+- ✅ Header shows a plain black "Sign in" (no Google mark) that opens `/signin`; pages `/signin` ("Sign in to
+  Nimbotics": Google, or, email → password) and `/signup` ("Create your account": Google, or, email + password with a
+  show/hide eye → your name) follow the owner's reference layout, with no site nav. The Lab gate offers Sign in and
+  Create an account; both come back to where you were.
+- ✅ Backend: `POST /api/auth/register`, `POST /api/auth/signin` (`api/password_auth.py`, `services/auth/passwords.py`,
+  `credentials` table); 16 tests (hashing, one account per email, validation, one failure message, lockout, sign-up
+  cap). Tests and Playwright now blank the session secret and Google keys so a filled-in `.env` can't leak in.
+- ✅ Checked in the browser on localhost with a generated test account (deleted after): sign up → back to the Library
+  signed in; sign out; wrong password → "Wrong email or password."; right password → back to the Lab; phone width.
+- ✅ `make test` 379 passed, `make smoke` pass, tsc + eslint clean, Playwright 19/19. Privacy page covers email accounts.
+- ⬜ No email verification or password reset yet (need an email sender). nimbotics.net still needs the Codespaces
+  secrets and a deploy.

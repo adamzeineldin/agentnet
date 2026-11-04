@@ -1,9 +1,11 @@
 import type {
-  ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode, RobotSummary, RunEvent, RunRecord,
-  DesignResult, ScoutPlan, UploadResult,
+  BlogPost, BlogPostInput, DesignResult, ExecuteOn, ExperienceCapsule, LibrarianMode, LibraryReport, ReasoningMode,
+  PublicUser, RobotSummary, RunEvent, RunRecord, ScoutPlan, UploadResult,
 } from "./types";
 
-export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+// "localhost", not 127.0.0.1: the pages run on localhost:3000, and browsers only send the sign-in cookie
+// (SameSite=Lax) to an API on the same site; localhost and 127.0.0.1 count as different sites.
+export const API_BASE = (process.env.NEXT_PUBLIC_API_BASE ?? "http://localhost:8000").replace(/\/$/, "");
 
 export class ApiError extends Error {
   constructor(public readonly status: number, message: string) {
@@ -172,4 +174,27 @@ export function runToCompletion(
       }),
   );
   return { done, cancel: () => cancel() };
+}
+
+/** Create an email + password account; the server signs you in (session cookie) on success. */
+export function registerAccount(name: string, email: string, password: string): Promise<PublicUser> {
+  return apiFetch<PublicUser>("/api/auth/register", { method: "POST", body: JSON.stringify({ name, email, password }) });
+}
+
+export function signInWithPassword(email: string, password: string): Promise<PublicUser> {
+  return apiFetch<PublicUser>("/api/auth/signin", { method: "POST", body: JSON.stringify({ email, password }) });
+}
+
+/** Publish a blog post as the signed-in user (or as "Guest" when sign-in is off). */
+export function createPost(post: BlogPostInput): Promise<BlogPost> {
+  return apiFetch<BlogPost>("/api/blog", { method: "POST", body: JSON.stringify(post) });
+}
+
+/** Replace a post's title and text; only its author may. */
+export function updatePost(postId: string, post: BlogPostInput): Promise<BlogPost> {
+  return apiFetch<BlogPost>(`/api/blog/${encodeURIComponent(postId)}`, { method: "PUT", body: JSON.stringify(post) });
+}
+
+export function deletePost(postId: string): Promise<null> {
+  return apiFetch<null>(`/api/blog/${encodeURIComponent(postId)}`, { method: "DELETE" });
 }

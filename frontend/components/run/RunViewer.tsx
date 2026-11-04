@@ -55,8 +55,8 @@ export function RunViewer({ kind, runId, events, run, busy, names }: RunViewerPr
             hasTries={triesOf(pic).length > 0} onBack={() => setView({ kind: "live" })} />
           {pic.task && candidates.length > 0 && (
             <div className="rounded-xl border border-line p-3">
-              <p className="mb-2 text-xs text-ink-3">
-                {busy ? "Every route, drawn as it is checked." : "Every route it considered."} Tried routes show the path the hand really took in MuJoCo.
+              <p className="mb-2 text-xs text-ink-3" title="Tried routes show the path the hand really took in MuJoCo.">
+                {busy ? "Routes, drawn as they are checked" : "Every route it considered"}
               </p>
               <RouteDiagram plain task={pic.task} candidates={candidates} pendingIds={busy ? pending : undefined}
                 selectedId={watching ?? pic.selected ?? null} />

@@ -127,3 +127,15 @@ def test_run_list_pages_and_filters_by_status(client, discovered):
     done = client.get("/api/runs?run_status=succeeded&full=false").json()
     assert done and all(r["status"] == "succeeded" for r in done)
     assert all(r["status"] not in ("succeeded", "failed") for r in client.get("/api/runs?run_status=running").json())
+
+
+def test_compact_runs_name_their_task_and_filter_by_it(client, discovered):
+    small = client.get("/api/runs?full=false").json()
+    run = next(r for r in small if r["run_id"] == discovered["run_id"])
+    scene = discovered["results"]["task"]["scene_id"]
+    assert run["results"]["scene_id"] == scene
+    family = scene.rpartition("_s")[0]
+    same = client.get(f"/api/runs?full=false&family={family}").json()
+    assert discovered["run_id"] in [r["run_id"] for r in same]
+    assert all(r["results"].get("scene_id", "").startswith(family) for r in same)
+    assert client.get("/api/runs?full=false&scene_id=nope_s1").json() == []

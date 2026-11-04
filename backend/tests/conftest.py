@@ -10,6 +10,11 @@ from pathlib import Path
 _TMP = Path(tempfile.mkdtemp(prefix="nimbotics-test-"))
 os.environ["NIMBOTICS_DB_PATH"] = str(_TMP / "test.db")
 os.environ["NIMBOTICS_ARTIFACT_DIR"] = str(_TMP / "artifacts")
+# Sign-in stays off unless a test turns it on: the repo's .env may hold real Google keys and a session secret,
+# and load_dotenv never overrides a variable that is already set (even to "").
+for _key in ("GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET",
+             "NIMBOTICS_SESSION_SECRET", "NIMBOTICS_APP_URL"):
+    os.environ[_key] = ""
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import pytest  # noqa: E402

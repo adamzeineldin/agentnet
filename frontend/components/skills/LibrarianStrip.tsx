@@ -44,11 +44,9 @@ export function LibrarianStrip({ skills, robotName }: LibrarianStripProps) {
     <section aria-label="Librarian" className="soft-card space-y-3 p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="max-w-2xl">
-          <h2 className="font-medium">Librarian: what to teach next</h2>
-          <p className="text-sm text-ink-3">
-            Reads everything saved here and suggests which robot should learn which task next. It never runs anything or
-            changes a skill.
-          </p>
+          <h2 className="font-medium">What to teach next</h2>
+          <p className="text-xs text-ink-3" title="The librarian reads every saved skill and suggests transfers. It never runs anything or changes a skill.">
+            Suggestions from the librarian. It never runs anything.</p>
         </div>
         <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
           <select aria-label="Librarian" value={mode} disabled={busy} onChange={(e) => setMode(e.target.value as LibrarianMode)}
@@ -79,11 +77,16 @@ export function LibrarianStrip({ skills, robotName }: LibrarianStripProps) {
               {tips.map((t) => {
                 const s = byId.get(t.source_skill_id);
                 return (
-                  <li key={`${t.source_skill_id}:${t.target_robot_id}`} className="rounded-xl border border-line p-3 text-sm">
+                  <li key={`${t.source_skill_id}:${t.target_robot_id}`} className="flex flex-col gap-2 rounded-xl bg-panel-2/60 p-3 text-sm">
+                    <p className="flex flex-wrap items-center gap-1.5 text-xs">
+                      {s && <span className="rounded-full bg-panel px-2 py-0.5">{robotName(s.source_robot_id)}</span>}
+                      {s && <span aria-hidden="true" className="text-accent">→</span>}
+                      <span className="rounded-full bg-panel px-2 py-0.5 font-medium">{robotName(t.target_robot_id)}</span>
+                    </p>
                     <p>Teach the <b>{robotName(t.target_robot_id)}</b> {s ? <>“{taskTitle(s)}”</> : "this task"}
                       {s && <> from the {robotName(s.source_robot_id)}</>}.</p>
-                    {s && <Link className="mt-2 inline-block text-xs text-accent hover:underline"
-                      href={`/transfer?source=${s.source_robot_id}&target=${t.target_robot_id}&skill=${encodeURIComponent(s.skill_id)}`}>
+                    {s && <Link className="mt-auto text-xs text-accent hover:underline"
+                      href={`/lab?source=${s.source_robot_id}&target=${t.target_robot_id}&skill=${encodeURIComponent(s.skill_id)}`}>
                       Teach it →</Link>}
                   </li>
                 );

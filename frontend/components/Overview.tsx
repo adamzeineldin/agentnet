@@ -16,7 +16,7 @@ export function Overview() {
             and retargets each skill through another robot’s own kinematics.
           </p>
           <div className="mt-7 flex flex-wrap gap-3">
-            <Link href="/transfer" className="button-primary">Try it</Link>
+            <Link href="/lab" className="button-primary">Try it</Link>
             <a href="#how-it-works" className="button-secondary">How it works</a>
           </div>
         </div>

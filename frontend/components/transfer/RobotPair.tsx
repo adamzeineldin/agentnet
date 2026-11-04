@@ -47,7 +47,7 @@ export function RobotPair({ robots, source, target, disabled, onChange }: RobotP
           className="pill justify-center self-center px-3">⇄</button>
         <Seat role="Learner" robot={t} robots={robots} exclude={source} disabled={disabled} onPick={(id) => onChange(source, id)} />
       </div>
-      <p className="text-xs text-ink-3">Want other robots? <Link href="/robots" className="text-accent hover:underline">Add more on the Robots page</Link>.</p>
+      <Link href="/library?view=robots" className="inline-block text-xs text-accent hover:underline">+ Add robots</Link>
     </div>
   );
 }

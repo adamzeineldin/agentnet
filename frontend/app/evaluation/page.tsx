@@ -1,5 +1,5 @@
-import { Evaluation } from "@/components/evaluation/Evaluation";
+import { Forward } from "@/components/Forward";
 
 export default function Page() {
-  return <Evaluation />;
+  return <Forward to="/library" />;
 }

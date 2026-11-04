@@ -2,7 +2,7 @@
 
 ```
 Next.js Control Center ──HTTP/SSE──▶ FastAPI ──submit──▶ Simulation worker (1 thread)
-  Overview / Fleet / History          api/robots, runs        scene → RobotAdapter → IK → execute_path → render
+  Home / Lab / Library               api/robots, runs        scene → RobotAdapter → IK → execute_path → render
                                        │                                   │
                                        └──── Registry (SQLite: passports, runs) ◀──┘   artifacts/ (MP4, PNG)
 ```
@@ -70,5 +70,5 @@ benchmark.run_benchmark
      run_variant(order) for baseline_no_sharing | retarget_only | nimbotics_offline
         lazy: kinematic stages → physics rollout if feasible → stop at first verified (≤3 rollouts)
   summarize (per family / all / common) + paired_vs_baseline → run.results
-scripts/benchmark.py → docs/EVALUATION_RESULTS.md (generated)     /evaluation page (same run)
+scripts/benchmark.py → docs/EVALUATION_RESULTS.md (generated)     Library → Runs → Comparisons
 ```

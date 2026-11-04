@@ -388,8 +388,13 @@ export interface CatalogEntry {
   in_fleet: boolean; default_fleet: boolean;
 }
 export type AuthProvider = "google" | "github";
-export interface AuthConfig { providers: AuthProvider[]; required: boolean }
-export interface PublicUser { user_id: string; provider: AuthProvider; name: string; avatar_url: string | null }
+/** How an account signs in: an OAuth provider, or an email and password. */
+export type AccountKind = AuthProvider | "email";
+export interface AuthConfig { providers: AuthProvider[]; password: boolean; required: boolean }
+export interface PublicUser { user_id: string; provider: AccountKind; name: string; avatar_url: string | null }
+export const PASSWORD_MIN = 8;
+export const PASSWORD_MAX = 128;
+export const NAME_MAX = 60;
 
 export interface UploadResult { robot: RobotSummary; notes: string[] }
 
@@ -412,3 +417,16 @@ export interface TaskDesign {
   created_by: string | null; created_at: string;
 }
 export interface DesignResult { design: TaskDesign; example: TaskSpec; reused: boolean }
+
+// ---- Blog (backend/app/models/blog.py)
+export interface BlogPostInput { title: string; body: string }
+export interface BlogPostSummary {
+  post_id: string; title: string; excerpt: string;
+  /** "<provider>:<id>" of the writer, or "guest" when sign-in is off on the server. */
+  author_id: string; author_name: string; author_avatar: string | null;
+  created_at: string; updated_at: string;
+}
+export interface BlogPost extends Omit<BlogPostSummary, "excerpt"> { body: string }
+export const BLOG_TITLE_MAX = 120;
+export const BLOG_BODY_MAX = 20_000;
+export const BLOG_GUEST_ID = "guest";

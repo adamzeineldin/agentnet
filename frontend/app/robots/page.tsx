@@ -1,11 +1,5 @@
-import { Suspense } from "react";
-import { RobotFleet } from "@/components/RobotFleet";
-import { Loading } from "@/components/ui";
+import { Forward } from "@/components/Forward";
 
 export default function Page() {
-  return (
-    <Suspense fallback={<Loading label="Loading fleet…" />}>
-      <RobotFleet />
-    </Suspense>
-  );
+  return <Forward to="/library" set={{ view: "robots" }} />;
 }

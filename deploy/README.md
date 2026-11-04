@@ -76,6 +76,16 @@ returns.
 `deploy/codespace.sh` passes the secrets into the container, sets `NIMBOTICS_PUBLIC_URL` to the codespace link
 (OAuth redirects need the public address) and generates a session-signing secret.
 
+On nimbotics.net, register `https://nimbotics.net/api/auth/callback/google` as the redirect URI instead (and set
+`NIMBOTICS_PUBLIC_URL=https://nimbotics.net`, step 4 of "Own domain" below).
+
+**Signing in on your own computer.** Add a second redirect URI to the same Google client:
+`http://localhost:8000/api/auth/callback/google` (Google allows plain `http` for `localhost`). Then put the client id
+and secret in the repo's `.env` next to `NIMBOTICS_SESSION_SECRET` and `NIMBOTICS_APP_URL=http://localhost:3000`
+(the pages run on :3000 while the API runs on :8000), restart the backend, and open the app at
+`http://localhost:3000` (not 127.0.0.1: the sign-in cookie is only sent to an API on the same site). With sign-in on,
+the Lab asks for an account locally too.
+
 ### Turning on Meta Muse Spark
 
 Without a model key the public copy uses the offline skill scout and route ranking, and says so on screen. To let

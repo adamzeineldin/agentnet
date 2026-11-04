@@ -29,7 +29,7 @@ function Routes({ run }: { run: RunRecord }) {
   const candidates = (run.results.candidates ?? []) as CandidateSummary[];
   if (candidates.length === 0) return null;
   return (
-    <Disclosure summary="Every route, in numbers" hint={`${candidates.length} routes: clearance, cost and physics error`}>
+    <Disclosure summary="Every route, in numbers" hint={`${candidates.length} routes`}>
       <CandidateCards candidates={candidates} selectedId={(run.results.selected as string) ?? null} />
     </Disclosure>
   );
@@ -42,9 +42,10 @@ export function TeacherStep({ teacher, teacherDof, taskTitle, stream, skills, sk
   const [exact, setExact] = useState<number | null>(null);
   return (
     <div className="space-y-4">
-      <p className="max-w-3xl text-sm text-ink-2">
-        Task: <b className="text-ink">{taskTitle}</b>. The {teacher} tries up to ten routes to the target in the
-        physics simulator, on a new layout each time, and keeps the best one that passes.
+      <p className="flex flex-wrap items-center gap-2 text-sm text-ink-2"
+        title={`The ${teacher} tries up to ten routes in the physics simulator, on a new layout each time, and keeps the best one that passes.`}>
+        <span className="rounded-full bg-panel-2 px-3 py-1">Task: <b className="font-medium text-ink">{taskTitle}</b></span>
+        <span className="text-xs text-ink-3">up to 10 routes · best one that passes</span>
       </p>
       <div className="flex flex-wrap items-end gap-3">
         <ActButton onClick={() => onTeach(exact ?? randomLayout())} disabled={busy}

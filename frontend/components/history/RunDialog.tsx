@@ -97,9 +97,20 @@ function useRunRecord(runId: string): { run: RunRecord | null; error: string | n
 }
 
 /** One run, opened over the list (so it is always in view), loaded in full and kept fresh while it runs. */
-export function RunDialog({ runId, robots, onClose }: { runId: string; robots: RobotSummary[]; onClose: () => void }) {
+interface RunDialogProps {
+  runId: string;
+  robots: RobotSummary[];
+  onClose: () => void;
+  /** Show the skill this run saved, on its layout in the library. */
+  onShowSkill?: (sceneId: string) => void;
+}
+
+export function RunDialog({ runId, robots, onClose, onShowSkill }: RunDialogProps) {
   const ref = useRef<HTMLDialogElement>(null);
   const { run, error } = useRunRecord(runId);
+  const name = (id: string | null) => robots.find((r) => r.robot_id === id)?.short_name ?? id;
+  const scene = (run?.results.task as { scene_id?: string } | undefined)?.scene_id;
+  const skillScene = run?.results.published === true && scene ? scene : null;
 
   useEffect(() => {
     const dialog = ref.current;
@@ -114,10 +125,16 @@ export function RunDialog({ runId, robots, onClose }: { runId: string; robots: R
         <div className="min-w-0">
           <h2 id="run-dialog-title" className="text-lg font-medium">{run ? RUN_KIND[run.run_type]?.title ?? run.run_type : "Run"}</h2>
           {run && <p className="mt-0.5 truncate text-xs text-ink-3">
-            {run.target_robot_id ? `${run.source_robot_id} → ${run.target_robot_id}` : run.source_robot_id ?? "all robots"} · layout {run.task_seed} · {run.run_id}
+            {[run.source_robot_id, run.target_robot_id].filter(Boolean).map(name).join(" → ") || "all robots"} · layout {run.task_seed} · {run.run_id}
           </p>}
         </div>
-        <button type="button" onClick={() => ref.current?.close()} className="pill shrink-0" aria-label="Close run">Close ✕</button>
+        <div className="flex shrink-0 flex-wrap justify-end gap-2">
+          {skillScene && onShowSkill && (
+            <button type="button" onClick={() => onShowSkill(skillScene)} className="pill">
+              Its saved skill →</button>
+          )}
+          <button type="button" onClick={() => ref.current?.close()} className="pill" aria-label="Close run">Close ✕</button>
+        </div>
       </header>
       {error && <ErrorNote message={error} />}
       {!run && !error && <Loading label="Loading the run…" />}

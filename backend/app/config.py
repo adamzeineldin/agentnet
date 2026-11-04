@@ -41,8 +41,13 @@ GITHUB_CLIENT_SECRET = os.environ.get("GITHUB_CLIENT_SECRET") or None
 # Signs session cookies. Required whenever a provider is configured; never committed.
 SESSION_SECRET = os.environ.get("NIMBOTICS_SESSION_SECRET") or None
 SESSION_DAYS = 14
+# Blog: posts a writer may publish per UTC day (keeps the shared site from being flooded).
+BLOG_DAILY_POSTS = int(os.environ.get("NIMBOTICS_BLOG_DAILY_POSTS") or 20)
 # Public origin used to build OAuth redirect URIs behind a proxy (e.g. the Codespaces URL). Unset = request origin.
 PUBLIC_URL = (os.environ.get("NIMBOTICS_PUBLIC_URL") or "").rstrip("/") or None
+# Where people land after signing in, when the pages are served from another origin than the API
+# (local dev: http://localhost:3000). Unset = the API's own public origin (the cloud image serves both).
+APP_URL = (os.environ.get("NIMBOTICS_APP_URL") or "").rstrip("/") or None
 
 # Local-only app: allow any localhost / 127.0.0.1 port (Next dev may move off :3000).
 CORS_ORIGIN_REGEX = os.environ.get(

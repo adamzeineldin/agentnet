@@ -89,6 +89,15 @@ function Tries({ pic, watching, onWatch }: Pick<RunStepsProps, "pic" | "watching
   );
 }
 
+/** Short facts as chips, so a stage reads at a glance instead of as a paragraph. */
+function Chips({ items }: { items: (ReactNode | false | null | undefined)[] }) {
+  return (
+    <ul className="flex flex-wrap gap-1.5">
+      {items.filter(Boolean).map((item, i) => <li key={i} className="rounded-full bg-panel-2 px-2.5 py-0.5 text-[11px] text-ink-2">{item}</li>)}
+    </ul>
+  );
+}
+
 /** Plain detail for each stage, from what the run has reported so far. */
 function detail(key: StageKey, props: RunStepsProps): ReactNode {
   const { pic, names, kind } = props;
@@ -98,27 +107,31 @@ function detail(key: StageKey, props: RunStepsProps): ReactNode {
   switch (key) {
     case "skill":
       return pic.source && (
-        <p>Its route was <b>{routePhrase(`${pic.source.strategy.route_class}@${pic.source.strategy.clearance_m.toFixed(2)}`)}</b> on
-          layout {pic.source.task.seed}. The skill holds the task&apos;s shape and that route. It holds <b>no joint angles</b>.</p>
+        <Chips items={[
+          <>route: <b>{routePhrase(`${pic.source.strategy.route_class}@${pic.source.strategy.clearance_m.toFixed(2)}`)}</b></>,
+          `layout ${pic.source.task.seed}`,
+          <span key="angles" title="The skill holds the task's shape and the route, never joint angles.">no joint angles</span>,
+        ]} />
       );
     case "setup":
       return pic.task && pic.placement && (
-        <p>
-          {kind === "discover" ? `Layout ${pic.task.seed}: ${pic.task.description} ` : ""}
-          The task sits {fmtMetres(pic.placement.translation[0])} in front of the {robot}
-          {pic.source && teacher ? ` (it was ${fmtMetres(pic.source.placement.translation[0])} in front of the ${teacher})` : ""}.
-          {reachPct && ` The farthest point of the ${teacher}'s route is ${reachPct}% of the ${robot}'s reach.`}
-          {kind === "transfer" && names.teacherDof && names.robotDof && (names.teacherDof !== names.robotDof
-            ? ` The ${teacher} has ${names.teacherDof} joints and the ${robot} has ${names.robotDof}, so angles can't be copied.`
-            : ` Both have ${names.robotDof} joints, but different link lengths, so copied angles would miss.`)}
-        </p>
+        <div className="space-y-2">
+          {kind === "discover" && <p className="text-ink-3">Layout {pic.task.seed}: {pic.task.description}</p>}
+          <Chips items={[
+            `${fmtMetres(pic.placement.translation[0])} in front of the ${robot}`,
+            pic.source && teacher && `${teacher}: ${fmtMetres(pic.source.placement.translation[0])}`,
+            reachPct && `route uses ${reachPct}% of its reach`,
+            kind === "transfer" && names.teacherDof && names.robotDof && (names.teacherDof !== names.robotDof
+              ? `The ${teacher} has ${names.teacherDof} joints and the ${robot} has ${names.robotDof}: angles can't be copied`
+              : `both ${names.robotDof} joints, different links: copied angles would miss`),
+          ]} />
+        </div>
       );
     case "routes":
-      return pic.routes.length > 0 && <p>{pic.routes.length} routes: straight, over the top, and around either side, each at a few distances from the obstacles.</p>;
+      return pic.routes.length > 0 && <Chips items={[`${pic.routes.length} routes`, "straight", "over the top", "around either side"]} />;
     case "check":
       return pic.routes.length > 0 && (
-        <div className="space-y-2">
-          <p>Geometry only, no physics yet: can the {robot}&apos;s own joints follow each route without hitting anything?</p>
+        <div className="space-y-2" title={`Geometry only, no physics yet: can the ${robot}'s own joints follow each route without hitting anything?`}>
           <CheckSummary routes={pic.routes} />
           <CheckChips routes={pic.routes} />
         </div>
@@ -129,7 +142,7 @@ function detail(key: StageKey, props: RunStepsProps): ReactNode {
       const muse = pic.rankedBy === "meta_muse_spark";
       return top.length > 0 && (
         <div className="space-y-2">
-          <p>{muse ? "Meta Muse Spark put the possible routes in order, using" : "A fixed rule (no AI) put the possible routes in order, using"} what the {teacher} learned. First three:</p>
+          <Badge tone={muse ? "accent" : "neutral"}>{muse ? "ordered by Meta Muse Spark" : "ordered by a fixed rule (no AI)"}</Badge>
           <ol className="space-y-1">
             {top.map((r, i) => (
               <li key={r.id} className="text-xs"><span className="font-mono text-ink-3">{i + 1}.</span> {routePhrase(r.id)}
@@ -140,24 +153,15 @@ function detail(key: StageKey, props: RunStepsProps): ReactNode {
       );
     }
     case "physics":
-      return (
-        <div className="space-y-2">
-          <p>Each try runs the {robot}&apos;s own motors in MuJoCo from the same start. Up to 3 tries; {kind === "transfer" ? "the first that passes" : "the best that passes"} wins.</p>
-          <Tries pic={pic} watching={props.watching} onWatch={props.onWatch} />
-        </div>
-      );
+      return <Tries pic={pic} watching={props.watching} onWatch={props.onWatch} />;
     case "record":
-      return (
-        <div className="space-y-2">
-          <p>The chosen route runs again from scratch while the camera records, and has to pass every check.</p>
-          {pic.finalChecks && (
-            <ul className="space-y-0.5 text-xs">
-              {Object.entries(pic.finalChecks).map(([k, ok]) => (
-                <li key={k} className={ok ? "text-good" : "text-bad"}>{ok ? "✓" : "✕"} {CHECK_TEXT[k] ?? k.replaceAll("_", " ")}</li>
-              ))}
-            </ul>
-          )}
-        </div>
+      return pic.finalChecks && (
+        <ul className="flex flex-wrap gap-1.5 text-[11px]">
+          {Object.entries(pic.finalChecks).map(([k, ok]) => (
+            <li key={k} className={`rounded-full border px-2 py-0.5 ${ok ? "border-good/40 text-good" : "border-bad/40 text-bad"}`}>
+              {ok ? "✓" : "✕"} {CHECK_TEXT[k] ?? k.replaceAll("_", " ")}</li>
+          ))}
+        </ul>
       );
   }
 }
@@ -167,10 +171,10 @@ export function title(key: StageKey, kind: RunKind, { robot, teacher }: StepName
     case "skill": return `Read the ${teacher}'s saved skill`;
     case "setup": return kind === "discover" ? "Set up the task" : `Set the task down in front of the ${robot}`;
     case "routes": return "Sketch routes to the target";
-    case "check": return kind === "discover" ? `Check each route against the ${robot}'s joints` : `Work out the ${robot}'s own joint motion for each route`;
-    case "rank": return `Put the routes in order using what worked for the ${teacher}`;
-    case "physics": return `Test the most promising routes in physics${pic.selected ? `: ${routePhrase(pic.selected)} chosen` : ""}`;
-    case "record": return "Record the chosen route and check it again";
+    case "check": return kind === "discover" ? `Check each route against the ${robot}'s joints` : `Work out the ${robot}'s own joint motion`;
+    case "rank": return `Order routes by what worked for the ${teacher}`;
+    case "physics": return `Test the best routes in physics${pic.selected ? `: ${routePhrase(pic.selected)} chosen` : ""}`;
+    case "record": return "Record the winner and check it again";
   }
 }
 

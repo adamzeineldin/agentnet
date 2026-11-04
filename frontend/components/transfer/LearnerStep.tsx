@@ -20,6 +20,9 @@ import { JointCorrespondence } from "./JointCorrespondence";
 import { RunViewer } from "../run/RunViewer";
 import { RunStory } from "./RunStory";
 
+/** Selected look for a radio inside a `.segmented` control (that class styles tabs by aria-selected). */
+const SEG_ON = "aria-checked:bg-ink! aria-checked:text-bg!";
+
 interface LearnerStepProps {
   teacher: RobotSummary;
   learner: RobotSummary;
@@ -48,21 +51,18 @@ export function LearnerStep({ teacher, learner, robots, stream, onLearn, onSave 
 
   return (
     <div className="space-y-4">
-      <p className="max-w-3xl text-sm text-ink-2">
-        The {l} reads the {t}&apos;s skill, works out its own joint motion and has to pass the same physics test.
-        It never sees the {t}&apos;s joint angles.
-      </p>
-      <fieldset className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-        <legend className="sr-only">Which layout the learner is tested on</legend>
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={!newLayout} onChange={() => setNewLayout(false)} disabled={busy} />
-          the same layout the {t} learned on
-        </label>
-        <label className="flex items-center gap-2">
-          <input type="radio" checked={newLayout} onChange={() => setNewLayout(true)} disabled={busy} />
-          a new random layout
-        </label>
-      </fieldset>
+      <ul className="flex flex-wrap gap-1.5 text-xs" aria-label="How the learner learns">
+        <li className="rounded-full bg-good/10 px-2.5 py-1 text-good">✓ reads the {t}&apos;s skill</li>
+        <li className="rounded-full bg-good/10 px-2.5 py-1 text-good">✓ its own joint motion</li>
+        <li className="rounded-full bg-good/10 px-2.5 py-1 text-good">✓ same physics test</li>
+        <li className="rounded-full bg-panel-2 px-2.5 py-1 text-ink-3">✕ never sees the {t}&apos;s joint angles</li>
+      </ul>
+      <div className="segmented w-fit" role="radiogroup" aria-label="Which layout the learner is tested on">
+        <button type="button" role="radio" aria-checked={!newLayout} disabled={busy}
+          onClick={() => setNewLayout(false)} className={SEG_ON}>Same layout as the {t}</button>
+        <button type="button" role="radio" aria-checked={newLayout} disabled={busy}
+          onClick={() => setNewLayout(true)} className={SEG_ON}>A new random layout</button>
+      </div>
       {newLayout && <ExactLayout value={exact} onChange={setExact} disabled={busy} />}
       <Disclosure summary="More options" hint={`route order: ${mode === "meta" ? "Muse Spark" : "fixed rule"}`}>
         <div className="space-y-3 text-sm">
@@ -90,7 +90,7 @@ export function LearnerStep({ teacher, learner, robots, stream, onLearn, onSave 
         <div className="soft-card flex flex-wrap items-center justify-between gap-3 px-4 py-3">
           <p className={`min-w-0 flex-1 text-base ${run.status === "succeeded" ? "text-ink" : "text-bad"}`}>{describeTransfer(run, t, l)}</p>
           {run.status === "succeeded" && (saved
-            ? <p className="text-sm text-good">✓ Saved. It shows on the <Link href="/skills" className="underline">Skills</Link> page as learned from the {t}.</p>
+            ? <p className="text-sm text-good">✓ Saved. It shows in the <Link href="/library" className="underline">Library</Link> as learned from the {t}.</p>
             : <ActButton onClick={onSave} className="button-primary">Save the {l}&apos;s version</ActButton>)}
         </div>
       )}
@@ -101,10 +101,10 @@ export function LearnerStep({ teacher, learner, robots, stream, onLearn, onSave 
       {run && !busy && (
         <div className="space-y-5">
           {controller && <ControllerPanel execution={controller} />}
-          <Disclosure summary={`How the skill was mapped onto the ${l}`} hint="sketches of the task in each robot's frame and the full route order">
+          <Disclosure summary={`How the skill was mapped onto the ${l}`} hint="sketches and route order">
             <RunStory run={run} robots={robots} />
           </Disclosure>
-          <Disclosure summary="Technical detail" hint="predicted futures, joint limits and the full log">
+          <Disclosure summary="Technical detail" hint="predictions, joints, log">
             <div className="space-y-6">
               <ImaginationPanel run={run} />
               <JointCorrespondence sourceId={teacher.robot_id} targetId={learner.robot_id} />

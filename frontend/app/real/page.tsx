@@ -1,5 +1,5 @@
-import { RealData } from "@/components/real/RealData";
+import { Forward } from "@/components/Forward";
 
 export default function Page() {
-  return <RealData />;
+  return <Forward to="/library" />;
 }

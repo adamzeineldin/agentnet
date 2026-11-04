@@ -7,18 +7,15 @@ import { API_BASE } from "@/lib/api";
 import { useApi } from "@/lib/useApi";
 import { AuthProvider } from "@/lib/auth";
 import type { Health } from "@/lib/types";
-import { SignInDialog, UserMenu } from "./auth/SignIn";
+import { UserMenu } from "./auth/SignIn";
 import { Logo } from "./Logo";
+import { NavPill } from "./NavPill";
 
-/** Five places. How it works lives on the home page, below the hero. */
+/** Three places; the logo is the way home, and How it works lives on the home page below the hero. */
 export const NAV = [
-  { href: "/", label: "Home", what: "What Nimbotics is, and how it works" },
-  { href: "/robots", label: "Robots", what: "The robot arms, and adding more" },
-  { href: "/skills", label: "Skills", what: "Every task the robots have learned, and which robot can do what" },
-  { href: "/transfer", label: "Teach", what: "Teach one robot a task, then watch another robot learn it" },
-  { href: "/real", label: "Real data", what: "Motions recorded on a real robot, replayed in simulation" },
-  { href: "/evaluation", label: "Results", what: "Does sharing help? Measured, with every run" },
-  { href: "/history", label: "All runs", what: "Every simulation, running or finished: watch it step by step" },
+  { href: "/library", label: "Library", what: "Every robot, every skill it has learned, and every run behind them" },
+  { href: "/lab", label: "Lab", what: "Teach one robot a task, then watch another robot learn it (needs sign-in)" },
+  { href: "/blog", label: "Blog", what: "Posts from people using Nimbotics" },
 ];
 
 function OfflineBanner() {
@@ -33,26 +30,24 @@ function OfflineBanner() {
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   if (pathname.startsWith("/present")) return <>{children}</>;
-  return <AuthProvider><Shell pathname={pathname}>{children}</Shell><SignInDialog /></AuthProvider>;
+  // The sign-in pages stand alone: just the logo and the card, no nav or footer.
+  if (pathname.startsWith("/signin") || pathname.startsWith("/signup")) return <AuthProvider>{children}</AuthProvider>;
+  return <AuthProvider><Shell pathname={pathname}>{children}</Shell></AuthProvider>;
 }
 
 function Shell({ pathname, children }: { pathname: string; children: ReactNode }) {
   return <div className="flex min-h-screen flex-col">
-    <header className="sticky top-0 z-20 border-b border-line bg-panel">
-      <div className="flex min-h-14 flex-wrap items-center gap-x-6 px-4 lg:px-8">
-        <Link href="/" aria-label="nimbotics home" className="flex h-14 shrink-0 items-center text-base font-semibold">
+    <header className="site-header sticky top-0 z-20">
+      {/* Logo left and account right at every width, all three on one centre line and the same height as the nav;
+          the nav sits centred, on its own row on narrow screens. */}
+      <div className="mx-auto flex min-h-[88px] max-w-[1600px] flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4 md:px-8 lg:grid lg:grid-cols-[1fr_auto_1fr]">
+        <Link href="/" aria-label="nimbotics home" className="flex h-14 shrink-0 items-center text-[30px] leading-none font-semibold lg:text-[38px]">
           <Logo />
         </Link>
-        <nav aria-label="Main navigation" className="order-3 flex w-full overflow-x-auto text-[13px] lg:order-none lg:w-auto">
-          {NAV.map((item) => {
-            const active = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
-            return <Link key={item.href} href={item.href} aria-current={active ? "page" : undefined} title={item.what}
-              className={`nav-link flex h-12 shrink-0 items-center px-3 lg:h-14 ${active ? "text-ink shadow-[inset_0_-2px_0_var(--ink)]" : "text-ink-3 hover:text-ink"}`}>
-              {item.label}
-            </Link>;
-          })}
-        </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="order-3 flex w-full justify-center lg:order-none lg:w-auto">
+          <NavPill items={NAV} pathname={pathname} />
+        </div>
+        <div className="ml-auto flex items-center gap-2 lg:justify-self-end">
           <UserMenu />
         </div>
       </div>
@@ -63,6 +58,7 @@ function Shell({ pathname, children }: { pathname: string; children: ReactNode }
     <footer className="border-t border-line px-6 py-4 text-center font-mono text-[11px] text-ink-3">
       Results are MuJoCo simulation; real-robot paths are recorded by the DROID dataset; controller checks run on
       URSim software. Nothing here ran on a physical arm. <Link href="/#how-it-works" className="underline">How it works</Link>
+      {" · "}<Link href="/privacy" className="underline">Privacy</Link>
     </footer>
   </div>;
 }

@@ -38,8 +38,13 @@ def get_job_worker(request: Request) -> SimulationWorker:
     return worker
 
 
+def password_enabled() -> bool:
+    """Email + password accounts need nothing but a key to sign session cookies."""
+    return bool(SESSION_SECRET)
+
+
 def auth_required() -> bool:
-    return bool(providers.configured())
+    return bool(providers.configured()) or password_enabled()
 
 
 def current_user(request: Request, registry: Registry = Depends(get_registry)) -> User | None:

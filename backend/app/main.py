@@ -12,7 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from app.api import (
-    auth, benchmarks, controller, demo, health, library, real_data, robots, runs, skills, tasks, transfers,
+    auth, benchmarks, blog, controller, demo, health, library, password_auth, real_data, robots, runs, skills, tasks,
+    transfers,
 )
 from app.canonical_host import WwwRedirect
 from app.config import ARTIFACT_DIR, CORS_ORIGIN_REGEX, DB_PATH, PUBLIC_URL, WEB_DIR
@@ -52,6 +53,7 @@ def create_app(web_dir: Path | None = WEB_DIR, public_url: str | None = PUBLIC_U
     )
     app.include_router(health.router)
     app.include_router(auth.router)
+    app.include_router(password_auth.router)
     app.include_router(robots.router)
     app.include_router(runs.router)
     app.include_router(skills.router)
@@ -62,6 +64,7 @@ def create_app(web_dir: Path | None = WEB_DIR, public_url: str | None = PUBLIC_U
     app.include_router(controller.router)
     app.include_router(real_data.router)
     app.include_router(tasks.router)
+    app.include_router(blog.router)
     ARTIFACT_DIR.mkdir(parents=True, exist_ok=True)
     app.mount("/artifacts", StaticFiles(directory=ARTIFACT_DIR), name="artifacts")
     if web_dir is not None:

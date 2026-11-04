@@ -76,12 +76,12 @@ function MuseScout({ learner, robots, disabled, onUsePick, onUseTeacher, onDesig
           {asking === "design" ? "Muse is designing…" : "Design a new task"}
         </ActButton>
       </form>
-      <p className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-ink-3">
-        Try:{EXAMPLES.map((ex) => <button key={ex} type="button" disabled={!!asking || disabled} onClick={() => setGoal(ex)}
-          className="text-accent hover:underline">“{ex}”</button>)}
+      <p className="flex flex-wrap items-center gap-1.5 text-xs text-ink-3">
+        <span className="mr-1">Try</span>{EXAMPLES.map((ex) => <button key={ex} type="button" disabled={!!asking || disabled} onClick={() => setGoal(ex)}
+          className="rounded-full bg-panel px-2.5 py-1 text-ink-2 transition-colors hover:text-accent">{ex}</button>)}
       </p>
       {asking === "design" && <p className="text-xs text-ink-3" aria-live="polite">
-        Designing a layout and checking it against the limits; with Muse this takes up to a minute.</p>}
+        Designing and checking a layout (up to a minute with Muse)…</p>}
       {error && <ErrorNote message={error} />}
       {designed && <DesignedTask result={designed} disabled={disabled} onTeach={onDesigned} />}
       {plan && (
@@ -130,11 +130,11 @@ function TaskChoice({ task, checked, disabled, onPick }: {
   task: TaskTypeInfo; checked: boolean; disabled: boolean; onPick: () => void;
 }) {
   return (
-    <button type="button" role="radio" aria-checked={checked} disabled={disabled} onClick={onPick}
+    <button type="button" role="radio" aria-checked={checked} disabled={disabled} onClick={onPick} title={task.summary || undefined}
       className={`rounded-xl border p-3 text-left transition-colors ${checked ? "border-accent bg-panel" : "border-line bg-panel-2/40 hover:border-line-strong"}`}>
       {task.example && <TaskSketch task={task.example} />}
       <span className="block text-sm font-medium">{task.title}</span>
-      {task.summary && <span className="mt-0.5 block text-xs text-ink-3">{task.summary}</span>}
+
       {task.design && <span className="mt-1 block"><DesignerBadge provider={task.design.provider} /></span>}
     </button>
   );
@@ -158,11 +158,11 @@ export function TaskStep(props: TaskStepProps) {
     <div className="space-y-4">
       <MuseScout {...props} />
       <div role="radiogroup" aria-label="Task type" className="space-y-3">
-        <p className="text-xs text-ink-3">Or pick a task type yourself:</p>
+        <p className="text-xs text-ink-3">Or pick one</p>
         <div className={GRID}>{builtIn.map(choice)}</div>
         {designed.length > 0 && (
           <>
-            <p className="text-xs text-ink-3">Designed from descriptions ({designed.length}):</p>
+            <p className="text-xs text-ink-3">Designed by description · {designed.length}</p>
             <div className={GRID}>{shown.map(choice)}</div>
             {designed.length > shown.length && (
               <button type="button" onClick={() => setShowAll(true)} className="text-xs text-accent hover:underline">

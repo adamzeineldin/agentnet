@@ -38,7 +38,7 @@ def test_safe_next_blocks_open_redirects(raw, expected):
 
 def test_without_providers_sign_in_is_off_and_runs_stay_open():
     with TestClient(create_app()) as c:
-        assert c.get("/api/auth/config").json() == {"providers": [], "required": False}
+        assert c.get("/api/auth/config").json() == {"providers": [], "password": False, "required": False}
         assert c.get("/api/auth/me").json() is None
         assert c.get("/api/auth/login/github").status_code == 404
         assert c.post("/api/library/reports", json={}).status_code == 201
@@ -56,7 +56,7 @@ def gated(monkeypatch):
 
 
 def test_runs_need_sign_in_when_a_provider_is_configured(gated):
-    assert gated.get("/api/auth/config").json() == {"providers": ["github"], "required": True}
+    assert gated.get("/api/auth/config").json() == {"providers": ["github"], "password": True, "required": True}
     r = gated.post("/api/runs/discover", json={"robot_id": "panda_01", "scene_seed": 1})
     assert r.status_code == 401 and "Sign in" in r.json()["detail"]
     assert gated.post("/api/robots/ur10e_01/enable").status_code == 401
@@ -83,3 +83,16 @@ def test_oauth_round_trip_signs_in_and_records_who_started_a_run(gated):
     assert gated.post("/api/auth/logout").status_code == 204
     gated.cookies.clear()
     assert gated.get("/api/auth/me").json() is None
+
+
+def test_after_sign_in_people_land_on_the_app_origin_when_it_differs_from_the_api(gated, monkeypatch):
+    # Local dev: the API is on :8000 but the pages are on :3000, so the callback must send people to the pages.
+    monkeypatch.setattr(auth_api, "APP_URL", "http://localhost:3000")
+    login = gated.get("/api/auth/login/github?next=/lab", follow_redirects=False)
+    state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+    done = gated.get(f"/api/auth/callback/github?code=c&state={state}", follow_redirects=False)
+    assert done.status_code == 302 and done.headers["location"] == "http://localhost:3000/lab"
+    login = gated.get("/api/auth/login/github?next=/blog", follow_redirects=False)
+    state = parse_qs(urlparse(login.headers["location"]).query)["state"][0]
+    denied = gated.get(f"/api/auth/callback/github?error=access_denied&state={state}", follow_redirects=False)
+    assert denied.headers["location"] == "http://localhost:3000/blog"

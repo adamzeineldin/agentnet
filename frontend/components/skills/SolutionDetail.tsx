@@ -10,7 +10,9 @@ import { RunVideo } from "../transfer/RunMedia";
 import { Disclosure, ErrorNote, Loading, Stat } from "../ui";
 
 /** One robot's saved solution: its video, a plain sentence, the proof and where it came from. */
-export function SolutionDetail({ capsule, robotName }: { capsule: ExperienceCapsule; robotName: (id: string) => string }) {
+export function SolutionDetail({ capsule, robotName, onOpenRun }: {
+  capsule: ExperienceCapsule; robotName: (id: string) => string; onOpenRun: (runId: string) => void;
+}) {
   const run = useApi<RunRecord>(`/api/runs/${capsule.provenance.run_id}`);
   const v = capsule.validation;
   const me = robotName(capsule.source_robot_id);
@@ -31,6 +33,8 @@ export function SolutionDetail({ capsule, robotName }: { capsule: ExperienceCaps
               <Stat label="Wall touches" value={v.collisions} />
               <Stat label="Routes that passed" value={`${v.candidates_verified} of ${v.candidates_evaluated}`} />
             </div>
+            <button type="button" onClick={() => onOpenRun(String(capsule.provenance.run_id))} className="pill text-xs">
+              Open the run that made it →</button>
           </div>
         </div>
       )}

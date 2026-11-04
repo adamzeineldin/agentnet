@@ -1,7 +1,5 @@
-import { Suspense } from "react";
-import { SkillLibrary } from "@/components/SkillLibrary";
-import { Loading } from "@/components/ui";
+import { Forward } from "@/components/Forward";
 
 export default function Page() {
-  return <Suspense fallback={<Loading />}><SkillLibrary /></Suspense>;
+  return <Forward to="/library" />;
 }

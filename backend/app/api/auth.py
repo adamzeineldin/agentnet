@@ -12,8 +12,8 @@ import secrets
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.responses import RedirectResponse, Response
 
-from app.api.deps import SESSION_COOKIE, auth_required, current_user, get_registry
-from app.config import PUBLIC_URL, SESSION_DAYS, SESSION_SECRET
+from app.api.deps import SESSION_COOKIE, auth_required, current_user, get_registry, password_enabled
+from app.config import APP_URL, PUBLIC_URL, SESSION_DAYS, SESSION_SECRET
 from app.models.user import AuthConfig, Provider, PublicUser, User
 from app.services.auth import providers
 from app.services.auth.sessions import safe_next, sign, verify
@@ -28,6 +28,11 @@ STATE_TTL_S = 600
 
 def _origin(request: Request) -> str:
     return PUBLIC_URL or str(request.base_url).rstrip("/")
+
+
+def _app_origin(request: Request) -> str:
+    """Where the pages live; the OAuth callback itself always comes back to the API (_origin)."""
+    return APP_URL or _origin(request)
 
 
 def _redirect_uri(request: Request, provider: str) -> str:
@@ -47,15 +52,24 @@ def _provider(provider: str) -> providers.ProviderConfig:
     return cfg
 
 
+def public(user: User) -> PublicUser:
+    return PublicUser(user_id=user.user_id, provider=user.provider, name=user.name, avatar_url=user.avatar_url)
+
+
+def start_session(res: Response, request: Request, user: User) -> None:
+    """Set the signed session cookie that keeps `user` signed in."""
+    res.set_cookie(SESSION_COOKIE, sign({"uid": user.user_id}, SESSION_SECRET, SESSION_DAYS * 86400),
+                   max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax", secure=_secure(request), path="/")
+
+
 @router.get("/config", response_model=AuthConfig)
 def config() -> AuthConfig:
-    return AuthConfig(providers=sorted(providers.configured()), required=auth_required())
+    return AuthConfig(providers=sorted(providers.configured()), password=password_enabled(), required=auth_required())
 
 
 @router.get("/me", response_model=PublicUser | None)
 def me(user: User | None = Depends(current_user)) -> PublicUser | None:
-    return PublicUser(user_id=user.user_id, provider=user.provider, name=user.name,
-                      avatar_url=user.avatar_url) if user else None
+    return public(user) if user else None
 
 
 @router.get("/login/{provider}")
@@ -81,7 +95,7 @@ def callback(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Sign-in expired or was started elsewhere; try again.")
     next_path = safe_next(saved.get("next"))
     if error or not code:
-        return RedirectResponse(f"{_origin(request)}{next_path}", status.HTTP_302_FOUND)
+        return RedirectResponse(f"{_app_origin(request)}{next_path}", status.HTTP_302_FOUND)
     try:
         profile = providers.fetch_profile(cfg, code, _redirect_uri(request, provider))
     except (providers.OAuthError, ValueError) as exc:
@@ -95,10 +109,9 @@ def callback(
         avatar_url=profile.avatar_url, created_at=existing.created_at if existing else now, last_login_at=now,
     ))
     log.info("Signed in %s", user.user_id)
-    res = RedirectResponse(f"{_origin(request)}{next_path}", status.HTTP_302_FOUND)
+    res = RedirectResponse(f"{_app_origin(request)}{next_path}", status.HTTP_302_FOUND)
     res.delete_cookie(STATE_COOKIE, path="/api/auth")
-    res.set_cookie(SESSION_COOKIE, sign({"uid": user.user_id}, SESSION_SECRET, SESSION_DAYS * 86400),
-                   max_age=SESSION_DAYS * 86400, httponly=True, samesite="lax", secure=_secure(request), path="/")
+    start_session(res, request, user)
     return res
 
 

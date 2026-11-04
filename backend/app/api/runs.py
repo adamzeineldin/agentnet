@@ -15,7 +15,7 @@ from app.services.jobs import SimulationWorker, create_run, run_guarded
 from app.services.live import LIVE
 from app.services.skill_discovery import PLANNER_NAME, discover_skill
 from app.services.task_families import TASK_TYPES
-from app.services.registry import Registry
+from app.services.registry import Registry, run_scene_id
 
 router = APIRouter(prefix="/api/runs", tags=["runs"])
 POLL_SECONDS = 0.3
@@ -35,6 +35,9 @@ def _require_run(registry: Registry, run_id: str) -> RunRecord:
 def compact(run: RunRecord) -> RunRecord:
     """The run without its event log and bulky results (candidate paths, traces, reasoning)."""
     small = {k: run.results[k] for k in COMPACT_RESULT_KEYS if k in run.results}
+    scene = run_scene_id(run)
+    if scene:
+        small["scene_id"] = scene
     return run.model_copy(update={"events": run.events[-1:], "results": small, "candidate_summaries": []})
 
 
@@ -43,17 +46,20 @@ def list_runs(
     run_type: str | None = None,
     robot_id: str | None = None,
     run_status: str | None = None,
+    family: str | None = None,
+    scene_id: str | None = None,
     limit: int = 50,
     offset: int = 0,
     full: bool = True,
     registry: Registry = Depends(get_registry),
 ) -> list[RunRecord]:
-    """Newest first. run_status: a status, or "running" for every unfinished run. full=false returns compact runs."""
+    """Newest first. run_status: a status, or "running" for every unfinished run. family / scene_id: a task type or
+    one layout. full=false returns compact runs, whose results carry the run's scene_id."""
     running = run_status == "running"
     runs = registry.list_runs(
         run_type=run_type, robot_id=robot_id, limit=min(max(limit, 1), 500), offset=max(offset, 0),
         statuses=[run_status] if run_status and not running else None,
-        exclude_statuses=TERMINAL_STATUSES if running else None,
+        exclude_statuses=TERMINAL_STATUSES if running else None, family=family, scene_id=scene_id,
     )
     return runs if full else [compact(r) for r in runs]
 
