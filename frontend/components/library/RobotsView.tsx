@@ -39,7 +39,7 @@ function FleetCard({ robot, skills, onOpen }: { robot: RobotSummary; skills: num
             <span className="truncate font-medium">{robot.short_name}</span>
             {robot.visibility === "private" && <PrivateBadge />}
           </div>
-          <div className="truncate text-xs text-ink-3">{robot.maker}</div>
+          <div className="truncate text-xs text-ink-3">{robot.published_by ? `Shared by ${robot.mine ? "you" : robot.published_by}` : robot.maker}</div>
         </div>
         <span className="shrink-0 text-xs text-ink-3">{skills} {skills === 1 ? "skill" : "skills"}</span>
       </div>

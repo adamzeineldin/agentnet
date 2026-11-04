@@ -3,6 +3,7 @@ public or private carries what must change with it, refusing changes that would 
 
 from __future__ import annotations
 
+import itertools
 import sqlite3
 import time
 import uuid
@@ -86,12 +87,21 @@ def _wait(person: Person, run_id: str, timeout: float = 120.0) -> dict:
     raise TimeoutError(run_id)
 
 
-def _saved_skill(registry: Registry, owner: str | None, robot: str = "panda_01", parent: str | None = None):
-    """A succeeded discover run of `owner` with a verified skill saved from it (no simulation needed)."""
-    run = create_run(registry, "discover", 7, "test", source_robot_id=robot, owner_id=owner)
+_LAYOUTS = itertools.count(100)
+
+
+def _saved_skill(registry: Registry, owner: str | None, robot: str = "panda_01", parent: str | None = None,
+                 seed: int | None = None, route: str = "far_side", seconds: float = 1.0):
+    """A succeeded discover run of `owner` with a verified skill saved from it (no simulation needed).
+
+    Each skill gets its own layout unless `seed` is given, so tests do not collide with the no-duplicates rule."""
+    seed = next(_LAYOUTS) if seed is None else seed
+    run = create_run(registry, "discover", seed, "test", source_robot_id=robot, owner_id=owner)
     skill_id = f"skill_{uuid.uuid4().hex[:8]}"
-    draft = factories.capsule(skill_id, robot=robot, parent=parent, lineage=(parent,) if parent else ())
-    draft = draft.model_copy(update={"provenance": {"run_id": run.run_id}})
+    draft = factories.capsule(skill_id, robot=robot, seed=seed, route=route, parent=parent,
+                              lineage=(parent,) if parent else ())
+    draft = draft.model_copy(update={"provenance": {"run_id": run.run_id},
+                                     "validation": draft.validation.model_copy(update={"simulated_seconds": seconds})})
     registry.save_run(run.model_copy(update={"status": "succeeded",
                                              "results": {"capsule_draft": draft.model_dump(mode="json")}}))
     return publish_from_run(registry, run.run_id)
@@ -260,3 +270,52 @@ def test_an_old_database_gains_the_columns_and_reads_as_public(tmp_path):
     old = registry.get_run("run_old", viewer=None)
     assert old is not None and old.visibility == "public" and old.owner_id is None
     assert [r.run_id for r in registry.list_runs(viewer="someone")] == ["run_old"]
+
+
+# ---------------------------------------------------------------- no duplicates, and who shared what
+def test_making_public_records_who_shared_it_and_private_clears_it(client, ada, bob):
+    skill = _saved_skill(client.app.state.registry, ada.user_id)
+    assert _change(ada, "skill", skill.skill_id, "public", confirm=True).status_code == 200
+    seen = bob.get(f"/api/skills/{skill.skill_id}").json()["capsule"]
+    assert seen["published_by"] == "Ada" and seen["published_at"]
+    run = bob.get(f"/api/runs/{skill.provenance['run_id']}").json()
+    assert run["published_by"] == "Ada"  # the run went public with it, under the same name
+    assert _change(ada, "skill", skill.skill_id, "private", confirm=True).status_code == 200
+    mine = ada.get(f"/api/skills/{skill.skill_id}").json()["capsule"]
+    assert mine["published_by"] is None and mine["published_at"] is None
+
+
+def test_a_second_public_skill_for_the_same_robot_and_layout_must_be_better(client, ada, bob):
+    registry = client.app.state.registry
+    first = _saved_skill(registry, ada.user_id, seed=900)
+    _change(ada, "skill", first.skill_id, "public", confirm=True)
+
+    same = _saved_skill(registry, bob.user_id, seed=900)
+    r = _change(bob, "skill", same.skill_id, "public", confirm=True)
+    assert r.status_code == 409
+    assert "already has the Panda's skill on" in r.json()["detail"] and "(shared by Ada)" in r.json()["detail"]
+    assert registry.get_skill(same.skill_id).visibility == "private"  # nothing changed, its run included
+    assert registry.get_run(same.provenance["run_id"]).visibility == "private"
+
+    faster = _saved_skill(registry, bob.user_id, seed=900, seconds=0.5)
+    assert _change(bob, "skill", faster.skill_id, "public", confirm=True).status_code == 200
+    # Another robot on the same layout is not a duplicate.
+    other = _saved_skill(registry, bob.user_id, robot="ur5e_01", seed=900)
+    assert _change(bob, "skill", other.skill_id, "public", confirm=True).status_code == 200
+
+
+def test_the_same_robot_model_is_made_public_only_once(client, ada, bob):
+    model = b"<mujoco><worldbody><body name='puck'><freejoint/><geom size='0.1'/></body></worldbody></mujoco>"
+
+    def store(person: Person, name: str) -> str:
+        r = person.post("/api/robots/upload", params={"name": name, "filename": "puck.xml", "mode": "model_only"},
+                        content=model)
+        assert r.status_code == 201, r.text
+        return r.json()["model"]["robot_id"]
+
+    adas, bobs = store(ada, "Puck"), store(bob, "Hockey puck")
+    assert _change(ada, "robot", adas, "public").status_code == 200
+    r = _change(bob, "robot", bobs, "public")
+    assert r.status_code == 409 and "already public as the Puck (shared by Ada)" in r.json()["detail"]
+    shown = {m["robot_id"]: m for m in client.get("/api/robots/models").json()}
+    assert shown[adas]["published_by"] == "Ada" and bobs not in shown

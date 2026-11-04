@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 import { ApiError, changeVisibility } from "@/lib/api";
+import { fmtDate, fmtDateTime } from "@/lib/format";
 import type { SharedKind, Visibility, VisibilityPlan } from "@/lib/types";
 import { ErrorNote } from "../ui";
+
+/** "Shared by Ada · Nov 4": who made an item public and when. Nothing for private work or work from before accounts. */
+export function SharedBy({ by, at, mine, className = "" }: {
+  by?: string | null; at?: string | null; mine?: boolean; className?: string;
+}) {
+  if (!by) return null;
+  return (
+    <span className={`text-xs text-ink-3 ${className}`} title={at ? `Made public ${fmtDateTime(at)}` : undefined}>
+      Shared by {mine ? "you" : by}{at ? ` · ${fmtDate(at)}` : ""}
+    </span>
+  );
+}
 
 /** A small "Private" marker for lists: only the owner ever sees private work, so it always means "only you". */
 export function PrivateBadge() {

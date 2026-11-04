@@ -127,6 +127,8 @@ class RobotSummary(_Frozen):
     # Uploaded arms can be private to their uploader (models/sharing.py); catalog arms are always public.
     visibility: Visibility = "public"
     mine: bool = False
+    published_by: str | None = None
+    published_at: datetime | None = None
 
 
 class StoredModel(_Frozen):
@@ -141,8 +143,12 @@ class StoredModel(_Frozen):
     snapshot_url: str
     created_at: datetime
     uploaded_by: str | None = None
+    # passports.model_dir_hash of the stored folder: the same model is only made public once.
+    model_hash: str | None = None
     visibility: Visibility = "public"
     mine: bool = False
+    published_by: str | None = None
+    published_at: datetime | None = None
 
 
 class CatalogEntry(_Frozen):
@@ -159,3 +165,5 @@ class CatalogEntry(_Frozen):
     # Uploaded arms can be private to their uploader (models/sharing.py); catalog arms are always public.
     visibility: Visibility = "public"
     mine: bool = False
+    published_by: str | None = None
+    published_at: datetime | None = None

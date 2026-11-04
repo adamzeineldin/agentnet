@@ -28,4 +28,4 @@ def change_visibility(
         raise HTTPException(exc.status_code, str(exc)) from exc
     if change.also and not body.confirm:
         raise HTTPException(status.HTTP_409_CONFLICT, change.model_dump(mode="json"))
-    return sharing.apply(registry, change)
+    return sharing.apply(registry, change, user.name)

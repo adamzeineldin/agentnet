@@ -15,7 +15,7 @@ import type { LibraryQuery } from "./query";
 import { RunList } from "./RunList";
 import { LIST, SkillRow } from "./SkillList";
 import { robotSkillCounts } from "./spread";
-import { VisibilityControl } from "./Visibility";
+import { SharedBy, VisibilityControl } from "./Visibility";
 
 const SKILL_PAGE = 10;
 
@@ -63,6 +63,7 @@ export function RobotPage({ robot, robots, groups, layoutName, onChange, onShare
               <span className="rounded-full bg-panel-2 px-2.5 py-1">{robot.model_source.startsWith("uploaded") ? "Uploaded model" : `${robot.maker} model`}</span>
               <span className="rounded-full bg-panel-2 px-2.5 py-1">{handName(robot.tool_type)}</span>
             </div>
+            <SharedBy by={robot.published_by} at={robot.published_at} mine={robot.mine} className="mt-2 block" />
           </div>
           <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
             <Fact label="Joints" value={robot.dof} meaning="Motors that can turn. More joints means more ways to reach the same spot." />

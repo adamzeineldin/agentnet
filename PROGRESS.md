@@ -536,7 +536,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   fallback. Checked with one real call: Muse answered (1240 reasoning tokens), match "none". When nothing fits,
   "Design a new task for this" is now the primary button (still a user click, never automatic).
 
-## Cloud Library, phase 1: Postgres + R2 storage 🟡 (2026-11-04)
+## Cloud Library, phase 1: Postgres + R2 storage ✅ (2026-11-04)
 - ✅ `DATABASE_URL` puts the registry on Postgres (psycopg 3, pre-ping for Neon); SQLite stays the local default.
 - ✅ `NIMBOTICS_S3_*` file store (`services/storage.py`, R2 or any S3 bucket): run folders pushed after each run,
   snapshots after each passport, uploaded robots before they are recorded (store down → 503, nothing added) and
@@ -548,8 +548,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   run video to the bucket (same 39 232 bytes) and pushed a new motion check's `motion.mp4` + `final.png`.
 - ✅ `make test` 411 passed (new `test_cloud_storage.py`: moto S3, /artifacts fallback, upload survives a lost disk,
   store-down upload refused, copy re-run; the Postgres case ran against Docker Postgres), `make smoke` pass.
-- ⬜ Real Neon + R2 accounts (the user creates them; then `make_bucket.py --check` with the real keys and the copy
-  in deploy/README "Cloud Library"). Phases 2–4 (private workspaces, catalog arms in the store, more robot kinds).
+- ✅ Real Neon + R2 in use on nimbotics.net since 2026-11-04 (see "Cloud Library live" below).
 - ✅ Lab run view decluttered and in 3D (D96): the MuJoCo recording beside a three.js view of the stored task
   (obstacles, start, target, robot base, every route; drag to turn), one line of counts, "watch a try" buttons, and
   everything else in one closed "How it was found" section. The "Or pick" chip row is gone; the chosen task shows as
@@ -557,7 +556,7 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   phone width and in dark mode; e2e 20/20.
 
 ## Cloud Library, phase 2: private workspaces ✅ (2026-11-04)
-- ✅ Owner + visibility on runs, skills and uploaded robots (DECISIONS D96). New signed-in work starts private; old and
+- ✅ Owner + visibility on runs, skills and uploaded robots (DECISIONS D101). New signed-in work starts private; old and
   signed-out work stays public; existing databases gain the columns at startup.
 - ✅ Every read is filtered by viewer: run/skill/robot lists and pages, live frames, event streams, transfers, improve,
   library check and scout; shared reports, the demo story and the task designer use public work only. `/artifacts`
@@ -600,3 +599,13 @@ Legend: ✅ done & verified · 🟡 partial · ⬜ not started
   "All · My library" toggle (signed in), one Filters panel (known by, robot, task type, clear; a count badge when any
   is on) and a Sort menu. A "known by" choice now also shows as a removable token in the search bar. Checked in the
   browser at 1280 px and 375 px (panels open over the list, no sideways scroll, Escape returns focus).
+
+## Cloud Library live, no duplicate sharing, "Shared by" ✅ (2026-11-04)
+- ✅ nimbotics.net runs on Neon Postgres + private R2 (checked from inside the container: postgresql, store configured).
+  Copied: 32 runs, 7 skills, 5 passports, 105 files, 10 catalog arms; real R2 passed write/list/read/delete.
+- 🐞 A local `.env` holding the production DATABASE_URL (pasted from Neon's "Copy .env") let a local `make transfer`
+  write 2 runs + 2 skills (no videos) into production, and a local dev backend connect to it. Removed the lines and
+  restarted the local backend on SQLite; the 2 stray runs remain for the user to delete (SQL given).
+- ✅ Public sharing refuses duplicates (same robot + layout unless measurably better; the same robot model) and records
+  who shared what (D102). `make test` 437 passed, `make smoke` pass, tsc + eslint clean; browser check: a robot made
+  public shows "Shared by you" to its owner and "Shared by Ada" to signed-out visitors.

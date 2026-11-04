@@ -3,7 +3,7 @@
 import { apiUrl } from "@/lib/api";
 import type { StoredModel } from "@/lib/types";
 import { Disclosure } from "../ui";
-import { PrivateBadge, VisibilityControl } from "./Visibility";
+import { PrivateBadge, SharedBy, VisibilityControl } from "./Visibility";
 
 interface ModelCardProps {
   model: StoredModel;
@@ -25,6 +25,7 @@ export function ModelCard({ model, onShared }: ModelCardProps) {
         <p className="text-xs text-ink-3" title="Stored and shown, but it cannot run tasks: no arm was chosen for it.">
           Model only · {model.joints} joints · {model.bodies} parts
         </p>
+        <SharedBy by={model.published_by} at={model.published_at} mine={model.mine} className="block" />
         <Disclosure summary="What was read from it" hint={model.uploaded_by ?? undefined}>
           <ul className="list-disc space-y-0.5 pl-5 text-xs text-ink-2">{model.notes.map((n) => <li key={n}>{n}</li>)}</ul>
         </Disclosure>

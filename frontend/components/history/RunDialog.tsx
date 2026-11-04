@@ -10,7 +10,7 @@ import { RunScreen } from "../run/RunScreen";
 import { EventLog, RunEvidence } from "../RunEvidence";
 import { describeDiscover, describeTransfer } from "../transfer/describe";
 import { ProviderBadge } from "../transfer/ImaginationPanel";
-import { VisibilityControl } from "../library/Visibility";
+import { SharedBy, VisibilityControl } from "../library/Visibility";
 import { Badge, Disclosure, ErrorNote, Loading } from "../ui";
 import { RUN_KIND } from "./runKinds";
 
@@ -128,6 +128,7 @@ export function RunDialog({ runId, robots, onClose, onShowSkill }: RunDialogProp
           {run && <p className="mt-0.5 truncate text-xs text-ink-3">
             {[run.source_robot_id, run.target_robot_id].filter(Boolean).map(name).join(" → ") || "all robots"} · layout {run.task_seed} · {run.run_id}
           </p>}
+          {run && <SharedBy by={run.published_by} at={run.published_at} mine={run.mine} className="mt-0.5 block" />}
         </div>
         <div className="flex shrink-0 flex-wrap justify-end gap-2">
           {skillScene && onShowSkill && (

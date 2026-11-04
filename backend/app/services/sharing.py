@@ -7,16 +7,23 @@ A public item may not lean on something private, so:
   private also makes private the owner's public items that use it. If someone else's work uses it (their skill
           adapted from it, their run on the robot), the change is refused: their Library pages would break.
 Only the owner changes visibility; work with no owner (sign-in off, before accounts) stays public.
+
+No duplicates in the public Library: a skill for a robot and layout that already has a public skill goes public only
+if it is measurably better than each of them (librarian.check.judge, the "Improve this skill" rule), and an uploaded
+robot whose model (passports.model_dir_hash) is already public is refused. Making something public records who did
+it (their public display name) and when; making it private clears both.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
+from app.models.robot import StoredModel
 from app.models.run import RunRecord
 from app.models.sharing import ItemKind, SharedItem, Visibility, VisibilityPlan
 from app.models.skill import ExperienceCapsule
-from app.services.registry import Registry
+from app.services.librarian.check import judge
+from app.services.registry import Registry, utcnow
 from app.services.robot_catalog import ROBOTS
 
 # Dependents are found by scanning runs; enough for every run the registry holds today.
@@ -49,7 +56,20 @@ class _Index:
         self.runs = {r.run_id: r for r in registry.list_runs(limit=SCAN_LIMIT)}
         self.skills = {s.skill_id: s for s in registry.list_skills()}
         self.robots = registry.robot_access()
+        self.publishers = registry.robot_publishers()
+        self.models = {m.robot_id: m for m in (StoredModel.model_validate_json(r.facts_json)
+                                               for r in registry.stored_models())}
         self.skill_of_run = {s.provenance.get("run_id"): s for s in self.skills.values()}
+
+    def model_hash(self, robot_id: str) -> str | None:
+        """The stored folder's hash of an uploaded robot (its passport for an arm, its facts for a stored model)."""
+        if robot_id in self.models:
+            return self.models[robot_id].model_hash
+        passport = self.registry.get_passport(robot_id)
+        return passport.model_hash if passport else None
+
+    def robot_name(self, robot_id: str) -> str:
+        return self.models[robot_id].name if robot_id in self.models else _robot_name(robot_id)
 
     def node(self, kind: ItemKind, item_id: str) -> _Node | None:
         if kind == "run" and (run := self.runs.get(item_id)):
@@ -109,7 +129,38 @@ def plan(registry: Registry, kind: ItemKind, item_id: str, visibility: Visibilit
         raise SharingError(403, f"Only the owner of this {kind} can change who sees it.")
     step = index.uses if visibility == "public" else index.used_by
     also = _closure(node, step, visibility, user_id)
+    if visibility == "public":
+        for n in (node, *also):
+            problem = _duplicate(index, n)
+            if problem:
+                raise SharingError(409, problem)
     return VisibilityPlan(item=node.item(), visibility=visibility, also=[n.item() for n in also])
+
+
+def _shared_by(name: str | None) -> str:
+    return f" (shared by {name})" if name else ""
+
+
+def _duplicate(index: _Index, node: _Node) -> str | None:
+    """Why making node public would duplicate the public Library, or None."""
+    if node.kind == "skill":
+        skill = index.skills[node.id]
+        for rival in index.skills.values():
+            if (rival.visibility != "public" or rival.skill_id == skill.skill_id
+                    or rival.source_robot_id != skill.source_robot_id or rival.task.scene_id != skill.task.scene_id):
+                continue
+            verdict = judge(rival, skill)
+            if not verdict.better:
+                return (f"The public Library already has the {_robot_name(skill.source_robot_id)}'s skill on "
+                        f"{skill.task.scene_id}{_shared_by(rival.published_by)}, and this one is not measurably "
+                        f"better: {' '.join(verdict.reasons)} It stays private.")
+    if node.kind == "robot":
+        digest = index.model_hash(node.id)
+        for other, (_, visibility) in index.robots.items():
+            if other != node.id and visibility == "public" and digest and index.model_hash(other) == digest:
+                return (f"This model is already public as the {index.robot_name(other)}"
+                        f"{_shared_by(index.publishers.get(other, (None, None))[0])}. It stays private.")
+    return None
 
 
 def _closure(start: _Node, step, visibility: Visibility, user_id: str) -> list[_Node]:  # noqa: ANN001 - a method
@@ -138,15 +189,19 @@ def _blocked(node: _Node, visibility: Visibility) -> str:
     return f"Someone else's work uses it ({node.label}), so it has to stay public."
 
 
-def apply(registry: Registry, change: VisibilityPlan) -> VisibilityPlan:
+def apply(registry: Registry, change: VisibilityPlan, published_by: str | None) -> VisibilityPlan:
+    """Change every item in the plan; public items record published_by (a display name) and the time."""
+    public = change.visibility == "public"
+    by, at = (published_by, utcnow()) if public else (None, None)
     for item in [change.item, *change.also]:
         if item.kind == "run":
             run = registry.get_run(item.id)
-            registry.save_run(run.model_copy(update={"visibility": change.visibility}))
+            registry.save_run(run.model_copy(update={"visibility": change.visibility, "published_by": by,
+                                                     "published_at": at}))
         elif item.kind == "skill":
-            registry.set_skill_visibility(item.id, change.visibility)
+            registry.set_skill_visibility(item.id, change.visibility, by, at)
         else:
-            registry.set_robot_visibility(item.id, change.visibility)
+            registry.set_robot_visibility(item.id, change.visibility, by, at)
     return change.model_copy(update={"applied": True})
 
 

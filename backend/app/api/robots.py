@@ -31,9 +31,9 @@ def list_robots(
 ) -> list[RobotSummary]:
     """The fleet the viewer may use: catalog arms, public uploads and their own private uploads.
     mine=true: only robots the viewer uploaded."""
-    access = registry.robot_access()
+    access, publishers = registry.robot_access(), registry.robot_publishers()
     passports = [registry.get_passport(rid) for rid in fleet.fleet_ids(registry, viewer)]
-    robots = [fleet.summarize(p, access, viewer) for p in passports if p is not None]
+    robots = [fleet.summarize(p, access, viewer, publishers) for p in passports if p is not None]
     return [r for r in robots if r.mine] if mine else robots
 
 

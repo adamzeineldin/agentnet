@@ -7,6 +7,7 @@ objects so callers never touch ORM state.
 from __future__ import annotations
 
 from collections.abc import Collection
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -99,6 +100,8 @@ class UploadedRobotRow(Base):
     owner_id: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     visibility: Mapped[str] = mapped_column(String, index=True, default="public")
     kind: Mapped[str] = mapped_column(String, default="arm")
+    published_by: Mapped[str | None] = mapped_column(String, nullable=True)
+    published_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class DesignedTaskRow(Base):
@@ -152,8 +155,9 @@ _SHARING_COLUMNS = {"owner_id": "VARCHAR", "visibility": "VARCHAR NOT NULL DEFAU
 _ADDED_COLUMNS = {
     "runs": _SHARING_COLUMNS,
     "skills": _SHARING_COLUMNS,
-    # kind: "arm" (a fleet robot) or "model_only" (stored and shown, cannot run tasks).
-    "uploaded_robots": {**_SHARING_COLUMNS, "kind": "VARCHAR NOT NULL DEFAULT 'arm'"},
+    # kind: "arm" (a fleet robot) or "model_only" (stored and shown, cannot run tasks); who made it public, when.
+    "uploaded_robots": {**_SHARING_COLUMNS, "kind": "VARCHAR NOT NULL DEFAULT 'arm'", "published_by": "VARCHAR",
+                        "published_at": "TIMESTAMP WITH TIME ZONE"},
 }
 
 
@@ -167,6 +171,15 @@ def upgrade_schema(engine: Engine) -> None:
                 if name not in have:
                     conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
                     conn.execute(text(f"CREATE INDEX IF NOT EXISTS ix_{table}_{name} ON {table} ({name})"))
+
+
+@dataclass(frozen=True)
+class StoredModelRow:
+    facts_json: str
+    owner_id: str | None
+    visibility: str
+    published_by: str | None
+    published_at: datetime | None
 
 
 class _Everyone:
@@ -303,13 +316,15 @@ class Registry:
             )
         return capsule
 
-    def set_skill_visibility(self, skill_id: str, visibility: Visibility) -> None:
+    def set_skill_visibility(self, skill_id: str, visibility: Visibility, published_by: str | None = None,
+                             published_at: datetime | None = None) -> None:
         with self._tx() as s:
             row = s.get(SkillRow, skill_id)
             if row is None:
                 raise KeyError(skill_id)
             row.visibility = visibility
-            row.payload = {**row.payload, "visibility": visibility}
+            row.payload = {**row.payload, "visibility": visibility, "published_by": published_by,
+                           "published_at": published_at.isoformat() if published_at else None}
 
     def get_skill(self, skill_id: str, viewer: Viewer = EVERYONE) -> ExperienceCapsule | None:
         with self._session() as s:
@@ -370,24 +385,33 @@ class Registry:
             s.merge(UploadedRobotRow(robot_id=robot_id, decl=decl_json, created_at=utcnow(), owner_id=owner_id,
                                      visibility=visibility, kind=kind))
 
-    def stored_models(self, viewer: Viewer = EVERYONE) -> list[tuple[str, str | None, str]]:
-        """(facts JSON, owner id, visibility) of every model-only upload viewer may see, newest first."""
+    def stored_models(self, viewer: Viewer = EVERYONE) -> list[StoredModelRow]:
+        """Every model-only upload viewer may see, newest first."""
         stmt = _where_visible(select(UploadedRobotRow).where(UploadedRobotRow.kind == "model_only")
                               .order_by(UploadedRobotRow.created_at.desc()), UploadedRobotRow, viewer)
         with self._session() as s:
-            return [(r.decl, r.owner_id, r.visibility) for r in s.scalars(stmt)]
+            return [StoredModelRow(r.decl, r.owner_id, r.visibility, r.published_by, r.published_at)
+                    for r in s.scalars(stmt)]
+
+    def robot_publishers(self) -> dict[str, tuple[str | None, datetime | None]]:
+        """Uploaded robot id -> (who made it public, when); catalog arms have no entry."""
+        with self._session() as s:
+            return {r.robot_id: (r.published_by, r.published_at) for r in s.scalars(select(UploadedRobotRow))}
 
     def robot_access(self) -> dict[str, tuple[str | None, str]]:
         """Uploaded robot id -> (owner id, visibility). Catalog arms have no entry: they are public."""
         with self._session() as s:
             return {r.robot_id: (r.owner_id, r.visibility) for r in s.scalars(select(UploadedRobotRow))}
 
-    def set_robot_visibility(self, robot_id: str, visibility: Visibility) -> None:
+    def set_robot_visibility(self, robot_id: str, visibility: Visibility, published_by: str | None = None,
+                             published_at: datetime | None = None) -> None:
         with self._tx() as s:
             row = s.get(UploadedRobotRow, robot_id)
             if row is None:
                 raise KeyError(robot_id)
             row.visibility = visibility
+            row.published_by = published_by
+            row.published_at = published_at
 
     def save_designed_task(self, family: str, goal_key: str, design_json: str) -> None:
         with self._tx() as s:

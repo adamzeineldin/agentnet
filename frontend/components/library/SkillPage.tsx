@@ -16,7 +16,7 @@ import type { LibraryQuery } from "./query";
 import { RunList } from "./RunList";
 import { LIST } from "./SkillList";
 import { spreadOf } from "./spread";
-import { VisibilityControl } from "./Visibility";
+import { SharedBy, VisibilityControl } from "./Visibility";
 
 const SHOWN_ROBOTS = 6;
 const SHOWN_MISSING = 8;
@@ -116,6 +116,8 @@ export function SkillPage({ group, robots, onChange, onShared }: SkillPageProps)
               <button type="button" onClick={() => onChange({ view: "robots", open: shown.robotId })} className="text-xs text-accent hover:underline">
                 Robot page →</button>
             </div>
+            <SharedBy by={shown.latest.published_by} at={shown.latest.published_at} mine={shown.latest.mine}
+              className="mb-2 block" />
             {shown.latest.mine && (
               <div className="mb-3">
                 <VisibilityControl key={shown.latest.skill_id} kind="skill" id={shown.latest.skill_id}

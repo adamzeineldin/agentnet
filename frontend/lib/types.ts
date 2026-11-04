@@ -26,6 +26,9 @@ export interface RobotSummary {
   visibility: Visibility;
   /** The signed-in viewer uploaded it. */
   mine: boolean;
+  /** Who made it public (their public name) and when; null while private or from before accounts. */
+  published_by?: string | null;
+  published_at?: string | null;
 }
 
 export interface JointInfo {
@@ -146,6 +149,9 @@ export interface RunRecord {
   visibility: Visibility;
   /** The signed-in viewer started it. */
   mine: boolean;
+  /** Who made it public (their public name) and when; null while private or from before accounts. */
+  published_by?: string | null;
+  published_at?: string | null;
 }
 
 export const TERMINAL: ReadonlySet<RunStatus> = new Set(["succeeded", "failed"]);
@@ -214,6 +220,9 @@ export interface ExperienceCapsule {
   visibility: Visibility;
   /** The signed-in viewer saved it. */
   mine: boolean;
+  /** Who made it public (their public name) and when; null while private or from before accounts. */
+  published_by?: string | null;
+  published_at?: string | null;
 }
 
 export interface SkillDetail { capsule: ExperienceCapsule; ancestors: ExperienceCapsule[]; children: ExperienceCapsule[] }
@@ -396,6 +405,7 @@ export interface RealReplayResults {
 export interface CatalogEntry {
   robot_id: string; display_name: string; short_name: string; maker: string; model_source: string;
   in_fleet: boolean; default_fleet: boolean; visibility: Visibility; mine: boolean;
+  published_by?: string | null; published_at?: string | null;
 }
 
 /** Private work is seen only by its owner; public work is in everyone's Library. Catalog arms are always public. */
@@ -419,6 +429,7 @@ export interface UploadResult { robot: RobotSummary | null; model: StoredModel |
 export interface StoredModel {
   robot_id: string; name: string; joints: number; bodies: number; notes: string[]; snapshot_url: string;
   created_at: string; uploaded_by: string | null; visibility: Visibility; mine: boolean;
+  published_by?: string | null; published_at?: string | null;
 }
 /** One limb that could be the arm; send `tool` back to pick it. */
 export interface ArmOption { tool: string; joints: number }

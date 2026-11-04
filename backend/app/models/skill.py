@@ -126,3 +126,6 @@ class ExperienceCapsule(_Frozen):
     visibility: Visibility = "public"
     owner_id: str | None = Field(default=None, exclude=True)
     mine: bool = False
+    # Who made it public (their public display name) and when; None while private or from before accounts.
+    published_by: str | None = None
+    published_at: datetime | None = None

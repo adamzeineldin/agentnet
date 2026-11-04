@@ -110,13 +110,18 @@ def add_robot(worker: SimulationWorker, registry: Registry, robot_id: str, added
     return passport
 
 
-def summarize(passport: RobotPassport, access: RobotAccess | None = None, viewer: Viewer = None) -> RobotSummary:
-    """The fleet card. With access (registry.robot_access) it says the arm's visibility and whether viewer owns it."""
+def summarize(passport: RobotPassport, access: RobotAccess | None = None, viewer: Viewer = None,
+              publishers: dict | None = None) -> RobotSummary:
+    """The fleet card. With access (registry.robot_access) it says the arm's visibility and whether viewer owns it;
+    with publishers (registry.robot_publishers), who made an uploaded arm public and when."""
     decl = ROBOTS.get(passport.robot_id)
     owner, visibility = (access or {}).get(passport.robot_id, (None, "public"))
+    published_by, published_at = (publishers or {}).get(passport.robot_id, (None, None))
     return RobotSummary(
         visibility=visibility,
         mine=owner is not None and owner == viewer,
+        published_by=published_by,
+        published_at=published_at,
         maker=decl.maker if decl else "",
         controller=decl.controller.kind if decl and decl.controller else None,
         robot_id=passport.robot_id,
@@ -207,7 +212,7 @@ def store_model(worker: SimulationWorker, registry: Registry, filename: str, dat
         _whole_robot_snapshot(model, snapshot_path(robot_id))
         stored = StoredModel(robot_id=robot_id, name=name, joints=uploads.moving_joints(model), bodies=model.nbody - 1,
                              notes=[*described, *notes], snapshot_url=snapshot_url(robot_id), created_at=utcnow(),
-                             uploaded_by=uploaded_by)
+                             uploaded_by=uploaded_by, model_hash=model_dir_hash(folder))
         storage.push_upload(robot_id)
         storage.push_artifact_later(snapshot_path(robot_id))
         registry.save_uploaded_robot(robot_id, stored.model_dump_json(exclude={"visibility", "mine"}), owner_id,
@@ -221,9 +226,10 @@ def store_model(worker: SimulationWorker, registry: Registry, filename: str, dat
 
 
 def stored_models(registry: Registry, viewer: Viewer) -> list[StoredModel]:
-    return [StoredModel.model_validate_json(facts).model_copy(
-                update={"visibility": visibility, "mine": owner is not None and owner == viewer})
-            for facts, owner, visibility in registry.stored_models(viewer)]
+    return [StoredModel.model_validate_json(row.facts_json).model_copy(update={
+                "visibility": row.visibility, "mine": row.owner_id is not None and row.owner_id == viewer,
+                "published_by": row.published_by, "published_at": row.published_at})
+            for row in registry.stored_models(viewer)]
 
 
 def _whole_robot_snapshot(model: mujoco.MjModel, path: Path) -> None:
